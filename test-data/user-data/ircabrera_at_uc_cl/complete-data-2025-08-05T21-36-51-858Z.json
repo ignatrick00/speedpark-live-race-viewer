@@ -1,0 +1,45 @@
+{
+  "email": "ircabrera@uc.cl",
+  "tokens": {
+    "tag": "c8b39bcc-c434-4add-8121-de735e909a1c",
+    "loginCode": "dze6ka8s424ae",
+    "fallbackTag": "2c23fa0f-d1c4-4000-96da-bc769ff27a17"
+  },
+  "extractedAt": "2025-08-05T21:36:46.769Z",
+  "data": {
+    "profile": {
+      "vouchers": [],
+      "personId": "63000000004666919",
+      "alias": "juanito",
+      "firstName": "pepito",
+      "name": "juanito",
+      "bestTime": null,
+      "finishedRaces": 0,
+      "memberSince": null,
+      "firstPlaces": 0,
+      "secondPlaces": 0,
+      "thirdPlaces": 0,
+      "latestRace": null,
+      "allowEdit": true,
+      "weight": null,
+      "height": null,
+      "maxSpeed": null,
+      "deposits": [],
+      "memberships": []
+    },
+    "karting-info": {
+      "clientKey": "speedpark",
+      "backendKey": "c3BlZWRwYXJrOmM3NzFlMzFmLTk5NTItNDBiMC1iOGU3LTZmZjlhZTI1MDhhYw==",
+      "name": "Speed Park Chile",
+      "nonKarting": false
+    },
+    "versions": {
+      "languageVersion": "13390807141041000",
+      "styleVersion": "13184710574213000",
+      "logoVersion": "13370796371172000",
+      "backgroundVersion": "13184770264149000"
+    },
+    "activity-history": [],
+    "sessions": {}
+  }
+}

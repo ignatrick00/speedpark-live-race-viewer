@@ -1,0 +1,16 @@
+RESUMEN DE DATOS EXTRAÍDOS
+Email: ircabrera@uc.cl
+Extraído: 2025-08-05T21:36:46.769Z
+==================================================
+
+PERFIL:
+- Nombre: pepito 
+- Alias: juanito
+- PersonID: 63000000004666919
+
+HISTORIAL DE CARRERAS:
+- Total de carreras: 0
+
+SESIONES DETALLADAS:
+- Sesiones procesadas: 0
+

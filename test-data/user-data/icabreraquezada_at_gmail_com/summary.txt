@@ -1,0 +1,18 @@
+RESUMEN DE DATOS EXTRAÍDOS
+Email: icabreraquezada@gmail.com
+Extraído: 2025-08-06T05:17:46.187Z
+==================================================
+
+PERFIL:
+- Nombre: Ignacio 
+- Alias: Break Pitt
+- PersonID: 63000000000383541
+
+HISTORIAL DE CARRERAS:
+- Total de carreras: 587
+- Primera carrera: 2020-10-02T21:21:23.495
+- Última carrera: 2025-08-02T15:30:55.2058
+
+SESIONES DETALLADAS:
+- Sesiones procesadas: 10
+

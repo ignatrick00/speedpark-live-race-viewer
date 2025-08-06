@@ -1,0 +1,16 @@
+RESUMEN DE DATOS EXTRAÍDOS
+Email: doctorcabreraconsultas@gmail.com
+Extraído: 2025-08-05T23:29:42.331Z
+==================================================
+
+PERFIL:
+- Nombre: Doctor 
+- Alias: speedoc
+- PersonID: 63000000004667012
+
+HISTORIAL DE CARRERAS:
+- Total de carreras: 0
+
+SESIONES DETALLADAS:
+- Sesiones procesadas: 0
+

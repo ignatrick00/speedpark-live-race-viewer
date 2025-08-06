@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏁 Velocity Racing - Live Race Tracker</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600&family=Orbitron:wght@700;900&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ========================================
+           VARIABLES GLOBALES
+           ======================================== */
+        :root {
+            /* Colores del tema */
+            --color-black: #000000;
+            --color-midnight: #0A0B14;
+            --color-rb-blue: #0057B8;
+            --color-electric-blue: #00D4FF;
+            --color-sky-blue: #87CEEB;
+            --color-cyan: #00FFFF;
+            --color-white: #FFFFFF;
+            --color-gold: #FFD700;
+            
+            /* Espaciados consistentes */
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --spacing-2xl: 4rem;
+            
+            /* Border radius estándar */
+            --radius-sm: 0.5rem;
+            --radius-md: 1rem;
+            --radius-lg: 1.25rem;
+            --radius-xl: 1.5rem;
+            --radius-full: 9999px;
+            
+            /* Transiciones */
+            --transition-fast: 150ms;
+            --transition-base: 300ms;
+            --transition-slow: 500ms;
+        }
+
+        /* ========================================
+           RESET Y BASE
+           ======================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--color-black);
+            color: var(--color-white);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ========================================
+           TIPOGRAFÍA GLOBAL
+           ======================================== */
+           
+        /* Títulos principales */
+        h1, .h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            letter-spacing: 0.2rem;
+            background: linear-gradient(135deg, #0057B8, #00D4FF, #87CEEB);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 87, 184, 0.5);
+            margin-bottom: var(--spacing-md);
+        }
+
+        /* Subtítulos de sección */
+        h2, .h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            color: var(--color-white);
+            text-shadow: 
+                0 0 10px rgba(135, 206, 235, 0.8),
+                0 0 20px rgba(0, 87, 184, 0.4);
+            margin-bottom: var(--spacing-md);
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Línea eléctrica bajo h2 */
+        h2::after, .h2::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: -10%;
+            width: 120%;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent,
+                var(--color-electric-blue) 20%,
+                var(--color-white) 50%,
+                var(--color-electric-blue) 80%,
+                transparent
+            );
+            animation: electric-scan 3s linear infinite;
+            filter: blur(1px);
+            box-shadow: 0 0 10px rgba(135, 206, 235, 0.8);
+        }
+
+        /* Subtítulos menores */
+        h3, .h3 {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            color: var(--color-electric-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        /* Texto de párrafo */
+        p {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        /* Labels y texto pequeño */
+        .label, label {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            color: var(--color-sky-blue);
+            text-shadow: 0 0 5px rgba(135, 206, 235, 0.5);
+        }
+
+        /* Números y estadísticas */
+        .stat-number {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            color: var(--color-cyan);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+
+        /* ========================================
+           COMPONENTES BASE
+           ======================================== */
+
+        /* CONTENEDORES */
+        .container-primary {
+            background: linear-gradient(135deg, rgba(0, 87, 184, 0.1), rgba(0, 0, 0, 0.8));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(0, 87, 184, 0.3);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 10px 40px rgba(0, 87, 184, 0.2),
+                inset 0 0 30px rgba(0, 87, 184, 0.05);
+        }
+
+        .container-secondary {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(135, 206, 235, 0.2);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            position: relative;
+        }
+
+        /* CARDS */
+        .card-base {
+            background: linear-gradient(135deg, rgba(0, 87, 184, 0.1), rgba(0, 0, 0, 0.8));
+            backdrop-filter: blur(20px);
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-base) ease;
+        }
+
+        /* Border gradient estático */
+        .card-base::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: var(--radius-lg);
+            padding: 2px;
+            background: linear-gradient(45deg, 
+                var(--color-electric-blue),
+                var(--color-rb-blue),
+                var(--color-sky-blue),
+                var(--color-electric-blue)
+            );
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.5;
+        }
+
+        /* Efecto hover para cards */
+        .card-base:hover {
+            transform: translateY(-4px);
+            box-shadow: 
+                0 20px 60px rgba(0, 87, 184, 0.3),
+                0 0 40px rgba(135, 206, 235, 0.2);
+        }
+
+        /* TABLAS */
+        .table-base {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 var(--spacing-xs);
+        }
+
+        .table-base thead {
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            color: var(--color-sky-blue);
+            text-shadow: 0 0 10px rgba(135, 206, 235, 0.5);
+        }
+
+        .table-base th {
+            padding: var(--spacing-sm);
+            text-align: left;
+            border-bottom: 2px solid rgba(0, 87, 184, 0.3);
+        }
+
+        .table-base tbody tr {
+            background: rgba(0, 0, 0, 0.4);
+            transition: all var(--transition-base) ease;
+        }
+
+        .table-base tbody tr:hover {
+            background: rgba(0, 87, 184, 0.2);
+            transform: translateX(8px);
+            box-shadow: 0 5px 20px rgba(0, 87, 184, 0.3);
+        }
+
+        .table-base td {
+            padding: var(--spacing-sm);
+            border: 1px solid transparent;
+        }
+
+        .table-base tbody tr:hover td {
+            border-color: rgba(0, 212, 255, 0.2);
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-full);
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            font-weight: 600;
+        }
+
+        .badge-gold {
+            background: linear-gradient(135deg, var(--color-gold), #FFFF00);
+            color: var(--color-black);
+            box-shadow: 
+                0 0 30px rgba(255, 215, 0, 0.6),
+                0 0 60px rgba(255, 255, 0, 0.3);
+        }
+
+        .badge-blue {
+            background: linear-gradient(135deg, var(--color-rb-blue), var(--color-electric-blue));
+            color: var(--color-white);
+            box-shadow: 0 0 20px rgba(0, 87, 184, 0.5);
+        }
+
+        .badge-green {
+            background: linear-gradient(135deg, #00FF00, #32CD32);
+            color: var(--color-black);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
+        .badge-red {
+            background: linear-gradient(135deg, #FF0000, #FF4500);
+            color: var(--color-white);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+
+        /* GRID SYSTEM */
+        .grid-base {
+            display: grid;
+            gap: var(--spacing-lg);
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        /* ========================================
+           LAYOUT ESPECÍFICO
+           ======================================== */
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+
+        .race-header {
+            text-align: center;
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .status-live {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            color: var(--color-cyan);
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .status-offline {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            color: #FF6B6B;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--color-cyan);
+            border-radius: 50%;
+            animation: pulse 1s ease-in-out infinite;
+            box-shadow: 0 0 20px var(--color-cyan);
+        }
+
+        .status-dot-offline {
+            width: 12px;
+            height: 12px;
+            background: #FF6B6B;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #FF6B6B;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: var(--spacing-lg);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .position-number {
+            font-size: 2rem;
+            font-weight: 900;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: var(--spacing-sm);
+        }
+
+        .position-1 {
+            background: linear-gradient(135deg, var(--color-gold), #FFFF00);
+            color: var(--color-black);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+        }
+
+        .position-2 {
+            background: linear-gradient(135deg, #C0C0C0, #E5E5E5);
+            color: var(--color-black);
+            box-shadow: 0 0 20px rgba(192, 192, 192, 0.6);
+        }
+
+        .position-3 {
+            background: linear-gradient(135deg, #CD7F32, #D2691E);
+            color: var(--color-white);
+            box-shadow: 0 0 20px rgba(205, 127, 50, 0.6);
+        }
+
+        .position-other {
+            background: rgba(0, 87, 184, 0.3);
+            color: var(--color-white);
+            border: 1px solid var(--color-electric-blue);
+        }
+
+        .driver-row {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-sm);
+        }
+
+        .driver-info {
+            flex: 1;
+        }
+
+        .driver-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+        }
+
+        .driver-details {
+            color: var(--color-sky-blue);
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+
+        .best-time-entry {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: var(--radius-md);
+            border-left: 3px solid;
+            transition: all var(--transition-base) ease;
+        }
+
+        .best-time-entry:hover {
+            background: rgba(0, 87, 184, 0.1);
+            transform: translateX(4px);
+        }
+
+        .best-time-entry.first {
+            border-left-color: var(--color-gold);
+            background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.3));
+        }
+
+        .best-time-entry.second {
+            border-left-color: #C0C0C0;
+            background: linear-gradient(90deg, rgba(192, 192, 192, 0.1), rgba(0, 0, 0, 0.3));
+        }
+
+        .best-time-entry.third {
+            border-left-color: #CD7F32;
+            background: linear-gradient(90deg, rgba(205, 127, 50, 0.1), rgba(0, 0, 0, 0.3));
+        }
+
+        .best-time-info {
+            flex: 1;
+        }
+
+        .best-time-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+        }
+
+        .best-time-details {
+            font-size: 0.8rem;
+            color: var(--color-sky-blue);
+            margin-top: 2px;
+        }
+
+        .best-time-value {
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-align: right;
+        }
+
+        .best-time-entry.first .best-time-value {
+            color: var(--color-gold);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+        }
+
+        .best-time-entry.second .best-time-value {
+            color: #C0C0C0;
+            text-shadow: 0 0 10px rgba(192, 192, 192, 0.6);
+        }
+
+        .best-time-entry.third .best-time-value {
+            color: #CD7F32;
+            text-shadow: 0 0 10px rgba(205, 127, 50, 0.6);
+        }
+
+        .time-display {
+            text-align: right;
+            min-width: 100px;
+        }
+
+        .best-time {
+            color: var(--color-gold);
+            font-weight: 700;
+        }
+
+        .current-time {
+            color: var(--color-electric-blue);
+        }
+
+        .gap-time {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        .connection-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+            justify-content: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .btn {
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: all var(--transition-base) ease;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid;
+            background: rgba(0, 0, 0, 0.8);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .btn-primary {
+            border-color: var(--color-electric-blue);
+            color: var(--color-electric-blue);
+            box-shadow: 
+                0 0 20px rgba(0, 212, 255, 0.3),
+                inset 0 0 20px rgba(0, 87, 184, 0.1);
+        }
+
+        .btn-primary:hover {
+            color: var(--color-white);
+            transform: translateY(-3px);
+            box-shadow: 
+                0 10px 40px rgba(0, 212, 255, 0.5),
+                inset 0 0 30px rgba(0, 212, 255, 0.2);
+        }
+
+        .btn-danger {
+            border-color: #FF6B6B;
+            color: #FF6B6B;
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 107, 107, 0.1);
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.4);
+        }
+
+        /* ========================================
+           ANIMACIONES
+           ======================================== */
+           
+        @keyframes electric-scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(0, 212, 255, 0.8);
+            }
+        }
+
+        @keyframes page-load {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-on-load {
+            animation: page-load 0.8s ease-out;
+        }
+
+        /* Background Effects */
+        .electric-background {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .bg-grid-pattern {
+            background-image: 
+                repeating-linear-gradient(0deg, 
+                    transparent,
+                    transparent 50px,
+                    rgba(0, 87, 184, 0.03) 50px,
+                    rgba(0, 87, 184, 0.03) 51px
+                ),
+                repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent 50px,
+                    rgba(135, 206, 235, 0.03) 50px,
+                    rgba(135, 206, 235, 0.03) 51px
+                );
+        }
+
+        .gradient-orb-1 {
+            position: absolute;
+            top: 10%;
+            left: 20%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 87, 184, 0.2), transparent);
+            border-radius: 50%;
+            filter: blur(100px);
+        }
+
+        .gradient-orb-2 {
+            position: absolute;
+            bottom: 10%;
+            right: 20%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.2), transparent);
+            border-radius: 50%;
+            filter: blur(100px);
+        }
+
+        /* ========================================
+           RESPONSIVE
+           ======================================== */
+           
+        @media (max-width: 768px) {
+            :root {
+                --spacing-xs: 0.25rem;
+                --spacing-sm: 0.5rem;
+                --spacing-md: 1rem;
+                --spacing-lg: 1.5rem;
+                --spacing-xl: 2rem;
+                --spacing-2xl: 3rem;
+            }
+            
+            .main-container {
+                padding: var(--spacing-md);
+            }
+            
+            .grid-2,
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+
+            /* Make main race section stack on mobile */
+            .grid-base[style*="grid-template-columns: 1fr 350px"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            h1 {
+                letter-spacing: 0.1rem;
+            }
+            
+            .container-primary,
+            .card-base {
+                padding: var(--spacing-md);
+            }
+        }
+
+        /* ========================================
+           SCROLLBAR
+           ======================================== */
+           
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-midnight);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(
+                var(--color-rb-blue),
+                var(--color-electric-blue)
+            );
+            border-radius: var(--radius-full);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(
+                var(--color-electric-blue),
+                var(--color-sky-blue)
+            );
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Effects -->
+    <div class="electric-background">
+        <div class="bg-grid-pattern" style="position: absolute; inset: 0; opacity: 0.3;"></div>
+        <div class="gradient-orb-1"></div>
+        <div class="gradient-orb-2"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container animate-on-load">
+        <!-- Header -->
+        <header class="race-header">
+            <h1>🏁 VELOCITY RACING</h1>
+            <div id="connection-status" class="status-live">
+                <div class="status-dot"></div>
+                EN VIVO - SESIÓN ACTIVA
+            </div>
+            <p class="label" style="margin-top: 1rem;">SPEEDPARK KARTING CHAMPIONSHIP</p>
+        </header>
+
+
+        <!-- Race Statistics -->
+        <section class="stats-grid">
+            <div class="card-base stat-card">
+                <p class="label">Sesión Actual</p>
+                <p class="stat-number stat-value" id="session-name">SpeedPark Live</p>
+                <p class="label">NOMBRE</p>
+            </div>
+            
+            <div class="card-base stat-card">
+                <p class="label">Pilotos Activos</p>
+                <p class="stat-number stat-value" id="active-drivers">--</p>
+                <p class="label">EN PISTA</p>
+            </div>
+            
+            <div class="card-base stat-card">
+                <p class="label">Tiempo Activo</p>
+                <p class="stat-number stat-value" id="session-time">--:--</p>
+                <p class="label">MM:SS</p>
+            </div>
+            
+            <div class="card-base stat-card">
+                <p class="label">Mejor Vuelta Global</p>
+                <p class="stat-number stat-value" id="best-lap">--:--.---</p>
+                <p class="label">M:SS.mmm</p>
+            </div>
+        </section>
+
+        <!-- Main Race Section -->
+        <div class="grid-base" style="grid-template-columns: 1fr 350px; gap: 2rem; align-items: start;">
+            <!-- Live Leaderboard -->
+            <section class="container-primary">
+                <h2>🏆 Posiciones en Tiempo Real</h2>
+                <div class="overflow-x-auto" style="margin-top: 2rem;">
+                    <table class="table-base">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">POS</th>
+                                <th>PILOTO</th>
+                                <th style="text-align: right;">KART</th>
+                                <th style="text-align: right;">VUELTA</th>
+                                <th style="text-align: right;">MEJOR TIEMPO</th>
+                                <th style="text-align: right;">ÚLTIMA VUELTA</th>
+                                <th style="text-align: right;">PROMEDIO</th>
+                                <th style="text-align: right;">DIFERENCIA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 2rem; color: var(--color-sky-blue);">
+                                    <span class="label">⏳ Esperando datos de carrera...</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Daily Best Times -->
+            <section class="card-base" style="height: fit-content;">
+                <h3>🥇 Mejores del Día</h3>
+                <div id="daily-best-times" style="margin-top: 1.5rem;">
+                    <!-- Best times will be populated here -->
+                    <div style="text-align: center; padding: 2rem; color: var(--color-sky-blue);">
+                        <span class="label">📊 Recopilando tiempos...</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Race Details -->
+        <section class="grid-base grid-2" style="margin-top: 3rem;">
+            <!-- Session Info -->
+            <div class="card-base">
+                <h3>📊 Información de Sesión</h3>
+                <div style="margin-top: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Circuito:</span>
+                        <span class="stat-number">SpeedPark</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Modalidad:</span>
+                        <span class="stat-number">Práctica Libre</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Tiempo Activo:</span>
+                        <span class="stat-number" id="connected-time">--:--</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Sesiones Guardadas:</span>
+                        <span class="stat-number" id="saved-sessions">--</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span class="label">Estado:</span>
+                        <span id="session-status" class="badge badge-green">ACTIVA</span>
+                    </div>
+                    <div style="margin-top: 1.5rem;">
+                        <button onclick="raceTracker.showSessionHistory()" class="badge badge-blue" style="cursor: pointer; border: none; padding: 0.5rem 1rem;">
+                            📋 Ver Historial
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Track Records -->
+            <div class="card-base">
+                <h3>🎯 Récords del Circuito</h3>
+                <div style="margin-top: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Récord Absoluto:</span>
+                        <span class="stat-number best-time">0:42.157</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Mejor Hoy:</span>
+                        <span class="stat-number current-time" id="daily-record">--:--.---</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Promedio General:</span>
+                        <span class="stat-number" id="average-time">--:--.---</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span class="label">Total Vueltas:</span>
+                        <span class="stat-number" id="total-laps">--</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        class LiveRaceTracker {
+            constructor() {
+                this.ws = null;
+                this.isConnected = false;
+                this.connectionTime = Date.now();
+                this.messageCount = 0;
+                this.raceData = null;
+                this.driverStats = new Map();
+                this.dailyBestTimes = [];
+                this.sessionHistory = [];
+                this.currentSessionId = null;
+                
+                this.loadSessionHistory();
+                this.initializeElements();
+                this.startTimeUpdater();
+                this.autoConnect();
+            }
+            
+            initializeElements() {
+                this.elements = {
+                    sessionName: document.getElementById('session-name'),
+                    activeDrivers: document.getElementById('active-drivers'),
+                    sessionTime: document.getElementById('session-time'),
+                    bestLap: document.getElementById('best-lap'),
+                    leaderboard: document.getElementById('leaderboard'),
+                    dailyRecord: document.getElementById('daily-record'),
+                    averageTime: document.getElementById('average-time'),
+                    totalLaps: document.getElementById('total-laps'),
+                    dailyBestTimes: document.getElementById('daily-best-times'),
+                    savedSessions: document.getElementById('saved-sessions')
+                };
+            }
+            
+            autoConnect() {
+                this.connect();
+            }
+            
+            connect() {
+                if (this.isConnected) return;
+                
+                try {
+                    this.ws = new WebSocket('wss://webserver22.sms-timing.com:10015/');
+                    
+                    this.ws.onopen = () => {
+                        this.isConnected = true;
+                        console.log('✅ WebSocket conectado');
+                        this.updateConnectionStatus();
+                        
+                        // Enviar comando START automáticamente
+                        setTimeout(() => {
+                            console.log('📤 Enviando: START 8501@speedpark');
+                            this.ws.send('START 8501@speedpark');
+                        }, 1000);
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        console.log('📨 Mensaje WebSocket recibido:', event.data.length, 'caracteres');
+                        this.messageCount++;
+                        
+                        // Procesar exactamente como race-tracker.js
+                        const raceInfo = this.parseRaceDataLikeRaceTracker(event.data);
+                        if (raceInfo) {
+                            console.log('🏆 Datos procesados:', raceInfo.drivers.length, 'pilotos');
+                            this.raceData = raceInfo;
+                            this.updateUI();
+                        } else {
+                            console.log('📨 Datos sin procesar:', event.data.substring(0, 200));
+                        }
+                    };
+                    
+                    this.ws.onclose = () => {
+                        this.isConnected = false;
+                        console.log('❌ WebSocket desconectado');
+                        this.updateConnectionStatus();
+                        // Reintentear conexión automáticamente
+                        setTimeout(() => {
+                            this.connect();
+                        }, 3000);
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        this.isConnected = false;
+                        console.log('💥 Error WebSocket:', error);
+                        this.updateConnectionStatus();
+                    };
+                    
+                } catch (error) {
+                    // Reintentar conexión automáticamente
+                    setTimeout(() => {
+                        this.connect();
+                    }, 5000);
+                }
+            }
+            
+            parseRaceDataLikeRaceTracker(jsonData) {
+                try {
+                    const data = JSON.parse(jsonData);
+                    
+                    if (!data.D || !Array.isArray(data.D)) {
+                        return null;
+                    }
+            
+                    // Extraer solo el número de la sesión
+                    let sessionName = data.N || 'Sesión desconocida';
+                    
+                    // Si contiene "HEAT" seguido de número, extraer solo el número
+                    const heatMatch = sessionName.match(/HEAT\s*(\d+)/i);
+                    if (heatMatch) {
+                        sessionName = heatMatch[1];
+                    } else {
+                        // Si hay otros patrones de número, extraer el último número
+                        const numberMatch = sessionName.match(/(\d+)(?!.*\d)/);
+                        if (numberMatch) {
+                            sessionName = numberMatch[1];
+                        }
+                    }
+                    const drivers = data.D.map(driver => {
+                        const driverName = driver.N;
+                        
+                        // Inicializar stats del piloto si no existen
+                        if (!this.driverStats.has(driverName)) {
+                            this.driverStats.set(driverName, {
+                                lapTimes: [],
+                                totalTime: 0,
+                                lapCount: 0,
+                                lastCompletedLapTime: 0
+                            });
+                        }
+                        
+                        const currentLap = driver.L;
+                        const lastLapTime = driver.A;
+                        const stats = this.driverStats.get(driverName);
+                        
+                        // Actualizar estadísticas si completó una nueva vuelta
+                        if (currentLap > stats.lapCount && lastLapTime && lastLapTime > 0) {
+                            stats.lapTimes.push(lastLapTime);
+                            stats.totalTime += lastLapTime;
+                            stats.lapCount = currentLap;
+                            stats.lastCompletedLapTime = lastLapTime;
+                        }
+                        
+                        const averageLapTime = stats.lapTimes.length > 0 ? 
+                            stats.totalTime / stats.lapTimes.length : 0;
+                        
+                        // Separar nombre y alias como en el original
+                        let alias = '';
+                        let firstName = '';
+                        let lastName = '';
+                        
+                        // Buscar si hay alias entre comillas
+                        const aliasMatch = driverName.match(/"([^"]+)"/);
+                        if (aliasMatch) {
+                            alias = aliasMatch[1];
+                            const nameParts = driverName.replace(/"[^"]+"/g, '').trim().split(' ');
+                            firstName = nameParts[0] || '';
+                            lastName = nameParts.slice(1).join(' ') || '';
+                        } else {
+                            // Si no hay alias, dividir el nombre
+                            const nameParts = driverName.split(' ');
+                            if (nameParts.length >= 2) {
+                                firstName = nameParts[0];
+                                lastName = nameParts.slice(1).join(' ');
+                                alias = firstName; // Usar firstName como alias por defecto
+                            } else {
+                                alias = driverName;
+                                firstName = driverName;
+                                lastName = '';
+                            }
+                        }
+            
+                        return {
+                            name: driverName,
+                            alias: alias,
+                            firstName: firstName,
+                            lastName: lastName,
+                            kart: driver.K,
+                            position: driver.P,
+                            lap: driver.L,
+                            currentTime: driver.T,
+                            bestTime: driver.B,
+                            gap: driver.G || '',
+                            lastLapTime: driver.T || 0,
+                            averageLapTime: averageLapTime,
+                            racerID: driver.D,
+                            raceNumber: driver.R
+                        };
+                    });
+            
+                    // Ordenar por posición como en race-tracker
+                    drivers.sort((a, b) => a.position - b.position);
+                    
+                    // Calcular gaps
+                    const leaderTime = drivers[0]?.bestTime || 0;
+                    drivers.forEach((driver, index) => {
+                        driver.position = index + 1;
+                        driver.gap = index === 0 ? '--' : `+${this.formatTime(driver.bestTime - leaderTime)}`;
+                    });
+            
+                    return {
+                        sessionName,
+                        drivers: drivers,
+                        timestamp: new Date().toISOString(),
+                        sessionTimestamp: data.T,
+                        sessionID: data.E || data.C
+                    };
+                } catch (error) {
+                    console.error('Error parseando datos:', error);
+                    return null;
+                }
+            }
+
+            processRaceData(jsonData) {
+                try {
+                    // Intentar parsear como JSON
+                    const data = JSON.parse(jsonData);
+                    
+                    if (!data.D || !Array.isArray(data.D)) {
+                        console.log('📨 Datos sin procesar:', jsonData);
+                        return;
+                    }
+                    
+                    console.log(`🏁 Procesando datos: ${data.D.length} pilotos`);
+                    
+                    // Procesar aunque no haya pilotos para mantener la sesión activa  
+                    if (data.D.length === 0) {
+                        console.log('⚠️ No hay pilotos activos');
+                        // Actualizar UI para mostrar que no hay pilotos pero está conectado
+                        this.raceData = {
+                            sessionName: data.N || 'Sesión Sin Pilotos',
+                            sessionId: data.E || data.C || 'no-session',
+                            drivers: []
+                        };
+                        this.updateUI();
+                        return;
+                    }
+                    
+                    // Detectar nueva sesión
+                    const sessionId = data.E || data.C || data.sessionId;
+                    if (sessionId && sessionId !== this.currentSessionId) {
+                        this.currentSessionId = sessionId;
+                        console.log('Nueva sesión detectada:', sessionId);
+                    }
+                    
+                    this.raceData = {
+                        sessionName: data.N || 'Sesión Desconocida',
+                        sessionId: this.currentSessionId,
+                        drivers: []
+                    };
+                    
+                    // Procesar datos de pilotos
+                    data.D.forEach(driver => {
+                        const driverName = driver.N;
+                        const currentLap = driver.L;
+                        const lastLapTime = driver.A;
+                        const racerID = driver.R;
+                        const kart = driver.K;
+                        
+                        // Inicializar stats del piloto si no existen
+                        if (!this.driverStats.has(driverName)) {
+                            this.driverStats.set(driverName, {
+                                lapTimes: [],
+                                totalTime: 0,
+                                lapCount: 0,
+                                lastCompletedLapTime: 0
+                            });
+                        }
+                        
+                        const stats = this.driverStats.get(driverName);
+                        
+                        // Actualizar estadísticas si completó una nueva vuelta
+                        if (currentLap > stats.lapCount && lastLapTime > 0) {
+                            stats.lapTimes.push(lastLapTime);
+                            stats.totalTime += lastLapTime;
+                            stats.lapCount = currentLap;
+                            stats.lastCompletedLapTime = lastLapTime;
+                        }
+                        
+                        // Calcular mejores tiempos
+                        const bestTime = stats.lapTimes.length > 0 ? Math.min(...stats.lapTimes) : 0;
+                        const averageTime = stats.totalTime > 0 ? stats.totalTime / stats.lapTimes.length : 0;
+                        
+                        // Separar nombre y alias
+                        let alias = '';
+                        let firstName = '';
+                        let lastName = '';
+                        
+                        // Buscar si hay alias entre comillas
+                        const aliasMatch = driverName.match(/"([^"]+)"/);
+                        if (aliasMatch) {
+                            alias = aliasMatch[1];
+                            const nameParts = driverName.replace(/"[^"]+"/g, '').trim().split(' ');
+                            firstName = nameParts[0] || '';
+                            lastName = nameParts.slice(1).join(' ') || '';
+                        } else {
+                            // Si no hay alias, dividir el nombre
+                            const nameParts = driverName.split(' ');
+                            if (nameParts.length >= 2) {
+                                firstName = nameParts[0];
+                                lastName = nameParts.slice(1).join(' ');
+                                alias = firstName; // Usar firstName como alias por defecto
+                            } else {
+                                alias = driverName;
+                                firstName = driverName;
+                                lastName = '';
+                            }
+                        }
+
+                        // Actualizar mejores tiempos del día
+                        if (bestTime > 0) {
+                            this.updateDailyBestTimes(alias, firstName, lastName, bestTime);
+                        }
+
+                        this.raceData.drivers.push({
+                            name: driverName,
+                            alias: alias,
+                            firstName: firstName,
+                            lastName: lastName,
+                            racerID: racerID,
+                            kart: kart,
+                            lap: currentLap,
+                            bestTime: bestTime,
+                            lastLapTime: stats.lastCompletedLapTime,
+                            averageLapTime: averageTime,
+                            position: 0 // Se calculará después
+                        });
+                    });
+                    
+                    // Ordenar por mejor tiempo
+                    this.raceData.drivers.sort((a, b) => {
+                        if (a.bestTime === 0) return 1;
+                        if (b.bestTime === 0) return -1;
+                        return a.bestTime - b.bestTime;
+                    });
+                    
+                    // Asignar posiciones
+                    this.raceData.drivers.forEach((driver, index) => {
+                        driver.position = index + 1;
+                        driver.gap = index === 0 ? '--' : `+${this.formatTime(driver.bestTime - this.raceData.drivers[0].bestTime)}`;
+                    });
+                    
+                    this.updateUI();
+                    
+                } catch (error) {
+                    console.error('❌ Error procesando datos:', error, 'Datos raw:', jsonData);
+                    // No bloquear el flujo, solo registrar el error
+                }
+            }
+            
+            formatTime(milliseconds) {
+                if (!milliseconds || milliseconds === 0) return '--:--.---';
+                
+                const totalSeconds = milliseconds / 1000;
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = (totalSeconds % 60).toFixed(3);
+                
+                if (minutes > 0) {
+                    return `${minutes}:${seconds.padStart(6, '0')}`;
+                } else {
+                    return `${seconds}s`;
+                }
+            }
+            
+            updateUI() {
+                if (!this.raceData) {
+                    console.log('⚠️ No hay raceData para actualizar UI');
+                    return;
+                }
+                
+                console.log('🔄 Actualizando UI con', this.raceData.drivers.length, 'pilotos');
+                
+                // Actualizar header stats
+                if (this.elements.sessionName) {
+                    this.elements.sessionName.textContent = this.raceData.sessionName || 'Sesión Desconocida';
+                }
+                if (this.elements.activeDrivers) {
+                    this.elements.activeDrivers.textContent = this.raceData.drivers.length;
+                }
+                
+                // Mejor vuelta global
+                const bestGlobalTime = this.raceData.drivers.find(d => d.bestTime > 0)?.bestTime;
+                if (bestGlobalTime) {
+                    this.elements.bestLap.textContent = this.formatTime(bestGlobalTime);
+                    this.elements.dailyRecord.textContent = this.formatTime(bestGlobalTime);
+                }
+                
+                // Calcular promedio y total de vueltas
+                const driversWithTimes = this.raceData.drivers.filter(d => d.averageLapTime > 0);
+                if (driversWithTimes.length > 0) {
+                    const avgTime = driversWithTimes.reduce((sum, d) => sum + d.averageLapTime, 0) / driversWithTimes.length;
+                    this.elements.averageTime.textContent = this.formatTime(avgTime);
+                }
+                
+                const totalLaps = this.raceData.drivers.reduce((sum, d) => sum + d.lap, 0);
+                this.elements.totalLaps.textContent = totalLaps;
+                
+                // Actualizar número de sesiones guardadas
+                this.elements.savedSessions.textContent = this.sessionHistory.length;
+                
+                // Actualizar leaderboard
+                this.updateLeaderboard();
+                
+                // Guardar datos de la sesión
+                this.saveSessionData();
+                
+                // Actualizar mejores tiempos del día
+                this.updateDailyBestTimesDisplay();
+            }
+            
+            updateDailyBestTimes(alias, firstName, lastName, bestTime) {
+                // Buscar si el piloto ya existe en los mejores tiempos
+                const existingIndex = this.dailyBestTimes.findIndex(
+                    entry => entry.alias === alias && entry.firstName === firstName && entry.lastName === lastName
+                );
+                
+                if (existingIndex !== -1) {
+                    // Actualizar si es mejor tiempo
+                    if (bestTime < this.dailyBestTimes[existingIndex].time) {
+                        this.dailyBestTimes[existingIndex].time = bestTime;
+                    }
+                } else {
+                    // Agregar nuevo piloto
+                    this.dailyBestTimes.push({
+                        alias: alias,
+                        firstName: firstName,
+                        lastName: lastName,
+                        time: bestTime
+                    });
+                }
+                
+                // Ordenar por mejor tiempo y mantener solo top 3
+                this.dailyBestTimes.sort((a, b) => a.time - b.time);
+                this.dailyBestTimes = this.dailyBestTimes.slice(0, 3);
+            }
+            
+            loadSessionHistory() {
+                try {
+                    const saved = localStorage.getItem('speedpark-session-history');
+                    if (saved) {
+                        this.sessionHistory = JSON.parse(saved);
+                        // Cargar mejores tiempos del día actual
+                        const today = new Date().toDateString();
+                        const todaySessions = this.sessionHistory.filter(session => 
+                            new Date(session.date).toDateString() === today
+                        );
+                        
+                        // Recolectar todos los mejores tiempos del día
+                        const todayTimes = [];
+                        todaySessions.forEach(session => {
+                            session.bestTimes.forEach(time => {
+                                todayTimes.push(time);
+                            });
+                        });
+                        
+                        // Ordenar y mantener los mejores únicos por piloto
+                        const bestByDriver = new Map();
+                        todayTimes.forEach(time => {
+                            const key = `${time.firstName}_${time.lastName}`;
+                            if (!bestByDriver.has(key) || time.time < bestByDriver.get(key).time) {
+                                bestByDriver.set(key, time);
+                            }
+                        });
+                        
+                        this.dailyBestTimes = Array.from(bestByDriver.values())
+                            .sort((a, b) => a.time - b.time)
+                            .slice(0, 3);
+                    }
+                } catch (error) {
+                    console.log('No se pudo cargar historial previo');
+                    this.sessionHistory = [];
+                }
+            }
+            
+            saveSessionData() {
+                if (!this.raceData || !this.raceData.drivers.length) return;
+                
+                const sessionData = {
+                    sessionId: this.currentSessionId || Date.now(),
+                    sessionName: this.raceData.sessionName,
+                    date: new Date().toISOString(),
+                    dateString: new Date().toDateString(),
+                    bestTimes: [],
+                    totalDrivers: this.raceData.drivers.length,
+                    totalLaps: this.raceData.drivers.reduce((sum, driver) => sum + (driver.lap || 0), 0)
+                };
+                
+                // Recolectar mejores tiempos de la sesión
+                this.raceData.drivers.forEach(driver => {
+                    if (driver.bestTime > 0) {
+                        sessionData.bestTimes.push({
+                            alias: driver.alias,
+                            firstName: driver.firstName,
+                            lastName: driver.lastName,
+                            time: driver.bestTime,
+                            lapCount: driver.lap || 0
+                        });
+                    }
+                });
+                
+                // Ordenar por mejor tiempo
+                sessionData.bestTimes.sort((a, b) => a.time - b.time);
+                
+                // Buscar si ya existe esta sesión
+                const existingIndex = this.sessionHistory.findIndex(session => 
+                    session.sessionId === sessionData.sessionId
+                );
+                
+                if (existingIndex >= 0) {
+                    // Actualizar sesión existente
+                    this.sessionHistory[existingIndex] = sessionData;
+                } else {
+                    // Agregar nueva sesión
+                    this.sessionHistory.push(sessionData);
+                }
+                
+                // Mantener solo las últimas 50 sesiones
+                if (this.sessionHistory.length > 50) {
+                    this.sessionHistory = this.sessionHistory.slice(-50);
+                }
+                
+                // Guardar en localStorage
+                try {
+                    localStorage.setItem('speedpark-session-history', JSON.stringify(this.sessionHistory));
+                } catch (error) {
+                    console.error('Error guardando historial de sesiones:', error);
+                }
+                
+                // Actualizar mejores tiempos del día
+                this.updateDailyBestTimesFromHistory();
+            }
+            
+            updateDailyBestTimesFromHistory() {
+                const today = new Date().toDateString();
+                const todaySessions = this.sessionHistory.filter(session => 
+                    new Date(session.date).toDateString() === today
+                );
+                
+                // Recolectar todos los mejores tiempos del día
+                const todayTimes = [];
+                todaySessions.forEach(session => {
+                    session.bestTimes.forEach(time => {
+                        todayTimes.push(time);
+                    });
+                });
+                
+                // Agregar tiempos de la sesión actual
+                if (this.raceData && this.raceData.drivers) {
+                    this.raceData.drivers.forEach(driver => {
+                        if (driver.bestTime > 0) {
+                            todayTimes.push({
+                                alias: driver.alias,
+                                firstName: driver.firstName,
+                                lastName: driver.lastName,
+                                time: driver.bestTime
+                            });
+                        }
+                    });
+                }
+                
+                // Obtener mejores únicos por piloto
+                const bestByDriver = new Map();
+                todayTimes.forEach(time => {
+                    const key = `${time.firstName}_${time.lastName}`;
+                    if (!bestByDriver.has(key) || time.time < bestByDriver.get(key).time) {
+                        bestByDriver.set(key, time);
+                    }
+                });
+                
+                this.dailyBestTimes = Array.from(bestByDriver.values())
+                    .sort((a, b) => a.time - b.time)
+                    .slice(0, 3);
+            }
+
+            updateDailyBestTimesDisplay() {
+                if (this.dailyBestTimes.length === 0) {
+                    this.elements.dailyBestTimes.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--color-sky-blue);">
+                            <span class="label">📊 Recopilando tiempos...</span>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const positionClasses = ['first', 'second', 'third'];
+                const positions = ['🥇', '🥈', '🥉'];
+                
+                this.elements.dailyBestTimes.innerHTML = this.dailyBestTimes.map((entry, index) => {
+                    const positionClass = positionClasses[index] || '';
+                    const position = positions[index] || `${index + 1}°`;
+                    
+                    return `
+                        <div class="best-time-entry ${positionClass}">
+                            <div class="best-time-info">
+                                <div class="best-time-name">${position} ${entry.alias}</div>
+                                <div class="best-time-details">${entry.firstName} ${entry.lastName}</div>
+                            </div>
+                            <div class="best-time-value">${this.formatTime(entry.time)}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            showSessionHistory() {
+                if (this.sessionHistory.length === 0) {
+                    alert('No hay sesiones guardadas aún.');
+                    return;
+                }
+                
+                let historyText = `📋 HISTORIAL DE SESIONES (${this.sessionHistory.length} sesiones)\n\n`;
+                
+                this.sessionHistory.slice(-10).reverse().forEach((session, index) => {
+                    const date = new Date(session.date);
+                    const dateStr = date.toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    historyText += `🏁 ${session.sessionName || 'Sesión'}\n`;
+                    historyText += `📅 ${dateStr}\n`;
+                    historyText += `👥 ${session.totalDrivers} pilotos - ${session.totalLaps} vueltas\n`;
+                    
+                    if (session.bestTimes.length > 0) {
+                        historyText += `🏆 Mejores tiempos:\n`;
+                        session.bestTimes.slice(0, 3).forEach((time, i) => {
+                            const medals = ['🥇', '🥈', '🥉'];
+                            historyText += `   ${medals[i] || `${i+1}°`} ${time.alias} - ${this.formatTime(time.time)}\n`;
+                        });
+                    }
+                    
+                    historyText += '\n' + '─'.repeat(40) + '\n\n';
+                });
+                
+                // Crear modal para mostrar historial
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.9);
+                    z-index: 9999;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 2rem;
+                `;
+                
+                modal.innerHTML = `
+                    <div style="
+                        background: linear-gradient(135deg, rgba(0, 87, 184, 0.1), rgba(0, 0, 0, 0.9));
+                        border: 2px solid var(--color-electric-blue);
+                        border-radius: var(--radius-lg);
+                        padding: 2rem;
+                        max-width: 600px;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        color: white;
+                        font-family: monospace;
+                        white-space: pre-line;
+                    ">
+                        ${historyText}
+                        <div style="text-align: center; margin-top: 2rem;">
+                            <button onclick="this.closest('div').remove()" style="
+                                background: var(--color-electric-blue);
+                                color: black;
+                                border: none;
+                                padding: 0.5rem 2rem;
+                                border-radius: var(--radius-sm);
+                                cursor: pointer;
+                                font-weight: bold;
+                            ">
+                                ✕ Cerrar
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Cerrar al hacer click fuera
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+            }
+            
+            updateLeaderboard() {
+                if (!this.raceData || !this.raceData.drivers.length) {
+                    this.elements.leaderboard.innerHTML = `
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 2rem; color: var(--color-sky-blue);">
+                                <span class="label">⏳ Esperando datos de carrera...</span>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                this.elements.leaderboard.innerHTML = this.raceData.drivers.map(driver => {
+                    const position = driver.position;
+                    
+                    let positionClass = 'position-other';
+                    if (position === 1) positionClass = 'position-1';
+                    else if (position === 2) positionClass = 'position-2';
+                    else if (position === 3) positionClass = 'position-3';
+                    
+                    return `
+                        <tr>
+                            <td>
+                                <div class="position-number ${positionClass}">
+                                    ${position}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="driver-info">
+                                    <div class="driver-name">${driver.alias}</div>
+                                    <div class="driver-details">${driver.firstName} ${driver.lastName}</div>
+                                </div>
+                            </td>
+                            <td class="time-display">
+                                <div class="stat-number">#${driver.kart}</div>
+                            </td>
+                            <td class="time-display">
+                                <div class="stat-number">${driver.lap}</div>
+                            </td>
+                            <td class="time-display">
+                                <div class="stat-number best-time">${this.formatTime(driver.bestTime)}</div>
+                            </td>
+                            <td class="time-display">
+                                <div class="stat-number current-time">${this.formatTime(driver.lastLapTime)}</div>
+                            </td>
+                            <td class="time-display">
+                                <div class="stat-number">${this.formatTime(driver.averageLapTime)}</div>
+                            </td>
+                            <td class="time-display">
+                                <div class="stat-number gap-time">${driver.gap}</div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+            updateConnectionStatus() {
+                const statusElement = document.getElementById('session-status');
+                if (statusElement) {
+                    if (this.isConnected) {
+                        statusElement.textContent = 'CONECTADO';
+                        statusElement.className = 'badge badge-green';
+                    } else {
+                        statusElement.textContent = 'DESCONECTADO';
+                        statusElement.className = 'badge badge-blue';
+                    }
+                }
+            }
+
+            startTimeUpdater() {
+                setInterval(() => {
+                    const elapsed = Date.now() - this.connectionTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    this.elements.sessionTime.textContent = 
+                        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+        }
+        
+        // Initialize when page loads
+        let raceTracker;
+        document.addEventListener('DOMContentLoaded', () => {
+            raceTracker = new LiveRaceTracker();
+        });
+    </script>
+</body>
+</html>
