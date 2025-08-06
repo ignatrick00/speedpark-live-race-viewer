@@ -716,6 +716,104 @@
             .card-base {
                 padding: var(--spacing-md);
             }
+
+            /* TABLA RESPONSIVE - Ocultar tabla y mostrar cards */
+            .table-base {
+                display: none !important;
+            }
+            
+            /* Container para las cards de pilotos en móvil */
+            .mobile-leaderboard {
+                display: block !important;
+                grid-template-columns: 1fr;
+                gap: var(--spacing-sm);
+            }
+            
+            /* Card de piloto individual */
+            .driver-card {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(0, 212, 255, 0.3);
+                border-radius: var(--radius-md);
+                padding: var(--spacing-md);
+                position: relative;
+                transition: all var(--transition-base) ease;
+            }
+            
+            .driver-card:hover {
+                border-color: var(--color-electric-blue);
+                transform: translateY(-2px);
+            }
+            
+            /* Header de la card con posición y nombre */
+            .driver-card-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: var(--spacing-sm);
+                padding-bottom: var(--spacing-xs);
+                border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            }
+            
+            .driver-card-position {
+                font-size: 1.5rem;
+                font-weight: bold;
+                min-width: 40px;
+                text-align: center;
+                padding: 0.25rem 0.5rem;
+                border-radius: var(--radius-sm);
+                background: var(--color-electric-blue);
+                color: var(--color-black);
+            }
+            
+            .driver-card-name {
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: var(--color-white);
+                flex: 1;
+                margin-left: var(--spacing-sm);
+            }
+            
+            /* Grid de estadísticas en la card */
+            .driver-card-stats {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-xs);
+                margin-top: var(--spacing-sm);
+            }
+            
+            .driver-stat {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                padding: var(--spacing-xs);
+            }
+            
+            .driver-stat-label {
+                font-size: 0.7rem;
+                color: var(--color-sky-blue);
+                text-transform: uppercase;
+                letter-spacing: 0.05rem;
+                margin-bottom: 0.125rem;
+            }
+            
+            .driver-stat-value {
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: var(--color-white);
+                font-family: 'Orbitron', monospace;
+            }
+            
+            /* Destacar mejor tiempo */
+            .driver-stat.best-time .driver-stat-value {
+                color: var(--color-gold);
+                font-weight: bold;
+            }
+        }
+        
+        /* Ocultar mobile leaderboard en desktop */
+        .mobile-leaderboard {
+            display: none;
         }
 
         /* ========================================
@@ -822,6 +920,11 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- Mobile Leaderboard (Cards) -->
+                <div class="mobile-leaderboard" id="mobile-leaderboard">
+                    <!-- Cards will be populated here by JavaScript -->
                 </div>
             </section>
 
@@ -1588,6 +1691,8 @@
             }
             
             updateLeaderboard() {
+                const mobileLeaderboard = document.getElementById('mobile-leaderboard');
+                
                 if (!this.raceData || !this.raceData.drivers.length) {
                     this.elements.leaderboard.innerHTML = `
                         <tr>
@@ -1596,9 +1701,18 @@
                             </td>
                         </tr>
                     `;
+                    
+                    if (mobileLeaderboard) {
+                        mobileLeaderboard.innerHTML = `
+                            <div style="text-align: center; padding: 2rem; color: var(--color-sky-blue);">
+                                <span class="label">⏳ Esperando datos de carrera...</span>
+                            </div>
+                        `;
+                    }
                     return;
                 }
                 
+                // Update desktop table
                 this.elements.leaderboard.innerHTML = this.raceData.drivers.map(driver => {
                     const position = driver.position;
                     
@@ -1641,6 +1755,54 @@
                         </tr>
                     `;
                 }).join('');
+                
+                // Update mobile cards
+                if (mobileLeaderboard) {
+                    mobileLeaderboard.innerHTML = this.raceData.drivers.map(driver => {
+                        const position = driver.position;
+                        
+                        return `
+                            <div class="driver-card">
+                                <div class="driver-card-header">
+                                    <div class="driver-card-position">${position}</div>
+                                    <div class="driver-card-name">
+                                        <div style="font-weight: 700;">${driver.alias}</div>
+                                        <div style="font-size: 0.85rem; color: var(--color-sky-blue); font-weight: 400;">
+                                            ${driver.firstName} ${driver.lastName}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="driver-card-stats">
+                                    <div class="driver-stat">
+                                        <div class="driver-stat-label">Kart</div>
+                                        <div class="driver-stat-value">#${driver.kart}</div>
+                                    </div>
+                                    <div class="driver-stat">
+                                        <div class="driver-stat-label">Vuelta</div>
+                                        <div class="driver-stat-value">${driver.lap}</div>
+                                    </div>
+                                    <div class="driver-stat best-time">
+                                        <div class="driver-stat-label">Mejor</div>
+                                        <div class="driver-stat-value">${this.formatTime(driver.bestTime)}</div>
+                                    </div>
+                                    <div class="driver-stat">
+                                        <div class="driver-stat-label">Última</div>
+                                        <div class="driver-stat-value">${this.formatTime(driver.lastLapTime)}</div>
+                                    </div>
+                                    <div class="driver-stat">
+                                        <div class="driver-stat-label">Promedio</div>
+                                        <div class="driver-stat-value">${this.formatTime(driver.averageLapTime)}</div>
+                                    </div>
+                                    <div class="driver-stat">
+                                        <div class="driver-stat-label">Diferencia</div>
+                                        <div class="driver-stat-value">${driver.gap}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
             }
             
             updateConnectionStatus() {
