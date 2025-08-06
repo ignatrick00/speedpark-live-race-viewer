@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏁 Velocity Racing - Live Race Tracker</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600&family=Orbitron:wght@700;900&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ========================================
+           VARIABLES GLOBALES
+           ======================================== */
+        :root {
+            /* Colores del tema */
+            --color-black: #000000;
+            --color-midnight: #0A0B14;
+            --color-rb-blue: #0057B8;
+            --color-electric-blue: #00D4FF;
+            --color-sky-blue: #87CEEB;
+            --color-cyan: #00FFFF;
+            --color-white: #FFFFFF;
+            --color-gold: #FFD700;
+            
+            /* Espaciados consistentes */
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --spacing-2xl: 4rem;
+            
+            /* Border radius estándar */
+            --radius-sm: 0.5rem;
+            --radius-md: 1rem;
+            --radius-lg: 1.25rem;
+            --radius-xl: 1.5rem;
+            --radius-full: 9999px;
+            
+            /* Transiciones */
+            --transition-fast: 150ms;
+            --transition-base: 300ms;
+            --transition-slow: 500ms;
+        }
+
+        /* ========================================
+           RESET Y BASE
+           ======================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--color-black);
+            color: var(--color-white);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ========================================
+           TIPOGRAFÍA GLOBAL
+           ======================================== */
+           
+        /* Títulos principales */
+        h1, .h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            letter-spacing: 0.2rem;
+            background: linear-gradient(135deg, #0057B8, #00D4FF, #87CEEB);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 87, 184, 0.5);
+            margin-bottom: var(--spacing-md);
+        }
+
+        /* Subtítulos de sección */
+        h2, .h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            color: var(--color-white);
+            text-shadow: 
+                0 0 10px rgba(135, 206, 235, 0.8),
+                0 0 20px rgba(0, 87, 184, 0.4);
+            margin-bottom: var(--spacing-md);
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Línea eléctrica bajo h2 */
+        h2::after, .h2::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: -10%;
+            width: 120%;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent,
+                var(--color-electric-blue) 20%,
+                var(--color-white) 50%,
+                var(--color-electric-blue) 80%,
+                transparent
+            );
+            animation: electric-scan 3s linear infinite;
+            filter: blur(1px);
+            box-shadow: 0 0 10px rgba(135, 206, 235, 0.8);
+        }
+
+        /* Subtítulos menores */
+        h3, .h3 {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            color: var(--color-electric-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        /* Texto de párrafo */
+        p {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        /* Labels y texto pequeño */
+        .label, label {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            color: var(--color-sky-blue);
+            text-shadow: 0 0 5px rgba(135, 206, 235, 0.5);
+        }
+
+        /* Números y estadísticas */
+        .stat-number {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            color: var(--color-cyan);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+
+        /* ========================================
+           COMPONENTES BASE
+           ======================================== */
+
+        /* CONTENEDORES */
+        .container-primary {
+            background: linear-gradient(135deg, rgba(0, 87, 184, 0.1), rgba(0, 0, 0, 0.8));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(0, 87, 184, 0.3);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 10px 40px rgba(0, 87, 184, 0.2),
+                inset 0 0 30px rgba(0, 87, 184, 0.05);
+        }
+
+        .container-secondary {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(135, 206, 235, 0.2);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            position: relative;
+        }
+
+        /* CARDS */
+        .card-base {
+            background: linear-gradient(135deg, rgba(0, 87, 184, 0.1), rgba(0, 0, 0, 0.8));
+            backdrop-filter: blur(20px);
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-base) ease;
+        }
+
+        /* Border gradient estático */
+        .card-base::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: var(--radius-lg);
+            padding: 2px;
+            background: linear-gradient(45deg, 
+                var(--color-electric-blue),
+                var(--color-rb-blue),
+                var(--color-sky-blue),
+                var(--color-electric-blue)
+            );
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.5;
+        }
+
+        /* Efecto hover para cards */
+        .card-base:hover {
+            transform: translateY(-4px);
+            box-shadow: 
+                0 20px 60px rgba(0, 87, 184, 0.3),
+                0 0 40px rgba(135, 206, 235, 0.2);
+        }
+
+        /* TABLAS */
+        .table-base {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 var(--spacing-xs);
+        }
+
+        .table-base thead {
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            color: var(--color-sky-blue);
+            text-shadow: 0 0 10px rgba(135, 206, 235, 0.5);
+        }
+
+        .table-base th {
+            padding: var(--spacing-sm);
+            text-align: left;
+            border-bottom: 2px solid rgba(0, 87, 184, 0.3);
+        }
+
+        .table-base tbody tr {
+            background: rgba(0, 0, 0, 0.4);
+            transition: all var(--transition-base) ease;
+        }
+
+        .table-base tbody tr:hover {
+            background: rgba(0, 87, 184, 0.2);
+            transform: translateX(8px);
+            box-shadow: 0 5px 20px rgba(0, 87, 184, 0.3);
+        }
+
+        .table-base td {
+            padding: var(--spacing-sm);
+            border: 1px solid transparent;
+        }
+
+        .table-base tbody tr:hover td {
+            border-color: rgba(0, 212, 255, 0.2);
+        }
+
+        /* BADGES */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-full);
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            font-weight: 600;
+        }
+
+        .badge-gold {
+            background: linear-gradient(135deg, var(--color-gold), #FFFF00);
+            color: var(--color-black);
+            box-shadow: 
+                0 0 30px rgba(255, 215, 0, 0.6),
+                0 0 60px rgba(255, 255, 0, 0.3);
+        }
+
+        .badge-blue {
+            background: linear-gradient(135deg, var(--color-rb-blue), var(--color-electric-blue));
+            color: var(--color-white);
+            box-shadow: 0 0 20px rgba(0, 87, 184, 0.5);
+        }
+
+        .badge-green {
+            background: linear-gradient(135deg, #00FF00, #32CD32);
+            color: var(--color-black);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
+        /* GRID SYSTEM */
+        .grid-base {
+            display: grid;
+            gap: var(--spacing-lg);
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        /* ========================================
+           LAYOUT ESPECÍFICO
+           ======================================== */
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+
+        .race-header {
+            text-align: center;
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .status-live {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            color: var(--color-cyan);
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--color-cyan);
+            border-radius: 50%;
+            animation: pulse 1s ease-in-out infinite;
+            box-shadow: 0 0 20px var(--color-cyan);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: var(--spacing-lg);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .position-number {
+            font-size: 2rem;
+            font-weight: 900;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: var(--spacing-sm);
+        }
+
+        .position-1 {
+            background: linear-gradient(135deg, var(--color-gold), #FFFF00);
+            color: var(--color-black);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+        }
+
+        .position-2 {
+            background: linear-gradient(135deg, #C0C0C0, #E5E5E5);
+            color: var(--color-black);
+            box-shadow: 0 0 20px rgba(192, 192, 192, 0.6);
+        }
+
+        .position-3 {
+            background: linear-gradient(135deg, #CD7F32, #D2691E);
+            color: var(--color-white);
+            box-shadow: 0 0 20px rgba(205, 127, 50, 0.6);
+        }
+
+        .position-other {
+            background: rgba(0, 87, 184, 0.3);
+            color: var(--color-white);
+            border: 1px solid var(--color-electric-blue);
+        }
+
+        .driver-row {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-sm);
+        }
+
+        .driver-info {
+            flex: 1;
+        }
+
+        .driver-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+        }
+
+        .driver-alias {
+            color: var(--color-sky-blue);
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+
+        .time-display {
+            text-align: right;
+            min-width: 100px;
+        }
+
+        .best-time {
+            color: var(--color-gold);
+            font-weight: 700;
+        }
+
+        .current-time {
+            color: var(--color-electric-blue);
+        }
+
+        .gap-time {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        /* ========================================
+           ANIMACIONES
+           ======================================== */
+           
+        @keyframes electric-scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(0, 212, 255, 0.8);
+            }
+        }
+
+        @keyframes page-load {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-on-load {
+            animation: page-load 0.8s ease-out;
+        }
+
+        /* Background Effects */
+        .electric-background {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .bg-grid-pattern {
+            background-image: 
+                repeating-linear-gradient(0deg, 
+                    transparent,
+                    transparent 50px,
+                    rgba(0, 87, 184, 0.03) 50px,
+                    rgba(0, 87, 184, 0.03) 51px
+                ),
+                repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent 50px,
+                    rgba(135, 206, 235, 0.03) 50px,
+                    rgba(135, 206, 235, 0.03) 51px
+                );
+        }
+
+        .gradient-orb-1 {
+            position: absolute;
+            top: 10%;
+            left: 20%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 87, 184, 0.2), transparent);
+            border-radius: 50%;
+            filter: blur(100px);
+        }
+
+        .gradient-orb-2 {
+            position: absolute;
+            bottom: 10%;
+            right: 20%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.2), transparent);
+            border-radius: 50%;
+            filter: blur(100px);
+        }
+
+        /* ========================================
+           RESPONSIVE
+           ======================================== */
+           
+        @media (max-width: 768px) {
+            :root {
+                --spacing-xs: 0.25rem;
+                --spacing-sm: 0.5rem;
+                --spacing-md: 1rem;
+                --spacing-lg: 1.5rem;
+                --spacing-xl: 2rem;
+                --spacing-2xl: 3rem;
+            }
+            
+            .main-container {
+                padding: var(--spacing-md);
+            }
+            
+            .grid-2,
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            h1 {
+                letter-spacing: 0.1rem;
+            }
+            
+            .container-primary,
+            .card-base {
+                padding: var(--spacing-md);
+            }
+        }
+
+        /* ========================================
+           SCROLLBAR
+           ======================================== */
+           
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-midnight);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(
+                var(--color-rb-blue),
+                var(--color-electric-blue)
+            );
+            border-radius: var(--radius-full);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(
+                var(--color-electric-blue),
+                var(--color-sky-blue)
+            );
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Effects -->
+    <div class="electric-background">
+        <div class="bg-grid-pattern" style="position: absolute; inset: 0; opacity: 0.3;"></div>
+        <div class="gradient-orb-1"></div>
+        <div class="gradient-orb-2"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container animate-on-load">
+        <!-- Header -->
+        <header class="race-header">
+            <h1>🏁 VELOCITY RACING</h1>
+            <div class="status-live">
+                <div class="status-dot"></div>
+                EN VIVO - SESIÓN ACTIVA
+            </div>
+            <p class="label" style="margin-top: 1rem;">SPEEDPARK KARTING CHAMPIONSHIP</p>
+        </header>
+
+        <!-- Race Statistics -->
+        <section class="stats-grid">
+            <div class="card-base stat-card">
+                <p class="label">Sesión Actual</p>
+                <p class="stat-number stat-value" id="session-id">--</p>
+                <p class="label">ID</p>
+            </div>
+            
+            <div class="card-base stat-card">
+                <p class="label">Pilotos Activos</p>
+                <p class="stat-number stat-value" id="active-drivers">--</p>
+                <p class="label">CONECTADOS</p>
+            </div>
+            
+            <div class="card-base stat-card">
+                <p class="label">Tiempo Transcurrido</p>
+                <p class="stat-number stat-value" id="elapsed-time">--:--</p>
+                <p class="label">MM:SS</p>
+            </div>
+            
+            <div class="card-base stat-card">
+                <p class="label">Mejor Vuelta</p>
+                <p class="stat-number stat-value" id="best-lap">--:--.---</p>
+                <p class="label">M:SS.mmm</p>
+            </div>
+        </section>
+
+        <!-- Live Leaderboard -->
+        <section class="container-primary">
+            <h2>🏆 Posiciones en Vivo</h2>
+            <div class="overflow-x-auto" style="margin-top: 2rem;">
+                <table class="table-base">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">POS</th>
+                            <th>PILOTO</th>
+                            <th style="text-align: right;">MEJOR VUELTA</th>
+                            <th style="text-align: right;">ÚLTIMA VUELTA</th>
+                            <th style="text-align: right;">DIFERENCIA</th>
+                            <th style="text-align: center;">ESTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard">
+                        <!-- Drivers will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Race Details -->
+        <section class="grid-base grid-2" style="margin-top: 3rem;">
+            <!-- Session Info -->
+            <div class="card-base">
+                <h3>📊 Información de Sesión</h3>
+                <div style="margin-top: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Circuito:</span>
+                        <span class="stat-number">SpeedPark</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Modalidad:</span>
+                        <span class="stat-number">Práctica Libre</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Duración:</span>
+                        <span class="stat-number" id="session-duration">-- min</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span class="label">Estado:</span>
+                        <span class="badge badge-green">ACTIVA</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Track Records -->
+            <div class="card-base">
+                <h3>🎯 Récords del Circuito</h3>
+                <div style="margin-top: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Récord Absoluto:</span>
+                        <span class="stat-number best-time">0:42.157</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Récord del Día:</span>
+                        <span class="stat-number current-time" id="daily-record">--:--.---</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span class="label">Promedio General:</span>
+                        <span class="stat-number" id="average-time">--:--.---</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span class="label">Total Vueltas Hoy:</span>
+                        <span class="stat-number" id="total-laps">--</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Simulated WebSocket connection and race data
+        class RaceTracker {
+            constructor() {
+                this.drivers = new Map();
+                this.sessionId = null;
+                this.startTime = null;
+                this.bestLapTime = null;
+                this.totalLaps = 0;
+                
+                this.initializeSimulation();
+                this.startUpdates();
+            }
+            
+            initializeSimulation() {
+                // Simulated drivers data
+                const mockDrivers = [
+                    { driverId: '001', alias: 'SpeedDemon', firstName: 'Carlos', lastName: 'Ramirez' },
+                    { driverId: '002', alias: 'ThunderBolt', firstName: 'Ana', lastName: 'Torres' },
+                    { driverId: '003', alias: 'NitroKing', firstName: 'Miguel', lastName: 'Silva' },
+                    { driverId: '004', alias: 'VelocityX', firstName: 'Sofia', lastName: 'Mendez' },
+                    { driverId: '005', alias: 'TurboMax', firstName: 'Diego', lastName: 'Fuentes' },
+                    { driverId: '006', alias: 'RocketFuel', firstName: 'Lucia', lastName: 'Castro' },
+                    { driverId: '007', alias: 'BlazeRunner', firstName: 'Javier', lastName: 'Herrera' },
+                    { driverId: '008', alias: 'StormChaser', firstName: 'Isabella', lastName: 'Lopez' }
+                ];
+                
+                // Initialize session
+                this.sessionId = Math.floor(Math.random() * 100) + 1;
+                this.startTime = Date.now();
+                
+                // Add drivers with random initial data
+                mockDrivers.forEach((driver, index) => {
+                    const baseTime = 45000 + Math.random() * 5000; // 45-50 seconds base
+                    this.drivers.set(driver.driverId, {
+                        ...driver,
+                        bestLap: baseTime + Math.random() * 2000,
+                        lastLap: baseTime + Math.random() * 3000,
+                        position: index + 1,
+                        status: Math.random() > 0.8 ? 'IN_PIT' : 'ON_TRACK',
+                        lapCount: Math.floor(Math.random() * 15) + 5
+                    });
+                });
+                
+                this.updatePositions();
+                this.updateUI();
+            }
+            
+            updatePositions() {
+                // Sort drivers by best lap time
+                const sortedDrivers = Array.from(this.drivers.values())
+                    .sort((a, b) => a.bestLap - b.bestLap);
+                
+                sortedDrivers.forEach((driver, index) => {
+                    driver.position = index + 1;
+                });
+                
+                // Update best lap time
+                if (sortedDrivers.length > 0) {
+                    this.bestLapTime = sortedDrivers[0].bestLap;
+                }
+            }
+            
+            simulateRaceUpdate() {
+                // Randomly update driver times
+                this.drivers.forEach((driver) => {
+                    if (Math.random() < 0.3) { // 30% chance of update per cycle
+                        const improvement = (Math.random() - 0.7) * 500; // Mostly improvements
+                        const newTime = Math.max(driver.bestLap + improvement, 42000); // Minimum 42 seconds
+                        
+                        if (newTime < driver.bestLap) {
+                            driver.bestLap = newTime;
+                        }
+                        
+                        driver.lastLap = driver.bestLap + Math.random() * 2000;
+                        driver.lapCount += Math.random() < 0.4 ? 1 : 0;
+                        
+                        // Occasionally change status
+                        if (Math.random() < 0.1) {
+                            driver.status = driver.status === 'ON_TRACK' ? 'IN_PIT' : 'ON_TRACK';
+                        }
+                    }
+                });
+                
+                this.totalLaps = Array.from(this.drivers.values())
+                    .reduce((sum, driver) => sum + driver.lapCount, 0);
+                
+                this.updatePositions();
+                this.updateUI();
+            }
+            
+            formatTime(milliseconds) {
+                const totalSeconds = milliseconds / 1000;
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                
+                if (minutes > 0) {
+                    return `${minutes}:${seconds.toFixed(3).padStart(6, '0')}`;
+                } else {
+                    return `${seconds.toFixed(3)}s`;
+                }
+            }
+            
+            updateUI() {
+                // Update header stats
+                document.getElementById('session-id').textContent = `#${this.sessionId}`;
+                document.getElementById('active-drivers').textContent = this.drivers.size;
+                
+                // Update elapsed time
+                const elapsed = Date.now() - this.startTime;
+                const elapsedMinutes = Math.floor(elapsed / 60000);
+                const elapsedSeconds = Math.floor((elapsed % 60000) / 1000);
+                document.getElementById('elapsed-time').textContent = 
+                    `${elapsedMinutes}:${elapsedSeconds.toString().padStart(2, '0')}`;
+                
+                // Update best lap
+                if (this.bestLapTime) {
+                    document.getElementById('best-lap').textContent = this.formatTime(this.bestLapTime);
+                    document.getElementById('daily-record').textContent = this.formatTime(this.bestLapTime);
+                }
+                
+                // Update session duration
+                document.getElementById('session-duration').textContent = `${Math.floor(elapsed / 60000) + 15}`;
+                
+                // Update average time
+                const avgTime = Array.from(this.drivers.values())
+                    .reduce((sum, driver) => sum + driver.bestLap, 0) / this.drivers.size;
+                document.getElementById('average-time').textContent = this.formatTime(avgTime);
+                
+                // Update total laps
+                document.getElementById('total-laps').textContent = this.totalLaps;
+                
+                // Update leaderboard
+                this.updateLeaderboard();
+            }
+            
+            updateLeaderboard() {
+                const leaderboard = document.getElementById('leaderboard');
+                const sortedDrivers = Array.from(this.drivers.values())
+                    .sort((a, b) => a.bestLap - b.bestLap);
+                
+                const leaderTime = sortedDrivers[0]?.bestLap || 0;
+                
+                leaderboard.innerHTML = sortedDrivers.map((driver, index) => {
+                    const position = index + 1;
+                    const gap = position === 1 ? '--' : `+${this.formatTime(driver.bestLap - leaderTime)}`;
+                    
+                    let positionClass = 'position-other';
+                    if (position === 1) positionClass = 'position-1';
+                    else if (position === 2) positionClass = 'position-2';
+                    else if (position === 3) positionClass = 'position-3';
+                    
+                    const statusBadge = driver.status === 'ON_TRACK' 
+                        ? '<span class="badge badge-green">EN PISTA</span>'
+                        : '<span class="badge badge-blue">EN BOXES</span>';
+                    
+                    return `
+                        <tr>
+                            <td>
+                                <div class="position-number ${positionClass}">
+                                    ${position}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="driver-info">
+                                    <div class="driver-name">${driver.firstName} ${driver.lastName}</div>
+                                    <div class="driver-alias">"${driver.alias}"</div>
+                                </div>
+                            </td>
+                            <td class="time-display">
+                                <div class="stat-number best-time">${this.formatTime(driver.bestLap)}</div>
+                            </td>
+                            <td class="time-display">
+                                <div class="stat-number current-time">${this.formatTime(driver.lastLap)}</div>
+                            </td>
+                            <td class="time-display">
+                                <div class="stat-number gap-time">${gap}</div>
+                            </td>
+                            <td style="text-align: center;">
+                                ${statusBadge}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+            startUpdates() {
+                // Update every 2 seconds
+                setInterval(() => {
+                    this.simulateRaceUpdate();
+                }, 2000);
+            }
+        }
+        
+        // Initialize the race tracker when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new RaceTracker();
+        });
+    </script>
+</body>
+</html>

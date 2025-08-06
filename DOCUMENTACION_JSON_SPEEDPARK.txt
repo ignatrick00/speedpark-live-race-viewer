@@ -1,0 +1,204 @@
+================================================================================
+                    SPEEDPARK WEBSOCKET JSON - DOCUMENTACIÓN TÉCNICA
+================================================================================
+
+CONEXIÓN WEBSOCKET:
+- URL: wss://webserver22.sms-timing.com:10015/
+- Comando inicial: START 8501@speedpark
+- Protocolo: WebSocket Secure (WSS)
+
+================================================================================
+                             ESTRUCTURA JSON COMPLETA
+================================================================================
+
+NIVEL RAÍZ (Datos de la sesión):
+{
+  "T": 1754403600,                    // Timestamp de inicio de sesión (Unix)
+  "CE": 1,                           // Estado carrera activa (1=activa, 0=parada)
+  "CS": 1,                           // Estado cronómetro (1=corriendo, 0=parado)
+  "N": "[HEAT] 39 - Clasificacion",  // Nombre completo de la sesión
+  "E": 1,                            // ID del evento/sesión
+  "R": 1,                            // Estado de carrera (1=en progreso)
+  "L": 0,                            // Nivel/categoría
+  "S": 1,                            // Estado general del sistema
+  "C": 612200,                       // Contador/tiempo transcurrido (ms)
+  "EM": 0,                           // Estado de emergencia
+  "D": [ ... ]                      // Array de datos de pilotos
+}
+
+================================================================================
+                          DATOS DE PILOTOS (Array "D")
+================================================================================
+
+CADA PILOTO CONTIENE:
+{
+  "N": "Diego",          // NOMBRE del piloto
+  "K": "17",             // NÚMERO DE KART (string)
+  "P": 1,                // POSICIÓN ACTUAL en la carrera
+  "L": 14,               // NÚMERO DE VUELTA actual
+  "T": 43657,            // ⭐ TIEMPO ÚLTIMA VUELTA (milisegundos)
+  "B": 42943,            // ⭐ MEJOR TIEMPO PERSONAL (milisegundos)
+  "A": 46386,            // TIEMPO ACUMULADO/SECTOR (milisegundos)
+  "G": "04.271",         // GAP con el líder (formato "mm.sss" o "")
+  "D": 32670842,         // 🎯 ID ÚNICO DEL CORREDOR (clave primaria)
+  "R": 5,                // NÚMERO DE CARRERA/HEAT
+  "LP": 0,               // Last Position/Posición anterior
+  "M": 0                 // Marca/Penalización
+}
+
+================================================================================
+                              CAMPOS CRÍTICOS PARA APP
+================================================================================
+
+🔑 IDENTIFICACIÓN ÚNICA:
+- Campo "D": ID único permanente del corredor (ej: 32670842)
+- Este ID NO cambia aunque el corredor use diferentes karts
+- Perfecto para tracking histórico de mejores tiempos
+
+⏱️ TIEMPOS PRINCIPALES:
+- Campo "T": Tiempo de la última vuelta completada (más actual)
+- Campo "B": Mejor tiempo personal de la sesión (récord personal)
+- Campo "A": Tiempo acumulado o de sector intermedio
+
+📊 MÉTRICAS DE CARRERA:
+- Campo "P": Posición actual (1=primero, 2=segundo, etc.)
+- Campo "L": Número de vuelta (incrementa con cada vuelta completada)
+- Campo "G": Gap en segundos con el líder (formato "05.432")
+
+🏁 IDENTIFICACIÓN DE SESIÓN:
+- Campo "R": Número de heat/carrera dentro del día
+- Campo "E": ID único de la sesión completa
+- Campo "T" (raíz): Timestamp de inicio de la sesión
+
+================================================================================
+                              EJEMPLO REAL DE DATOS
+================================================================================
+
+PILOTO 1 - DIEGO:
+- ID Único: 32670842
+- Kart: 17
+- Posición: 1 (líder)
+- Vuelta: 14
+- Última vuelta: 43.657 segundos
+- Mejor tiempo: 42.943 segundos
+- Gap: "" (es el líder)
+
+PILOTO 2 - CONSTANZA:
+- ID Único: 32670841
+- Kart: 10
+- Posición: 2
+- Vuelta: 13
+- Última vuelta: 51.184 segundos
+- Mejor tiempo: 47.214 segundos
+- Gap: "04.271" (4.271 segundos detrás del líder)
+
+================================================================================
+                          CONVERSIONES DE TIEMPO
+================================================================================
+
+FORMATO EN JSON: Milisegundos (ej: 43657)
+CONVERSIÓN A SEGUNDOS: 43657 / 1000 = 43.657 segundos
+FORMATO LEGIBLE: 0:43.657 (mm:ss.sss)
+
+FUNCIÓN DE CONVERSIÓN:
+function formatTime(milliseconds) {
+    const totalSeconds = milliseconds / 1000;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = (totalSeconds % 60).toFixed(3);
+    return `${minutes}:${seconds.padStart(6, '0')}`;
+}
+
+================================================================================
+                        ESTRUCTURA PARA BASE DE DATOS APP
+================================================================================
+
+TABLA CORREDORES:
+- racer_id (INT): Campo "D" del JSON (ej: 32670842)
+- name (VARCHAR): Campo "N" del JSON (ej: "Diego")
+- created_date (DATE): Fecha de primer registro
+
+TABLA TIEMPOS:
+- record_id (AUTO_INCREMENT)
+- racer_id (INT): Referencia a tabla corredores
+- session_id (INT): Campo "E" del JSON
+- race_number (INT): Campo "R" del JSON
+- best_time (INT): Campo "B" del JSON (en milisegundos)
+- last_lap_time (INT): Campo "T" del JSON (en milisegundos)
+- lap_count (INT): Campo "L" del JSON
+- final_position (INT): Campo "P" del JSON
+- kart_number (VARCHAR): Campo "K" del JSON
+- date_recorded (DATETIME): Timestamp de cuando se guardó
+- session_start (INT): Campo "T" raíz del JSON
+
+TABLA SESIONES:
+- session_id (INT): Campo "E" del JSON
+- session_name (VARCHAR): Campo "N" del JSON
+- session_timestamp (INT): Campo "T" raíz del JSON
+- date_created (DATE): Fecha de la sesión
+
+================================================================================
+                               EVENTOS DETECTABLES
+================================================================================
+
+NUEVA VUELTA COMPLETADA:
+- Detectar cuando campo "L" incrementa
+- Capturar tiempo de esa vuelta desde campo "T"
+
+NUEVO MEJOR TIEMPO:
+- Detectar cuando campo "B" disminuye
+- Registrar el nuevo récord personal
+
+CAMBIO DE POSICIÓN:
+- Detectar cuando campo "P" cambia
+- Registrar movimiento en las posiciones
+
+FINALIZACIÓN DE CARRERA:
+- Detectar cuando "CE" cambia de 1 a 0
+- Capturar posiciones finales y tiempos
+
+================================================================================
+                                NOTAS IMPORTANTES
+================================================================================
+
+1. PERSISTENCIA DE IDs:
+   - El campo "D" (ID corredor) persiste entre sesiones
+   - Usar como clave primaria para tracking histórico
+
+2. TIEMPO MÁS CONFIABLE:
+   - Campo "T" es el tiempo de última vuelta más preciso
+   - Campo "B" es el mejor tiempo acumulado de la sesión
+
+3. ESTADOS DE CARRERA:
+   - "CE": 1 = carrera activa, 0 = carrera pausada/terminada
+   - "CS": 1 = cronómetro corriendo, 0 = cronómetro parado
+
+4. FORMATO DE GAP:
+   - String vacío "" = es el líder
+   - "04.271" = 4.271 segundos detrás del líder
+
+5. FRECUENCIA DE DATOS:
+   - Los datos llegan cada ~2-5 segundos
+   - Se actualizan en tiempo real durante la carrera
+
+================================================================================
+                              ARCHIVOS DEL PROYECTO
+================================================================================
+
+race-tracker.js        - Dashboard principal con métricas completas
+websocket-client.js    - Cliente básico (solo logs)
+debug-json.js         - Herramienta de análisis de estructura JSON
+README.md             - Documentación de uso
+DOCUMENTACION_JSON_SPEEDPARK.txt - Este archivo (documentación técnica)
+
+================================================================================
+                                   AUTOR
+================================================================================
+
+SpeedPark WebSocket JSON Analysis
+Fecha: Agosto 2025
+Versión: 1.0
+
+Para consultas técnicas o actualizaciones de esta documentación,
+revisar los archivos de código fuente en el proyecto.
+
+================================================================================

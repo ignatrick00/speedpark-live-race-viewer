@@ -1,0 +1,85 @@
+{
+  "timestamp": "2025-08-05T19:51:19.915Z",
+  "user": {
+    "personId": "63000000000383541",
+    "alias": "Break Pitt"
+  },
+  "totalRaces": 14,
+  "races": [
+    {
+      "sessionId": "32230973",
+      "position": 1,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32230986",
+      "position": 2,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32231025",
+      "position": 3,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32230999",
+      "position": 4,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32231038",
+      "position": 5,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32230928",
+      "position": 6,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32230941",
+      "position": 7,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32231012",
+      "position": 8,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32230885",
+      "position": 9,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32230888",
+      "position": 10,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32230894",
+      "position": 11,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32230915",
+      "position": 12,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32230891",
+      "position": 13,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    },
+    {
+      "sessionId": "32230912",
+      "position": 14,
+      "source": "/racestatistics/sessionv2/speedpark?sessionId=31907477"
+    }
+  ],
+  "statistics": {
+    "bestTime": null,
+    "averagePosition": 7.5,
+    "totalLaps": 0
+  }
+}

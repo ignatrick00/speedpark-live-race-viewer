@@ -1,0 +1,52 @@
+{
+  "email": "icabreraquezada@gmail.com",
+  "fallbackTag": "c9267e2f-a800-47b1-b88a-f84dbfe6b1c5",
+  "timestamp": "2025-08-05T21:04:52.404Z",
+  "request": {
+    "url": "https://mobile-api22.sms-timing.com/api/login/basiclogin/speedpark?defaultTemplate=true",
+    "method": "POST",
+    "headers": {
+      "Host": "mobile-api22.sms-timing.com",
+      "Accept": "application/json, text/plain, */*",
+      "Sec-Fetch-Site": "cross-site",
+      "X-Fast-DeviceToken": "1111111134RBBD7010",
+      "X-Fast-AccessToken": "30npoiqaqikpmykipnm",
+      "Accept-Language": "es-419,es;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Sec-Fetch-Mode": "cors",
+      "Content-Type": "application/json",
+      "Origin": "ionic://localhost",
+      "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+      "X-Fast-Version": "6250311 202504181931",
+      "Connection": "keep-alive",
+      "Sec-Fetch-Dest": "empty"
+    },
+    "body": {
+      "fallbackTag": "c9267e2f-a800-47b1-b88a-f84dbfe6b1c5",
+      "userInput": "icabreraquezada@gmail.com"
+    }
+  },
+  "response": {
+    "statusCode": 200,
+    "headers": {
+      "cache-control": "no-cache",
+      "pragma": "no-cache",
+      "content-type": "application/json; charset=utf-8",
+      "expires": "-1",
+      "server": "Microsoft-IIS/10.0",
+      "access-control-allow-origin": "*",
+      "x-aspnet-version": "4.0.30319",
+      "x-powered-by": "ASP.NET",
+      "date": "Tue, 05 Aug 2025 21:04:51 GMT",
+      "content-length": "83"
+    },
+    "data": {
+      "loggedIn": false,
+      "tag": null,
+      "person": null,
+      "loginCode": null,
+      "personReference": null
+    },
+    "rawData": "{\"loggedIn\":false,\"tag\":null,\"person\":null,\"loginCode\":null,\"personReference\":null}"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "speed-park-scraper",
+  "version": "1.0.0",
+  "main": "websocket-client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "chalk": "^5.5.0",
+    "ws": "^8.18.3"
+  }
+}

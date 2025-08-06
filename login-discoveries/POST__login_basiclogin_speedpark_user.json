@@ -1,0 +1,20 @@
+{
+  "endpoint": "/login/basiclogin/speedpark",
+  "method": "POST",
+  "credentials": {
+    "user": "usuario@gmail.com"
+  },
+  "statusCode": 401,
+  "headers": {
+    "cache-control": "no-cache",
+    "pragma": "no-cache",
+    "expires": "-1",
+    "server": "Microsoft-IIS/10.0",
+    "x-aspnet-version": "4.0.30319",
+    "x-powered-by": "ASP.NET",
+    "date": "Tue, 05 Aug 2025 20:50:40 GMT",
+    "content-length": "0"
+  },
+  "data": null,
+  "rawData": ""
+}

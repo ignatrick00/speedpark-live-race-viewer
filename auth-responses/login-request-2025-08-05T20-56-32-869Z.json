@@ -1,0 +1,27 @@
+{
+  "email": "icabreraquezada@gmail.com",
+  "timestamp": "2025-08-05T20:56:32.870Z",
+  "request": {
+    "url": "https://mobile-api22.sms-timing.com/api/login/basiclogin/speedpark",
+    "method": "POST",
+    "body": {
+      "email": "icabreraquezada@gmail.com"
+    }
+  },
+  "response": {
+    "statusCode": 401,
+    "headers": {
+      "cache-control": "no-cache",
+      "pragma": "no-cache",
+      "expires": "-1",
+      "server": "Microsoft-IIS/10.0",
+      "access-control-allow-origin": "*",
+      "x-aspnet-version": "4.0.30319",
+      "x-powered-by": "ASP.NET",
+      "date": "Tue, 05 Aug 2025 20:56:32 GMT",
+      "content-length": "0"
+    },
+    "data": null,
+    "rawData": ""
+  }
+}

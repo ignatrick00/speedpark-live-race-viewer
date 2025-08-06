@@ -1,0 +1,180 @@
+{
+  "timestamp": "2025-08-05T19:47:23.089Z",
+  "userInfo": {
+    "personId": "63000000000383541",
+    "alias": "Break Pitt",
+    "participantId": "32617264",
+    "sessions": [
+      "31907477",
+      "32030750"
+    ]
+  },
+  "summary": {
+    "working": 0,
+    "needsAuth": 1,
+    "notFound": 37,
+    "errors": 0
+  },
+  "results": {
+    "working": [],
+    "needsAuth": [
+      {
+        "endpoint": "/racestatistics/laps_fast5/speedpark?sessionId=31907477",
+        "method": "GET",
+        "statusCode": 401
+      }
+    ],
+    "notFound": [
+      {
+        "endpoint": "/auth/login",
+        "method": "POST"
+      },
+      {
+        "endpoint": "/auth/login",
+        "method": "POST"
+      },
+      {
+        "endpoint": "/auth/login",
+        "method": "POST"
+      },
+      {
+        "endpoint": "/login",
+        "method": "POST"
+      },
+      {
+        "endpoint": "/login",
+        "method": "POST"
+      },
+      {
+        "endpoint": "/token",
+        "method": "POST"
+      },
+      {
+        "endpoint": "/token",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/authenticate",
+        "method": "POST"
+      },
+      {
+        "endpoint": "/authenticate",
+        "method": "POST"
+      },
+      {
+        "endpoint": "/activity-history/speedpark",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/activity-history/recent/speedpark",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/sessions/live/speedpark",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/leaderboard/speedpark",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/statistics/best-times/speedpark",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/sessions/speedpark",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/sessions/recent",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/racestatistics/all/speedpark",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/competitions/speedpark",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/tracks/speedpark",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/person/63000000000383541/full",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/person/me",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/my-history",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/my-statistics",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/person/63000000000383541/sessions",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/person/63000000000383541/best-times",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/person/63000000000383541/statistics",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/participants/32617264",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/driver/32617264/history",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/driver/32617264/best",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/search?personId=63000000000383541",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/activity-history/person/63000000000383541",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/sessions?participantId=32617264",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/history?alias=Break%20Pitt",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/search?alias=Break%20Pitt",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/person/search?alias=Break%20Pitt",
+        "method": "GET"
+      },
+      {
+        "endpoint": "/participants/search?alias=Break%20Pitt",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "authMethods": []
+  }
+}
