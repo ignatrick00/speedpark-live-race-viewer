@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useWebSocket } from '@/hooks/useWebSocket'
 
 interface Driver {
   pos: number
@@ -37,39 +38,52 @@ const mockDailyBest: DailyBestTime[] = [
 ]
 
 export default function LiveRaceViewer() {
-  const [isLive, setIsLive] = useState(true)
-  const [sessionTime, setSessionTime] = useState("15:42")
-  const [activeDrivers, setActiveDrivers] = useState(5)
-  const [bestLap, setBestLap] = useState("0:42.157")
-  const [totalLaps, setTotalLaps] = useState(87)
-  const [averageTime, setAverageTime] = useState("0:43.456")
+  // ✅ USAR HOOK WEBSOCKET EN LUGAR DE MOCK DATA
+  const { isConnected, raceData, error, retryCount, reconnect } = useWebSocket()
+  
+  // Estado local (mantener el timer)
+  const [sessionTime, setSessionTime] = useState("00:00")
+  
+  // Estados derivados de WebSocket
+  const isLive = isConnected && !!raceData
+  const activeDrivers = raceData?.activeDrivers || 0
+  const drivers = raceData?.drivers || []
+  const dailyBest = raceData?.dailyBest || []
+  const kartRanking = raceData?.kartRanking || []
+  const bestLap = raceData?.bestLap || "--:--.---"
+  const totalLaps = raceData?.totalLaps || 0
+  const averageTime = raceData?.averageTime || "--:--.---"
 
   useEffect(() => {
-    // Simulate live updates
+    // Optimized timer - no dependencies to prevent re-creation
     const interval = setInterval(() => {
-      const [minutes, seconds] = sessionTime.split(':').map(Number)
-      const totalSeconds = minutes * 60 + seconds + 1
-      const newMinutes = Math.floor(totalSeconds / 60)
-      const newSeconds = totalSeconds % 60
-      setSessionTime(`${newMinutes}:${newSeconds.toString().padStart(2, '0')}`)
+      setSessionTime(prevTime => {
+        const [minutes, seconds] = prevTime.split(':').map(Number)
+        const totalSeconds = minutes * 60 + seconds + 1
+        const newMinutes = Math.floor(totalSeconds / 60)
+        const newSeconds = totalSeconds % 60
+        return `${newMinutes}:${newSeconds.toString().padStart(2, '0')}`
+      })
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [sessionTime])
+  }, []) // Empty deps - timer created only once
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden relative">
-      {/* Background Effects */}
-      <div className="fixed inset-0 z-0">
-        <div className="absolute inset-0 opacity-30" style={{
-          backgroundImage: `
-            linear-gradient(rgba(0, 212, 255, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 212, 255, 0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: '50px 50px'
-        }}></div>
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      {/* Optimized Background Effects */}
+      <div className="fixed inset-0 z-0 will-change-auto">
+        {/* Simplified grid - less GPU intensive */}
+        <div 
+          className="absolute inset-0 opacity-20" 
+          style={{
+            backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(0, 212, 255, 0.1) 2px, transparent 2px)',
+            backgroundSize: '100px 100px'
+          }}
+        />
+        {/* Optimized glows - reduced blur and using transform3d for GPU acceleration */}
+        <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-blue-600/15 rounded-full blur-2xl animate-pulse transform-gpu"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-400/15 rounded-full blur-2xl animate-pulse transform-gpu" style={{ animationDelay: '1s' }}></div>
       </div>
 
       {/* Navigation Bar */}
@@ -127,56 +141,54 @@ export default function LiveRaceViewer() {
           }}>
             🏁 SPEEDPARK
           </h1>
-          <div className={`inline-flex items-center gap-2 ${isLive ? 'text-cyan-400' : 'text-red-400'} font-digital font-bold text-lg uppercase tracking-wider`}>
-            <div className={`w-3 h-3 rounded-full ${isLive ? 'bg-cyan-400 animate-pulse' : 'bg-red-400'}`} style={{
-              boxShadow: isLive ? '0 0 20px #00FFFF' : '0 0 20px #FF6B6B'
-            }}></div>
-            {isLive ? 'EN VIVO - SESIÓN ACTIVA' : 'DESCONECTADO'}
+          <div className="flex items-center gap-4">
+            <div className={`inline-flex items-center gap-2 ${isLive ? 'text-cyan-400' : error ? 'text-red-400' : 'text-yellow-400'} font-digital font-bold text-lg uppercase tracking-wider`}>
+              <div className={`w-3 h-3 rounded-full ${
+                isLive ? 'bg-cyan-400 animate-pulse' : 
+                error ? 'bg-red-400' : 
+                'bg-yellow-400 animate-pulse'
+              }`} style={{
+                boxShadow: isLive ? '0 0 20px #00FFFF' : 
+                         error ? '0 0 20px #FF6B6B' : 
+                         '0 0 20px #FFFF00'
+              }}></div>
+              {isLive ? 'EN VIVO - SMS TIMING' : 
+               error ? 'ERROR DE CONEXIÓN' : 
+               'CONECTANDO...'}
+            </div>
+            
+            {error && (
+              <button 
+                onClick={reconnect}
+                className="px-3 py-1 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded text-sm hover:bg-blue-500/30 transition-colors">
+                Reintentar ({retryCount > 0 ? `Intento ${retryCount}` : 'Conectar'})
+              </button>
+            )}
           </div>
           <p className="text-blue-300 mt-4 text-lg tracking-wide">SPEEDPARK KARTING CHAMPIONSHIP</p>
         </header>
 
         {/* Statistics Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          <div className="bg-black/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 text-center relative overflow-hidden">
-            <div className="absolute inset-[-2px] bg-gradient-to-45deg from-cyan-400 via-blue-500 to-sky-400 opacity-50 rounded-2xl -z-10" style={{
-              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude'
-            }}></div>
+          <div className="bg-black/30 backdrop-blur-sm border border-cyan-400/30 rounded-2xl p-6 text-center relative hover:border-cyan-400/50 transition-colors">
             <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Sesión Actual</p>
             <p className="font-digital text-2xl text-white font-bold mb-2">SpeedPark Live</p>
             <p className="text-blue-300 text-xs uppercase tracking-wider">NOMBRE</p>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 text-center relative overflow-hidden">
-            <div className="absolute inset-[-2px] bg-gradient-to-45deg from-cyan-400 via-blue-500 to-sky-400 opacity-50 rounded-2xl -z-10" style={{
-              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude'
-            }}></div>
+          <div className="bg-black/30 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 text-center relative hover:border-blue-400/50 transition-colors">
             <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Pilotos Activos</p>
             <p className="font-digital text-2xl text-white font-bold mb-2">{activeDrivers}</p>
             <p className="text-blue-300 text-xs uppercase tracking-wider">EN PISTA</p>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 text-center relative overflow-hidden">
-            <div className="absolute inset-[-2px] bg-gradient-to-45deg from-cyan-400 via-blue-500 to-sky-400 opacity-50 rounded-2xl -z-10" style={{
-              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude'
-            }}></div>
+          <div className="bg-black/30 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 text-center relative hover:border-blue-400/50 transition-colors">
             <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Tiempo Activo</p>
             <p className="font-digital text-2xl text-white font-bold mb-2">{sessionTime}</p>
             <p className="text-blue-300 text-xs uppercase tracking-wider">MM:SS</p>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 text-center relative overflow-hidden">
-            <div className="absolute inset-[-2px] bg-gradient-to-45deg from-cyan-400 via-blue-500 to-sky-400 opacity-50 rounded-2xl -z-10" style={{
-              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude'
-            }}></div>
+          <div className="bg-black/30 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 text-center relative hover:border-blue-400/50 transition-colors">
             <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Mejor Vuelta Global</p>
             <p className="font-digital text-2xl text-white font-bold mb-2">{bestLap}</p>
             <p className="text-blue-300 text-xs uppercase tracking-wider">M:SS.mmm</p>
@@ -211,7 +223,7 @@ export default function LiveRaceViewer() {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockDrivers.map((driver) => (
+                    {drivers.length > 0 ? drivers.map((driver) => (
                       <tr 
                         key={driver.pos}
                         className="bg-black/40 hover:bg-blue-900/20 transition-all duration-300 hover:transform hover:translate-x-2"
@@ -250,39 +262,114 @@ export default function LiveRaceViewer() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center">
+                          <div className="text-blue-300">
+                            {error ? (
+                              <div>
+                                <div className="text-red-400 mb-2">❌ Error: {error}</div>
+                                <button onClick={reconnect} className="text-cyan-400 hover:text-white transition-colors">
+                                  🔄 Reintentar conexión
+                                </button>
+                              </div>
+                            ) : !isConnected ? (
+                              <div className="animate-pulse">
+                                🔄 Conectando a SMS-Timing...
+                              </div>
+                            ) : (
+                              <div>
+                                ⏳ Esperando datos de carrera...
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </section>
 
-          {/* Daily Best Times Sidebar */}
-          <section className="bg-black/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 h-fit">
-            <h3 className="font-racing text-2xl text-white mb-6 tracking-wider">
-              🥇 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white">Mejores del Día</span>
-            </h3>
-            
-            <div className="space-y-3">
-              {mockDailyBest.map((record) => (
-                <div 
-                  key={record.pos}
-                  className={`flex items-center justify-between p-3 bg-black/30 rounded-xl border-l-3 transition-all duration-300 hover:bg-blue-900/10 hover:transform hover:translate-x-1 ${
-                    record.pos === 1 ? 'border-l-yellow-400 bg-gradient-to-r from-yellow-400/10 to-black/30' :
-                    record.pos === 2 ? 'border-l-gray-300 bg-gradient-to-r from-gray-300/10 to-black/30' :
-                    record.pos === 3 ? 'border-l-orange-600 bg-gradient-to-r from-orange-600/10 to-black/30' :
-                    'border-l-blue-400'
-                  }`}
-                >
-                  <div className="flex-1">
-                    <div className="font-racing text-white font-semibold uppercase tracking-wide text-sm">{record.name}</div>
-                    <div className="text-sky-400 text-xs">{record.details}</div>
+          {/* Sidebar with both sections */}
+          <div className="space-y-6">
+            {/* Daily Best Times Sidebar */}
+            <section className="bg-black/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 h-fit">
+              <h3 className="font-racing text-2xl text-white mb-6 tracking-wider">
+                🥇 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white">Mejores del Día</span>
+              </h3>
+              
+              <div className="space-y-3">
+                {dailyBest.length > 0 ? dailyBest.map((record) => (
+                  <div 
+                    key={`${record.pos}-${record.name}`}
+                    className={`flex items-center justify-between p-3 bg-black/30 rounded-xl border-l-3 transition-all duration-300 hover:bg-blue-900/10 hover:transform hover:translate-x-1 ${
+                      record.pos === 1 ? 'border-l-yellow-400 bg-gradient-to-r from-yellow-400/10 to-black/30' :
+                      record.pos === 2 ? 'border-l-gray-300 bg-gradient-to-r from-gray-300/10 to-black/30' :
+                      record.pos === 3 ? 'border-l-orange-600 bg-gradient-to-r from-orange-600/10 to-black/30' :
+                      'border-l-blue-400'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <div className="font-racing text-white font-semibold uppercase tracking-wide text-sm">{record.name}</div>
+                      <div className="text-sky-400 text-xs">{record.details}</div>
+                    </div>
+                    <div className="font-digital text-cyan-400 text-lg font-bold">{record.time}</div>
                   </div>
-                  <div className="font-digital text-cyan-400 text-lg font-bold">{record.time}</div>
-                </div>
-              ))}
-            </div>
-          </section>
+                )) : (
+                  <div className="text-center text-blue-300 py-4">
+                    {error ? 'Sin datos disponibles' : 
+                     !isConnected ? 'Cargando...' : 
+                     'Esperando mejores tiempos...'}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Kart Ranking Sidebar */}
+            <section className="bg-black/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 h-fit">
+              <h3 className="font-racing text-2xl text-white mb-6 tracking-wider">
+                🏎️ <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white">Mejores Karts del Día</span>
+              </h3>
+              
+              <div className="space-y-3">
+                {kartRanking.length > 0 ? kartRanking.slice(0, 6).map((kart, index) => (
+                  <div 
+                    key={`kart-${kart.kart}`}
+                    className={`flex items-center justify-between p-3 bg-black/30 rounded-xl border-l-3 transition-all duration-300 hover:bg-blue-900/10 hover:transform hover:translate-x-1 ${
+                      index === 0 ? 'border-l-yellow-400 bg-gradient-to-r from-yellow-400/10 to-black/30' :
+                      index === 1 ? 'border-l-gray-300 bg-gradient-to-r from-gray-300/10 to-black/30' :
+                      index === 2 ? 'border-l-orange-600 bg-gradient-to-r from-orange-600/10 to-black/30' :
+                      'border-l-blue-400'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
+                        index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-black shadow-lg shadow-yellow-400/60' :
+                        index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-black shadow-lg shadow-gray-400/60' :
+                        index === 2 ? 'bg-gradient-to-br from-orange-600 to-orange-800 text-white shadow-lg shadow-orange-600/60' :
+                        'bg-blue-900/30 text-white border border-cyan-400'
+                      }`}>
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-racing text-white font-semibold uppercase tracking-wide text-sm">Kart #{kart.kart}</div>
+                        <div className="text-sky-400 text-xs">{kart.driver}</div>
+                      </div>
+                    </div>
+                    <div className="font-digital text-cyan-400 text-lg font-bold">{kart.time}</div>
+                  </div>
+                )) : (
+                  <div className="text-center text-blue-300 py-4">
+                    {error ? 'Sin datos de karts' : 
+                     !isConnected ? 'Cargando...' : 
+                     'Esperando tiempos de karts...'}
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
 
         {/* Bottom Information Cards */}
@@ -298,8 +385,8 @@ export default function LiveRaceViewer() {
                 <span className="font-digital text-white font-bold">SpeedPark</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-blue-300 text-sm uppercase tracking-wider">Modalidad:</span>
-                <span className="font-digital text-white font-bold">Práctica Libre</span>
+                <span className="text-blue-300 text-sm uppercase tracking-wider">Sesión:</span>
+                <span className="font-digital text-white font-bold">{raceData?.sessionName || 'Práctica Libre'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-blue-300 text-sm uppercase tracking-wider">Tiempo Activo:</span>
