@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import LapCaptureService from '@/lib/lapCaptureService';
+import DriverRaceDataService from '@/lib/driverRaceDataService';
 
 export async function POST(request: NextRequest) {
   try {
     const { action, sessionData } = await request.json();
     
     if (action === 'process_lap_data' && sessionData) {
-      console.log(`🏁 API: Processing lap data for "${sessionData.N}"`);
+      console.log(`🏁 API: Processing lap data (NEW STRUCTURE) for "${sessionData.N}"`);
       
-      // Process the lap-by-lap data
+      // Process the lap-by-lap data with new driver-centric structure
       await LapCaptureService.processLapData(sessionData);
       
       return NextResponse.json({
         success: true,
-        message: 'Lap data processed successfully',
+        message: 'Lap data processed successfully with new driver-centric structure',
         sessionName: sessionData.N,
         driversCount: sessionData.D?.length || 0,
-        recordsCreated: sessionData.D?.length || 0 // Each driver creates one record per update
+        recordsCreated: sessionData.D?.length || 0,
+        dataStructure: 'driver_centric_with_lap_by_lap'
       });
     }
     
@@ -75,6 +77,63 @@ export async function POST(request: NextRequest) {
       });
     }
     
+    if (action === 'get_lap_by_lap_data') {
+      const { webUserId, sessionId } = await request.json();
+      
+      if (!webUserId || !sessionId) {
+        return NextResponse.json(
+          { error: 'webUserId and sessionId are required for lap-by-lap data' },
+          { status: 400 }
+        );
+      }
+      
+      const lapByLapResult = await LapCaptureService.getSessionLapByLap(webUserId, sessionId);
+      
+      return NextResponse.json({
+        success: lapByLapResult.success,
+        dataSource: lapByLapResult.source || 'unknown',
+        laps: lapByLapResult.laps,
+        totalLaps: lapByLapResult.laps?.length || 0,
+        error: lapByLapResult.error
+      });
+    }
+    
+    if (action === 'get_driver_race_summary') {
+      const { webUserId } = await request.json();
+      
+      if (!webUserId) {
+        return NextResponse.json(
+          { error: 'webUserId is required' },
+          { status: 400 }
+        );
+      }
+      
+      const driverData = await DriverRaceDataService.getDriverDataByWebUserId(webUserId);
+      
+      if (!driverData) {
+        return NextResponse.json({
+          success: true,
+          message: 'No race data found for this driver',
+          driverData: null,
+          stats: null
+        });
+      }
+      
+      return NextResponse.json({
+        success: true,
+        driverData: {
+          driverName: driverData.driverName,
+          firstName: driverData.firstName,
+          lastName: driverData.lastName,
+          alias: driverData.alias,
+          linkingStatus: driverData.linkingStatus,
+          totalSessions: driverData.sessions.length
+        },
+        stats: driverData.stats,
+        recentSessions: driverData.sessions.slice(-5) // Last 5 sessions
+      });
+    }
+
     if (action === 'cleanup_old_records') {
       const deletedCount = await LapCaptureService.cleanupOldRecords();
       
@@ -115,7 +174,46 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json({
         success: true,
-        sessions: recentSessions
+        sessions: recentSessions,
+        dataStructure: 'enhanced_with_lap_by_lap'
+      });
+    }
+    
+    if (action === 'get_lap_by_lap_data' && webUserId && sessionId) {
+      const lapByLapResult = await LapCaptureService.getSessionLapByLap(webUserId, sessionId);
+      
+      return NextResponse.json({
+        success: lapByLapResult.success,
+        dataSource: lapByLapResult.source || 'unknown',
+        laps: lapByLapResult.laps,
+        totalLaps: lapByLapResult.laps?.length || 0,
+        error: lapByLapResult.error
+      });
+    }
+    
+    if (action === 'get_driver_summary' && webUserId) {
+      const driverData = await DriverRaceDataService.getDriverDataByWebUserId(webUserId);
+      
+      if (!driverData) {
+        return NextResponse.json({
+          success: true,
+          message: 'No race data found for this driver',
+          driverData: null
+        });
+      }
+      
+      return NextResponse.json({
+        success: true,
+        driverData: {
+          driverName: driverData.driverName,
+          firstName: driverData.firstName,
+          lastName: driverData.lastName,
+          alias: driverData.alias,
+          linkingStatus: driverData.linkingStatus,
+          totalSessions: driverData.sessions.length
+        },
+        stats: driverData.stats,
+        sessionsCount: driverData.sessions.length
       });
     }
     

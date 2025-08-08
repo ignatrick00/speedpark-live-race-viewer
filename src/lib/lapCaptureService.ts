@@ -1,6 +1,7 @@
 import connectDB from './mongodb';
 import LapRecord from '@/models/LapRecord';
 import DriverIdentityService from './driverIdentityService';
+import DriverRaceDataService from './driverRaceDataService';
 
 interface SMSDriverData {
   N: string; // Name
@@ -24,42 +25,56 @@ export class LapCaptureService {
   
   /**
    * Main function to process and store lap-by-lap data
+   * NOW USING NEW DRIVER-CENTRIC STRUCTURE
    */
   static async processLapData(smsData: SMSData): Promise<void> {
     try {
       await connectDB();
       
-      const sessionName = smsData.N;
-      const sessionTimestamp = new Date();
-      const sessionId = `${sessionName}_${sessionTimestamp.toDateString()}`;
+      console.log(`🏁 Processing lap data (NEW STRUCTURE): ${smsData.N} - ${smsData.D.length} drivers`);
       
-      console.log(`🏁 Processing lap data for: ${sessionName} - ${smsData.D.length} drivers`);
+      // PRIORITY 1: Use new driver-centric structure
+      await DriverRaceDataService.processRaceData(smsData);
       
-      // Get previous data for this session to detect changes
-      const previousData = this.previousSessionData.get(sessionName) || [];
-      const currentData = smsData.D;
-      
-      // Process each driver's current data
-      for (const [index, driverData] of currentData.entries()) {
-        await this.processDriverLap(
-          sessionId,
-          sessionName,
-          sessionTimestamp,
-          driverData,
-          previousData[index],
-          index
-        );
+      // PRIORITY 2: Maintain legacy individual records for compatibility (reduced frequency)
+      if (Math.random() < 0.1) { // Only 10% of the time to reduce duplicates
+        await this.processLegacyLapData(smsData);
       }
       
-      // Store current data for next comparison
-      this.previousSessionData.set(sessionName, [...currentData]);
-      
-      console.log(`✅ Lap data processed for ${currentData.length} drivers`);
+      console.log(`✅ Lap data processed with NEW driver-centric structure`);
       
     } catch (error) {
       console.error('❌ Error processing lap data:', error);
       throw error;
     }
+  }
+  
+  /**
+   * Legacy processing for backward compatibility (reduced frequency)
+   */
+  private static async processLegacyLapData(smsData: SMSData): Promise<void> {
+    const sessionName = smsData.N;
+    const sessionTimestamp = new Date();
+    const sessionId = `${sessionName}_${sessionTimestamp.toDateString()}`;
+    
+    // Get previous data for this session to detect changes
+    const previousData = this.previousSessionData.get(sessionName) || [];
+    const currentData = smsData.D;
+    
+    // Process each driver's current data
+    for (const [index, driverData] of currentData.entries()) {
+      await this.processDriverLap(
+        sessionId,
+        sessionName,
+        sessionTimestamp,
+        driverData,
+        previousData[index],
+        index
+      );
+    }
+    
+    // Store current data for next comparison
+    this.previousSessionData.set(sessionName, [...currentData]);
   }
   
   /**
@@ -184,12 +199,38 @@ export class LapCaptureService {
   
   /**
    * Get recent session lap data for dashboard
+   * UPDATED: Uses new DriverRaceData structure first, fallback to legacy
    */
   static async getRecentSessionLaps(webUserId: string, limit = 5) {
     try {
       await connectDB();
       
-      // Get recent sessions for this user
+      console.log(`📊 Getting recent sessions for webUserId: ${webUserId}`);
+      
+      // PRIORITY 1: Try new driver-centric structure
+      const newStructureSessions = await DriverRaceDataService.getRecentSessions(webUserId, limit);
+      
+      if (newStructureSessions && newStructureSessions.length > 0) {
+        console.log(`✅ Found ${newStructureSessions.length} sessions in NEW structure`);
+        
+        // Convert to dashboard format
+        return newStructureSessions.map(session => ({
+          _id: session.sessionId,
+          sessionName: session.sessionName,
+          lastLap: session.sessionDate,
+          totalLaps: session.totalLaps,
+          bestPosition: session.bestPosition,
+          bestLapTime: session.bestTime,
+          // Additional data from new structure
+          lapByLapData: session.laps,
+          sessionType: session.sessionType,
+          revenue: session.revenue
+        }));
+      }
+      
+      console.log(`⚠️ No data in NEW structure, falling back to LEGACY lap_records`);
+      
+      // FALLBACK: Legacy lap_records structure
       const recentSessions = await LapRecord.aggregate([
         { $match: { webUserId } },
         { 
@@ -206,6 +247,7 @@ export class LapCaptureService {
         { $limit: limit }
       ]);
       
+      console.log(`📊 Found ${recentSessions.length} sessions in LEGACY structure`);
       return recentSessions;
       
     } catch (error) {
@@ -265,6 +307,49 @@ export class LapCaptureService {
     } catch (error) {
       console.error('❌ Error getting session progression:', error);
       return [];
+    }
+  }
+  
+  /**
+   * Get lap-by-lap progression for a specific driver and session
+   * UPDATED: Uses new structure first, fallback to legacy
+   */
+  static async getSessionLapByLap(webUserId: string, sessionId: string) {
+    try {
+      await connectDB();
+      
+      console.log(`🏁 Getting lap-by-lap data: ${webUserId} - ${sessionId}`);
+      
+      // PRIORITY 1: Try new driver-centric structure
+      const lapByLapData = await DriverRaceDataService.getSessionLaps(webUserId, sessionId);
+      
+      if (lapByLapData && lapByLapData.length > 0) {
+        console.log(`✅ Found ${lapByLapData.length} laps in NEW structure`);
+        return {
+          success: true,
+          source: 'new_structure',
+          laps: lapByLapData
+        };
+      }
+      
+      console.log(`⚠️ No lap-by-lap data in NEW structure, falling back to LEGACY`);
+      
+      // FALLBACK: Legacy structure (less detailed)
+      const legacyProgression = await this.getDriverLapProgression(webUserId, sessionId);
+      
+      return {
+        success: true,
+        source: 'legacy_structure',
+        laps: legacyProgression
+      };
+      
+    } catch (error) {
+      console.error('❌ Error getting lap-by-lap data:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        laps: []
+      };
     }
   }
   

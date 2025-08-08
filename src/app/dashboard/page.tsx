@@ -60,32 +60,141 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       
-      // Get user's recent lap records using exact matching
-      const response = await fetch(`/api/lap-capture?action=get_recent_sessions&webUserId=${user._id}&limit=20`);
-      const data = await response.json();
+      console.log(`🔍 Loading real user stats for: ${user._id}`);
       
-      if (data.success && data.sessions.length > 0) {
-        console.log(`✅ Found ${data.sessions.length} real sessions for user`);
+      // STEP 1: Get user's recent sessions using NEW driver-centric structure
+      const sessionsResponse = await fetch(`/api/lap-capture?action=get_recent_sessions&webUserId=${user._id}&limit=20`);
+      const sessionsData = await sessionsResponse.json();
+      
+      // STEP 2: Also get driver summary with aggregate stats
+      const summaryResponse = await fetch(`/api/lap-capture?action=get_driver_summary&webUserId=${user._id}`);
+      const summaryData = await summaryResponse.json();
+      
+      if (sessionsData.success && sessionsData.sessions.length > 0) {
+        console.log(`✅ Found ${sessionsData.sessions.length} real sessions (${sessionsData.dataStructure})`);
         
-        // Convert real lap data to dashboard format
-        const realStats = convertLapDataToPersonalStats(data.sessions, user);
-        setStats(realStats);
+        // Check if we have lap-by-lap data in new structure
+        const hasLapByLapData = sessionsData.sessions.some(s => s.lapByLapData && s.lapByLapData.length > 0);
+        
+        if (hasLapByLapData) {
+          console.log(`🎯 Using ENHANCED data with lap-by-lap progression`);
+          const realStats = convertEnhancedLapDataToPersonalStats(sessionsData.sessions, summaryData.stats || null, user);
+          setStats(realStats);
+        } else {
+          console.log(`📊 Using STANDARD session data`);
+          const realStats = convertLapDataToPersonalStats(sessionsData.sessions, user);
+          setStats(realStats);
+        }
       } else {
         console.log(`ℹ️ No real race data found, using demo stats`);
-        // If no real data, show demo stats
         setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
       }
       
     } catch (error) {
       console.error('❌ Error loading real stats:', error);
-      // Fallback to demo stats on error
       setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
     } finally {
       setLoading(false);
     }
   };
 
-  // Convert real lap data to dashboard format
+  // Convert ENHANCED lap data with lap-by-lap progression to dashboard format
+  function convertEnhancedLapDataToPersonalStats(sessions: any[], aggregateStats: any, user: any): PersonalStats {
+    if (!sessions || sessions.length === 0) {
+      return generateDemoStats(user.profile.firstName, user.profile.lastName);
+    }
+
+    console.log(`📊 Processing ${sessions.length} enhanced sessions with lap-by-lap data`);
+    
+    // Use aggregate stats if available, otherwise calculate from sessions
+    let totalRaces = aggregateStats?.totalRaces || sessions.length;
+    let totalSpent = aggregateStats?.totalSpent || (sessions.filter(s => s.sessionType === 'clasificacion').length * 17000);
+    let bestTime = aggregateStats?.allTimeBestLap || Math.min(...sessions.map(s => s.bestLapTime || 999999));
+    let bestPosition = aggregateStats?.bestPosition || Math.min(...sessions.map(s => s.bestPosition || 999));
+    let podiumFinishes = aggregateStats?.podiumFinishes || sessions.filter(s => (s.finalPosition || s.bestPosition) <= 3).length;
+    
+    // Calculate total laps from lap-by-lap data
+    let totalLaps = 0;
+    let allLapTimes: number[] = [];
+    
+    sessions.forEach(session => {
+      if (session.lapByLapData && session.lapByLapData.length > 0) {
+        totalLaps += session.lapByLapData.length;
+        
+        // Collect all individual lap times for better average calculation
+        session.lapByLapData.forEach((lap: any) => {
+          if (lap.time && lap.time > 0) {
+            allLapTimes.push(lap.time);
+          }
+        });
+      } else {
+        totalLaps += session.totalLaps || 0;
+      }
+    });
+    
+    // Calculate more accurate average from individual lap times
+    const averageTime = allLapTimes.length > 0 
+      ? allLapTimes.reduce((sum, time) => sum + time, 0) / allLapTimes.length
+      : bestTime;
+
+    // Ensure valid values
+    bestTime = bestTime === 999999 ? 0 : bestTime;
+    bestPosition = bestPosition === 999 ? 1 : bestPosition;
+    
+    // Date range
+    const dates = sessions.map(s => new Date(s.lastLap || s.sessionDate)).sort((a, b) => a.getTime() - b.getTime());
+    const firstRace = dates[0] || new Date();
+    const lastRace = dates[dates.length - 1] || new Date();
+    
+    // Generate enhanced monthly progression
+    const monthlyProgression = generateEnhancedMonthlyProgression(sessions);
+    
+    // Convert sessions to recent races with enhanced data
+    const recentRaces = sessions.slice(0, 5).map((session, index) => {
+      // Get lap-by-lap data if available
+      const lapByLap = session.lapByLapData || [];
+      const lastLap = lapByLap.length > 0 ? lapByLap[lapByLap.length - 1] : null;
+      
+      return {
+        date: new Date(session.lastLap || session.sessionDate),
+        sessionName: session.sessionName || `Clasificación ${index + 1}`,
+        position: session.bestPosition || 1,
+        kartNumber: lastLap?.kartNumber || Math.floor(Math.random() * 20) + 1,
+        bestTime: session.bestLapTime || bestTime,
+        totalLaps: session.totalLaps || lapByLap.length || 10,
+        // Enhanced data from lap-by-lap
+        lapByLapProgression: lapByLap,
+        sessionType: session.sessionType || 'clasificacion',
+        revenue: session.revenue || (session.sessionType === 'clasificacion' ? 17000 : 0)
+      };
+    });
+
+    const stats: PersonalStats = {
+      totalRaces,
+      totalSpent,
+      bestTime,
+      averageTime,
+      bestPosition,
+      podiumFinishes,
+      favoriteKart: Math.floor(Math.random() * 20) + 1, // TODO: Calculate from lap data
+      totalLaps,
+      firstRace,
+      lastRace,
+      monthlyProgression,
+      recentRaces
+    };
+
+    console.log(`✅ Enhanced stats processed:`, {
+      totalRaces,
+      bestTime,
+      totalLaps,
+      lapByLapSessions: sessions.filter(s => s.lapByLapData?.length > 0).length
+    });
+
+    return stats;
+  }
+
+  // Convert real lap data to dashboard format (legacy)
   function convertLapDataToPersonalStats(sessions: any[], user: any): PersonalStats {
     if (!sessions || sessions.length === 0) {
       return generateDemoStats(user.profile.firstName, user.profile.lastName);
@@ -159,7 +268,55 @@ export default function DashboardPage() {
     return stats;
   }
 
-  // Generate monthly progression from real sessions
+  // Generate ENHANCED monthly progression with lap-by-lap data
+  function generateEnhancedMonthlyProgression(sessions: any[]) {
+    const monthlyData = new Map();
+    
+    sessions.forEach(session => {
+      const date = new Date(session.lastLap || session.sessionDate);
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      
+      if (!monthlyData.has(monthKey)) {
+        monthlyData.set(monthKey, {
+          month: date.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }),
+          races: 0,
+          bestTime: 999999,
+          bestPosition: 999,
+          totalLaps: 0,
+          averageLapTime: 0,
+          lapTimes: []
+        });
+      }
+      
+      const monthData = monthlyData.get(monthKey);
+      monthData.races += 1;
+      monthData.bestTime = Math.min(monthData.bestTime, session.bestLapTime || 999999);
+      monthData.bestPosition = Math.min(monthData.bestPosition, session.bestPosition || 999);
+      
+      // Enhanced: collect lap-by-lap data for better statistics
+      if (session.lapByLapData && session.lapByLapData.length > 0) {
+        monthData.totalLaps += session.lapByLapData.length;
+        session.lapByLapData.forEach((lap: any) => {
+          if (lap.time && lap.time > 0) {
+            monthData.lapTimes.push(lap.time);
+          }
+        });
+      } else {
+        monthData.totalLaps += session.totalLaps || 0;
+      }
+    });
+    
+    return Array.from(monthlyData.values()).map(data => ({
+      ...data,
+      bestTime: data.bestTime === 999999 ? 0 : data.bestTime,
+      position: data.bestPosition === 999 ? 1 : data.bestPosition,
+      averageLapTime: data.lapTimes.length > 0 
+        ? data.lapTimes.reduce((sum: number, time: number) => sum + time, 0) / data.lapTimes.length
+        : data.bestTime
+    }));
+  }
+
+  // Generate monthly progression from real sessions (legacy)
   function generateMonthlyProgressionFromSessions(sessions: any[]) {
     const monthlyData = new Map();
     
@@ -379,14 +536,22 @@ export default function DashboardPage() {
             {user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`}
           </p>
           
-          {/* Data Source Indicator */}
+          {/* Enhanced Data Source Indicator */}
           {stats && (
             <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium">
               {stats.totalRaces > 0 && stats.recentRaces.length > 0 ? (
-                <div className="bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-full flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  DATOS REALES DE CARRERAS
-                </div>
+                // Check if we have lap-by-lap data
+                stats.recentRaces.some((race: any) => race.lapByLapProgression?.length > 0) ? (
+                  <div className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full flex items-center gap-2">
+                    <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+                    🏁 DATOS VUELTA POR VUELTA - NUEVA ESTRUCTURA
+                  </div>
+                ) : (
+                  <div className="bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-full flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    DATOS REALES DE CARRERAS
+                  </div>
+                )
               ) : (
                 <div className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded-full flex items-center gap-2">
                   <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
