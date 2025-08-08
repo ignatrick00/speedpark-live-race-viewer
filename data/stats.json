@@ -1,12 +1,19 @@
 {
-  "totalRaces": 1,
-  "totalDrivers": 8,
-  "driversToday": 8,
-  "revenueToday": 136000,
-  "revenueTotal": 136000,
-  "averageDriversPerRace": 8,
-  "lastUpdate": "07-08-2025, 8:16:50 p. m.",
+  "totalRaces": 2,
+  "totalDrivers": 29,
+  "driversToday": 29,
+  "revenueToday": 493000,
+  "revenueTotal": 493000,
+  "averageDriversPerRace": 14.5,
+  "lastUpdate": "07-08-2025, 8:37:54 p. m.",
   "recentSessions": [
+    {
+      "id": "session_1754613474530",
+      "name": "[HEAT] 75 - Clasificacion",
+      "drivers": 21,
+      "revenue": 357000,
+      "timestamp": "7/8, 08:37 p. m."
+    },
     {
       "id": "session_1754612210946",
       "name": "[HEAT] 73 - Clasificacion",
@@ -31,6 +38,35 @@
       ],
       "timestamp": "2025-08-08T00:16:50.946Z",
       "revenue": 136000
+    },
+    {
+      "id": "session_1754613474530",
+      "name": "[HEAT] 75 - Clasificacion",
+      "drivers": [
+        "Fabrizio",
+        "Nicolas",
+        "Sebastian",
+        "PRT",
+        "Chris Andersen",
+        "Andres",
+        "Victor",
+        "Cami",
+        "Nacho",
+        "Derick",
+        "Alondra",
+        "Alonso",
+        "Rodrigo",
+        "Nikolas",
+        "Nelson",
+        "Charlie",
+        "Matias",
+        "Bastian",
+        "Roberto",
+        "Gabriela",
+        "@Niconautas"
+      ],
+      "timestamp": "2025-08-08T00:37:54.530Z",
+      "revenue": 357000
     }
   ],
   "uniqueDriversArray": [
@@ -41,6 +77,27 @@
     "Coco",
     "Anita",
     "Benja",
-    "Cata"
+    "Cata",
+    "Fabrizio",
+    "Nicolas",
+    "Sebastian",
+    "PRT",
+    "Chris Andersen",
+    "Andres",
+    "Victor",
+    "Cami",
+    "Nacho",
+    "Derick",
+    "Alondra",
+    "Alonso",
+    "Rodrigo",
+    "Nikolas",
+    "Nelson",
+    "Charlie",
+    "Matias",
+    "Bastian",
+    "Roberto",
+    "Gabriela",
+    "@Niconautas"
   ]
 }

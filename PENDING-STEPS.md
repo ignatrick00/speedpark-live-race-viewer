@@ -1,90 +1,141 @@
 # 📋 KARTEANDO.CL - PASOS PENDIENTES
 
-*Actualizado: 2025-08-06*
+*Actualizado: 2025-08-08*
 
-## 🚀 FASE 1: Setup Inicial del Proyecto
+## ✅ RESUMEN: Fases 1-2 Completadas
 
-### 📦 1.1 Inicializar Git Repository
-- [ ] `git init`
-- [ ] Configurar .gitignore
-- [ ] Primer commit inicial
-
-### 📦 1.2 Setup Next.js + Backend
-- [ ] Crear package.json con dependencies Next.js
-- [ ] Instalar dependencies básicas
-- [ ] Verificar `npm run dev` funcional
-
-### 📁 1.3 Estructura de Carpetas
-- [ ] Crear carpeta `src/` con estructura Next.js
-- [ ] Crear carpeta `backend/` con estructura Express
-- [ ] Crear carpetas assets, docs, etc.
-
-### ⚙️ 1.4 Configuración Básica
-- [ ] next.config.js
-- [ ] tailwind.config.js  
-- [ ] tsconfig.json
-- [ ] Archivos de configuración backend
+**COMPLETADO**:
+- ✅ FASE 1: Setup Next.js + TypeScript
+- ✅ FASE 2: Live Race Viewer + WebSocket SMS-Timing  
+- ✅ FASE 2.5: Kart Ranking System + Real-time data
+- ✅ FASE 2.6: Business Statistics Dashboard
 
 ---
 
-## 🎯 FASE 2: Landing Page + Live Viewer (Pendiente)
+## 🔐 FASE 3: Sistema de Autenticación (EN PROGRESO)
 
-### 🏠 2.1 Landing Page Básica
-- [ ] Crear layout principal
-- [ ] Header con logo y botones login/signup
-- [ ] Footer básico
+### 🗄️ 3.1 Database Setup con MongoDB
+- [ ] Instalar dependencies: `mongoose`, `bcryptjs`, `jsonwebtoken`
+- [ ] Crear `/src/lib/mongodb.ts` - conexión centralizada
+- [ ] Setup variables de entorno para MongoDB
+- [ ] Crear modelos básicos en `/src/models/`
 
-### 📺 2.2 Live Race Viewer
-- [ ] Port del HTML existente a componente React
-- [ ] Integración WebSocket SMS-Timing
-- [ ] Sidebar con mejores tiempos del día
+### 🔑 3.2 API Routes de Autenticación  
+- [ ] `/src/app/api/auth/signup/route.ts`
+- [ ] `/src/app/api/auth/login/route.ts` 
+- [ ] `/src/app/api/auth/logout/route.ts`
+- [ ] `/src/app/api/auth/session/route.ts`
+- [ ] `/src/middleware.ts` - protección de rutas
 
----
+### 🎨 3.3 Frontend Auth Components
+- [ ] `/src/contexts/AuthContext.tsx`
+- [ ] `/src/components/AuthModal.tsx`
+- [ ] `/src/components/LoginForm.tsx`
+- [ ] `/src/components/SignupForm.tsx`
+- [ ] Integración con navigation bar existente
 
-## 🔐 FASE 3: Sistema de Autenticación (Pendiente)
-
-### 🔑 3.1 Backend Authentication
-- [ ] Setup Express + MongoDB
-- [ ] Modelos de usuario
-- [ ] Rutas de autenticación
-
-### 🎨 3.2 Frontend Auth Components
-- [ ] Modal de login
-- [ ] Modal de signup
-- [ ] Flujo de registro híbrido
+### 🔒 3.4 Protected Routes System
+- [ ] Middleware para rutas protegidas
+- [ ] Hook `useAuth` para componentes
+- [ ] Redirect logic para usuarios no autenticados
+- [ ] Session management con cookies/JWT
 
 ---
 
 ## 📊 FASE 4: Dashboard del Corredor (Pendiente)
 
-- [ ] Layout dashboard con sidebar
-- [ ] Sección "Mi Actividad"
-- [ ] Vista de perfil usuario
-- [ ] Integración datos históricos
+### 🏠 4.1 Layout Dashboard Personal
+- [ ] Layout dashboard con sidebar navigation
+- [ ] Página `/dashboard` - overview personal
+- [ ] Sistema de navegación interna
+
+### 📈 4.2 Perfil y Estadísticas Personales
+- [ ] Vista de perfil usuario (`/dashboard/profile`)
+- [ ] Historial personal de sesiones
+- [ ] Estadísticas personales (mejores tiempos, progreso)
+- [ ] Gráficos de evolución personal
+
+### 🎯 4.3 "Mi Actividad" Section
+- [ ] Lista de sesiones recientes del usuario
+- [ ] Comparación con récords personales
+- [ ] Badges y logros alcanzados
 
 ---
 
-## 🏆 FASE 5: Sistema de Rankings (Pendiente)
+## 🏆 FASE 5: Sistema de Rankings Global (Pendiente)
 
-- [ ] Algoritmos de ranking habilidad
-- [ ] Sistema evaluación limpieza
-- [ ] Dashboard rankings
+### 📊 5.1 Algoritmos de Ranking
+- [ ] Sistema de puntos por rendimiento
+- [ ] Ranking por categorías (principiante, intermedio, avanzado)
+- [ ] Algoritmos de evaluación de consistencia
+
+### 🏁 5.2 Dashboard de Rankings
+- [ ] Página `/rankings` pública
+- [ ] Leaderboards globales y mensuales
+- [ ] Filtros por período y categoría
+
+### 🎖️ 5.3 Sistema de Evaluación
+- [ ] Métricas de "limpieza" de carrera
+- [ ] Sistema de reputación entre corredores
+- [ ] Penalizaciones y bonificaciones
 
 ---
 
-## 🏁 FASE 6: Inscripciones a Carreras (Pendiente)
+## 🏁 FASE 6: Sistema de Carreras e Inscripciones (Pendiente)
 
-- [ ] Sistema calendario
-- [ ] Flujo de inscripción
-- [ ] Integración pagos
+### 📅 6.1 Gestión de Eventos
+- [ ] Modelo de datos para carreras/eventos
+- [ ] CRUD de eventos desde admin panel
+- [ ] Sistema de calendario de carreras
+
+### 🎟️ 6.2 Inscripciones 
+- [ ] Flujo de inscripción a carreras
+- [ ] Gestión de cupos y listas de espera
+- [ ] Confirmación y recordatorios
+
+### 💳 6.3 Sistema de Pagos (Opcional)
+- [ ] Integración con pasarela de pagos
+- [ ] Manejo de transacciones
+- [ ] Reportes financieros
 
 ---
 
-## ⚙️ FASE 7: Panel Administrativo (Pendiente)
+## ⚙️ FASE 7: Panel Administrativo Avanzado (Pendiente)
 
-- [ ] Dashboard admin
-- [ ] Gestión carreras
-- [ ] Gestión usuarios
+### 👥 7.1 Gestión de Usuarios
+- [ ] CRUD completo de usuarios
+- [ ] Roles y permisos
+- [ ] Moderación de cuentas
+
+### 🏁 7.2 Gestión Avanzada de Carreras
+- [ ] Panel de control en tiempo real durante carreras
+- [ ] Gestión de resultados y rankings
+- [ ] Herramientas de moderación
+
+### 📊 7.3 Analytics y Reportes
+- [ ] Dashboard ejecutivo con KPIs
+- [ ] Reportes de uso y engagement
+- [ ] Exportación de datos
+
+---
+
+## 🚀 PRÓXIMOS PASOS INMEDIATOS
+
+### 1. **Setup de Base de Datos (2-3 horas)**
+```bash
+npm install mongoose bcryptjs jsonwebtoken @types/bcryptjs @types/jsonwebtoken
+```
+
+### 2. **Crear estructura de autenticación (4-5 horas)**
+- Modelos de usuario
+- API routes de auth
+- Context provider
+- Auth components
+
+### 3. **Integrar con UI existente (2-3 horas)**
+- Modificar navigation bar actual
+- Proteger ruta `/stats` 
+- Sistema de login/logout
 
 ---
 

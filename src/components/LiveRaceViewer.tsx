@@ -428,7 +428,7 @@ export default function LiveRaceViewer() {
             <div className="space-y-4">
               <div className="flex justify-between">
                 <span className="text-blue-300 text-sm uppercase tracking-wider">Récord Absoluto:</span>
-                <span className="font-digital text-cyan-400 font-bold text-lg">0:42.157</span>
+                <span className="font-digital text-cyan-400 font-bold text-lg">{bestLap !== "--:--.---" ? bestLap : "0:42.157"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-blue-300 text-sm uppercase tracking-wider">Mejor Hoy:</span>
@@ -436,7 +436,28 @@ export default function LiveRaceViewer() {
               </div>
               <div className="flex justify-between">
                 <span className="text-blue-300 text-sm uppercase tracking-wider">Promedio General:</span>
-                <span className="font-digital text-white font-bold">{averageTime}</span>
+                <span className="font-digital text-white font-bold">
+                  {averageTime !== "--:--.---" && averageTime ? 
+                    (() => {
+                      // Formatear tiempo quitando decimales extras
+                      // Ejemplo: "0:48.109.75" -> "0:48.109"
+                      const timeStr = averageTime.toString()
+                      
+                      // Si hay múltiples puntos, quedarse solo con el primero
+                      const firstDotIndex = timeStr.indexOf('.')
+                      if (firstDotIndex !== -1) {
+                        const beforeFirstDot = timeStr.substring(0, firstDotIndex)
+                        const afterFirstDot = timeStr.substring(firstDotIndex + 1)
+                        // Tomar solo números después del primer punto (máximo 3)
+                        const decimals = afterFirstDot.replace(/[^\d]/g, '').substring(0, 3)
+                        return `${beforeFirstDot}.${decimals}`
+                      }
+                      
+                      return timeStr
+                    })() 
+                    : "--:--.---"
+                  }
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-blue-300 text-sm uppercase tracking-wider">Total Vueltas:</span>
