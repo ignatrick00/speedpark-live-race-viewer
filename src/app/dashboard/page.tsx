@@ -219,7 +219,39 @@ export default function DashboardPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto p-6">
         {/* Header */}
-        <header className="text-center mb-12">
+        <header className="text-center mb-12 relative">
+          {/* Live Race Button - Top Right */}
+          <div className="absolute top-0 right-0 hidden md:block">
+            <a 
+              href="/live" 
+              className="group relative inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-electric-blue/20 to-rb-blue/20 border-2 border-electric-blue/30 rounded-lg hover:from-electric-blue/30 hover:to-rb-blue/30 hover:border-electric-blue/50 transition-all duration-300 backdrop-blur-sm"
+            >
+              {/* Live indicator */}
+              <div className="relative">
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-ping absolute"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500 relative"></div>
+              </div>
+              
+              <span className="font-bold text-electric-blue group-hover:text-white transition-colors">
+                🏁 LIVE RACE
+              </span>
+              
+              {/* Hover effect glow */}
+              <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-electric-blue/10 to-rb-blue/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 blur-xl"></div>
+            </a>
+          </div>
+
+          {/* Mobile Live Button */}
+          <div className="md:hidden mb-4">
+            <a 
+              href="/live" 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-electric-blue/20 to-rb-blue/20 border border-electric-blue/30 rounded-lg hover:from-electric-blue/30 hover:to-rb-blue/30 transition-all duration-300"
+            >
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-ping"></div>
+              <span className="font-bold text-electric-blue text-sm">🏁 LIVE RACE</span>
+            </a>
+          </div>
+
           <h1 className="font-bold text-5xl md:text-7xl mb-4 tracking-wider bg-gradient-to-r from-electric-blue via-sky-blue to-karting-gold bg-clip-text text-transparent">
             MI DASHBOARD
           </h1>
