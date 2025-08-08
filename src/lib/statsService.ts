@@ -35,20 +35,40 @@ export class StatsService {
       const sessionId = `session_${Date.now()}_${sessionName.replace(/\s/g, '_')}`;
       const sessionTimestamp = new Date();
       
-      // Parse SMS-Timing data if available
+      // Parse SMS-Timing data with FULL REAL DETAILS
       const driversData: any[] = [];
       if (smsData && smsData.D && Array.isArray(smsData.D)) {
+        console.log(`📊 Processing ${smsData.D.length} drivers with REAL SMS-Timing data`);
+        
         smsData.D.forEach((driver: any, index: number) => {
-          driversData.push({
+          const driverDetails = {
             name: driver.N || drivers[index] || `Driver_${index + 1}`,
             position: driver.P || index + 1,
             kartNumber: driver.K || 0,
             lapCount: driver.L || 0,
-            bestTime: driver.B || 0,
-            lastTime: driver.T || 0,
-            averageTime: driver.A || 0,
-            gapToLeader: driver.G || '0.000',
-          });
+            bestTime: driver.B || 0, // REAL best time from SMS
+            lastTime: driver.T || 0, // REAL last lap time
+            averageTime: driver.A || 0, // REAL average time
+            gapToLeader: driver.G || '0.000', // REAL gap
+            
+            // ADDITIONAL REAL DATA if available
+            sector1: driver.S1 || null,
+            sector2: driver.S2 || null, 
+            sector3: driver.S3 || null,
+            totalTime: driver.TT || null,
+            penalties: driver.PE || 0,
+            
+            // PERFORMANCE METRICS calculated from real data
+            consistency: this.calculateConsistency(driver),
+            pace: this.calculatePace(driver),
+            isRealData: true, // Mark as official SMS data
+            
+            // RAW SMS DATA for full traceability
+            rawSMSData: driver
+          };
+          
+          driversData.push(driverDetails);
+          console.log(`👤 ${driverDetails.name}: P${driverDetails.position}, Kart #${driverDetails.kartNumber}, Best: ${driverDetails.bestTime}ms`);
         });
       } else {
         // Fallback if no SMS data

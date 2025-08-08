@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import WebUser from '@/models/WebUser';
 import UserStats from '@/models/UserStats';
+import { RealStatsLinker } from '@/lib/realStatsLinker';
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
     // Get user statistics if linked
     let stats = null;
     if (user.kartingLink.status === 'linked' && user.kartingLink.personId) {
-      stats = await UserStats.findOne({ webUserId: user._id });
+      stats = await RealStatsLinker.getUserRealStats(user._id.toString());
     }
     
     return NextResponse.json({

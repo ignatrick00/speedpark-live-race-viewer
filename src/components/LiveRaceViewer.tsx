@@ -166,6 +166,14 @@ export default function LiveRaceViewer() {
                     </p>
                   </div>
 
+                  {/* Dashboard button */}
+                  <a
+                    href="/dashboard"
+                    className="px-4 py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium text-sm"
+                  >
+                    🏆 Dashboard
+                  </a>
+
                   {/* User avatar */}
                   <div className="w-8 h-8 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full flex items-center justify-center border border-cyan-400/50">
                     <span className="text-cyan-400 font-bold text-xs">

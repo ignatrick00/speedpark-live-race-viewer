@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import WebUser from '@/models/WebUser';
+import { RealStatsLinker } from '@/lib/realStatsLinker';
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,6 +57,14 @@ export async function POST(request: NextRequest) {
       accountStatus: 'active', // Active immediately without email verification
     });
     
+    // Try to link with real racing data
+    console.log(`🔗 Attempting to link ${firstName} with real race data...`);
+    const isLinked = await RealStatsLinker.linkUserWithRealStats(
+      user._id.toString(), 
+      firstName, 
+      lastName
+    );
+    
     // Generate JWT token
     const token = jwt.sign(
       {
@@ -67,18 +76,28 @@ export async function POST(request: NextRequest) {
     );
     
     // Return success response
+    // Update user object if linked
+    const updatedUser = isLinked 
+      ? await WebUser.findById(user._id)
+      : user;
+
     return NextResponse.json({
       success: true,
-      message: '✅ ¡Cuenta creada exitosamente! Ve a correr para activar tus estadísticas.',
+      message: isLinked 
+        ? '✅ ¡Cuenta creada y estadísticas vinculadas! Tus datos de carrera están listos.'
+        : '✅ ¡Cuenta creada exitosamente! Ve a correr para activar tus estadísticas.',
       user: {
-        id: user._id,
-        email: user.email,
-        profile: user.profile,
-        kartingLink: user.kartingLink,
-        accountStatus: user.accountStatus,
+        id: updatedUser._id,
+        email: updatedUser.email,
+        profile: updatedUser.profile,
+        kartingLink: updatedUser.kartingLink,
+        accountStatus: updatedUser.accountStatus,
       },
       token,
-      note: '🚧 Verificación de correo se implementará en una futura actualización',
+      linked: isLinked,
+      note: isLinked 
+        ? '🏁 Estadísticas encontradas y vinculadas automáticamente'
+        : '🚧 Verificación de correo se implementará en una futura actualización',
     });
     
   } catch (error) {

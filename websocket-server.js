@@ -56,6 +56,9 @@ function connectToSMSTiming() {
             // 📊 REGISTRAR ESTADÍSTICAS AUTOMÁTICAMENTE - USAR DATOS PARSEADOS
             await recordSessionStats(testData)
             
+            // 🏁 CAPTURAR DATOS LAP-BY-LAP VUELTA POR VUELTA
+            await captureLapByLapData(testData)
+            
             // Enviar a todos los clientes conectados
             clients.forEach(client => {
               if (client.readyState === WebSocket.OPEN) {
@@ -224,5 +227,42 @@ async function recordSessionStats(smsData) {
   }
 }
 
+// 🏁 FUNCIÓN PARA CAPTURAR DATOS VUELTA POR VUELTA
+async function captureLapByLapData(smsData) {
+  try {
+    console.log(`🏁 Capturando datos lap-by-lap: "${smsData.N}" - ${smsData.D.length} pilotos`);
+    
+    // Verificar que fetch esté disponible
+    if (!fetch) {
+      console.log('⚠️ Fetch no disponible para lap capture, esperando...');
+      return;
+    }
+    
+    // Llamar a la API para procesar datos lap-by-lap
+    const response = await fetch('http://localhost:3000/api/lap-capture', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'process_lap_data',
+        sessionData: smsData
+      })
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log(`✅ Lap data processed: ${result.recordsCreated || 0} records created`);
+    } else {
+      const errorText = await response.text();
+      console.log('⚠️ Error processing lap data:', response.status, errorText);
+    }
+    
+  } catch (error) {
+    console.log('⚠️ Error en captureLapByLapData:', error.message);
+  }
+}
+
 console.log('🎯 WebSocket Server listo para conexiones')
 console.log('💰 MODO FINAL: SOLO Clasificaciones (se cobran) - Carreras son gratis/incluidas')
+console.log('🏁 NUEVO: Captura lap-by-lap VUELTA POR VUELTA con datos reales SMS-Timing')
