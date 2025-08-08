@@ -9,6 +9,12 @@ export interface SessionData {
   revenue: number
 }
 
+export interface TopDriverData {
+  driverName: string
+  classificationsCount: number
+  totalSpent: number
+}
+
 export interface StatsData {
   totalRaces: number
   totalDrivers: number
@@ -196,7 +202,8 @@ class StatsTracker {
     const { uniqueDrivers, sessions, ...publicStats } = this.stats
     return {
       ...publicStats,
-      hourlyRevenue: this.getHourlyRevenue()
+      hourlyRevenue: this.getHourlyRevenue(),
+      topDriversThisMonth: this.getTopDriversThisMonth()
     }
   }
 
@@ -224,6 +231,43 @@ class StatsTracker {
     })
 
     return hourlyData
+  }
+
+  // Método para obtener top 10 corredores del mes actual
+  private getTopDriversThisMonth(): TopDriverData[] {
+    const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
+    
+    // Filtrar solo clasificaciones del mes actual
+    const thisMonthClassifications = this.stats.sessions.filter(session => {
+      const sessionDate = new Date(session.timestamp)
+      const isClassification = session.name.toLowerCase().includes('clasificacion')
+      return isClassification && 
+             sessionDate.getMonth() === currentMonth && 
+             sessionDate.getFullYear() === currentYear
+    })
+
+    // Crear mapa de corredores con sus participaciones
+    const driverStats = new Map<string, number>()
+    
+    thisMonthClassifications.forEach(session => {
+      session.drivers.forEach(driverName => {
+        const currentCount = driverStats.get(driverName) || 0
+        driverStats.set(driverName, currentCount + 1)
+      })
+    })
+
+    // Convertir a array, calcular gasto y ordenar
+    const topDrivers: TopDriverData[] = Array.from(driverStats.entries())
+      .map(([driverName, classificationsCount]) => ({
+        driverName,
+        classificationsCount,
+        totalSpent: classificationsCount * PRICE_PER_DRIVER
+      }))
+      .sort((a, b) => b.totalSpent - a.totalSpent) // Ordenar por gasto descendente
+      .slice(0, 10) // Top 10
+
+    return topDrivers
   }
 
   async resetStats() {

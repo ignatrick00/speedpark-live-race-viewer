@@ -311,9 +311,19 @@ export default function LiveRaceViewer() {
                       'border-l-blue-400'
                     }`}
                   >
-                    <div className="flex-1">
-                      <div className="font-racing text-white font-semibold uppercase tracking-wide text-sm">{record.name}</div>
-                      <div className="text-sky-400 text-xs">{record.details}</div>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
+                        record.pos === 1 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-black shadow-lg shadow-yellow-400/60' :
+                        record.pos === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-black shadow-lg shadow-gray-400/60' :
+                        record.pos === 3 ? 'bg-gradient-to-br from-orange-600 to-orange-800 text-white shadow-lg shadow-orange-600/60' :
+                        'bg-blue-900/30 text-white border border-cyan-400'
+                      }`}>
+                        {record.pos}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-racing text-white font-semibold uppercase tracking-wide text-sm">{record.name}</div>
+                        <div className="text-sky-400 text-xs">{record.details}</div>
+                      </div>
                     </div>
                     <div className="font-digital text-cyan-400 text-lg font-bold">{record.time}</div>
                   </div>

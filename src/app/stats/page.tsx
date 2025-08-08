@@ -3,11 +3,22 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 
-// Importar el gráfico dinámicamente para evitar problemas de SSR
+// Importar los gráficos dinámicamente para evitar problemas de SSR
 const HourlyRevenueChart = dynamic(() => import('@/components/HourlyRevenueChart'), { 
   ssr: false,
   loading: () => <div className="h-80 w-full flex items-center justify-center text-cyan-400">📊 Cargando gráfico...</div>
 })
+
+const TopDriversChart = dynamic(() => import('@/components/TopDriversChart'), {
+  ssr: false,
+  loading: () => <div className="h-80 w-full flex items-center justify-center text-cyan-400">📊 Cargando gráfico...</div>
+})
+
+interface TopDriverData {
+  driverName: string
+  classificationsCount: number
+  totalSpent: number
+}
 
 interface StatsData {
   totalRaces: number
@@ -29,6 +40,7 @@ interface StatsData {
     revenue: number
     sessions: number
   }>
+  topDriversThisMonth: TopDriverData[]
 }
 
 export default function StatsPage() {
@@ -149,7 +161,7 @@ export default function StatsPage() {
             <h2 className="font-racing text-3xl text-white mb-8 tracking-wider">
               🕐 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white" style={{
                 textShadow: '0 0 10px rgba(135, 206, 235, 0.8), 0 0 20px rgba(0, 87, 184, 0.4)'
-              }}>Sesiones Recientes</span>
+              }}>Clasificaciones Recientes</span>
             </h2>
 
             <div className="overflow-x-auto">
@@ -163,7 +175,9 @@ export default function StatsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.recentSessions.length > 0 ? stats.recentSessions.map((session) => (
+                  {stats.recentSessions.length > 0 ? stats.recentSessions
+                    .filter(session => session.name.toLowerCase().includes('clasificacion'))
+                    .map((session) => (
                     <tr 
                       key={session.id}
                       className="bg-black/40 hover:bg-blue-900/20 transition-all duration-300"
@@ -184,7 +198,7 @@ export default function StatsPage() {
                   )) : (
                     <tr>
                       <td colSpan={4} className="py-8 text-center text-blue-300">
-                        📊 Sin sesiones HEAT registradas aún
+                        📊 Sin clasificaciones registradas aún
                       </td>
                     </tr>
                   )}
@@ -194,55 +208,76 @@ export default function StatsPage() {
           </div>
         </section>
 
-        {/* Hourly Revenue Chart */}
-        <section className="bg-gradient-to-br from-slate-900/50 to-blue-900/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 relative overflow-hidden mb-12">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-400/5 to-blue-600/5 rounded-2xl"></div>
-          
-          <div className="relative z-10">
-            <h2 className="font-racing text-3xl text-white mb-8 tracking-wider">
-              📊 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white" style={{
-                textShadow: '0 0 10px rgba(135, 206, 235, 0.8), 0 0 20px rgba(0, 87, 184, 0.4)'
-              }}>Ganancias por Hora (Hoy)</span>
-            </h2>
+        {/* Charts Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-12">
+          {/* Hourly Revenue Chart */}
+          <section className="bg-gradient-to-br from-slate-900/50 to-blue-900/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-400/5 to-blue-600/5 rounded-2xl"></div>
             
-            <div className="bg-black/30 backdrop-blur-sm border border-blue-800/20 rounded-xl p-4">
-              <HourlyRevenueChart hourlyData={stats.hourlyRevenue || []} />
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-              <div className="text-center">
-                <div className="text-cyan-400 text-sm font-bold">Horario Pico</div>
-                <div className="text-white font-digital">
-                  {stats.hourlyRevenue?.length > 0 ? 
-                    `${stats.hourlyRevenue.reduce((max, curr) => curr.revenue > max.revenue ? curr : max, stats.hourlyRevenue[0]).hour}:00` 
-                    : '--:--'}
-                </div>
+            <div className="relative z-10">
+              <h2 className="font-racing text-2xl text-white mb-6 tracking-wider">
+                📊 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white" style={{
+                  textShadow: '0 0 10px rgba(135, 206, 235, 0.8), 0 0 20px rgba(0, 87, 184, 0.4)'
+                }}>Ganancias por Hora (Hoy)</span>
+              </h2>
+              
+              <div className="bg-black/30 backdrop-blur-sm border border-blue-800/20 rounded-xl p-4 mb-4">
+                <HourlyRevenueChart hourlyData={stats.hourlyRevenue || []} />
               </div>
-              <div className="text-center">
-                <div className="text-cyan-400 text-sm font-bold">Mayor Ganancia</div>
-                <div className="text-white font-digital">
-                  ${stats.hourlyRevenue?.length > 0 ? 
-                    Math.max(...stats.hourlyRevenue.map(h => h.revenue)).toLocaleString('es-CL') 
-                    : '0'}
+              
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="text-center">
+                  <div className="text-cyan-400 font-bold">Horario Pico</div>
+                  <div className="text-white font-digital">
+                    {stats.hourlyRevenue?.length > 0 ? 
+                      `${stats.hourlyRevenue.reduce((max, curr) => curr.revenue > max.revenue ? curr : max, stats.hourlyRevenue[0]).hour}:00` 
+                      : '--:--'}
+                  </div>
                 </div>
-              </div>
-              <div className="text-center">
-                <div className="text-cyan-400 text-sm font-bold">Total Sesiones</div>
-                <div className="text-white font-digital">
-                  {stats.hourlyRevenue?.reduce((sum, h) => sum + h.sessions, 0) || 0}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-cyan-400 text-sm font-bold">Promedio/Hora</div>
-                <div className="text-white font-digital">
-                  ${stats.hourlyRevenue?.length > 0 ? 
-                    Math.round(stats.hourlyRevenue.reduce((sum, h) => sum + h.revenue, 0) / stats.hourlyRevenue.filter(h => h.revenue > 0).length || 1).toLocaleString('es-CL') 
-                    : '0'}
+                <div className="text-center">
+                  <div className="text-cyan-400 font-bold">Mayor Ganancia</div>
+                  <div className="text-white font-digital">
+                    ${stats.hourlyRevenue?.length > 0 ? 
+                      Math.max(...stats.hourlyRevenue.map(h => h.revenue)).toLocaleString('es-CL') 
+                      : '0'}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+
+          {/* Top Drivers Chart */}
+          <section className="bg-gradient-to-br from-slate-900/50 to-purple-900/30 backdrop-blur-sm border border-purple-800/30 rounded-2xl p-6 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-pink-400/5 to-purple-600/5 rounded-2xl"></div>
+            
+            <div className="relative z-10">
+              <h2 className="font-racing text-2xl text-white mb-6 tracking-wider">
+                🏆 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-pink-400 to-white" style={{
+                  textShadow: '0 0 10px rgba(236, 72, 153, 0.8), 0 0 20px rgba(147, 51, 234, 0.4)'
+                }}>Top 10 Corredores (Este Mes)</span>
+              </h2>
+              
+              <div className="bg-black/30 backdrop-blur-sm border border-purple-800/20 rounded-xl p-4 mb-4">
+                <TopDriversChart topDrivers={stats.topDriversThisMonth || []} />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="text-center">
+                  <div className="text-pink-400 font-bold">Total Corredores</div>
+                  <div className="text-white font-digital">
+                    {stats.topDriversThisMonth?.length || 0}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-pink-400 font-bold">Gasto Líder</div>
+                  <div className="text-white font-digital">
+                    ${stats.topDriversThisMonth?.[0]?.totalSpent?.toLocaleString('es-CL') || '0'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   )
