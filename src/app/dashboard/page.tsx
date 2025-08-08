@@ -223,7 +223,7 @@ export default function DashboardPage() {
           {/* Live Race Button - Top Right */}
           <div className="absolute top-0 right-0 hidden md:block">
             <a 
-              href="/live" 
+              href="/" 
               className="group relative inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-electric-blue/20 to-rb-blue/20 border-2 border-electric-blue/30 rounded-lg hover:from-electric-blue/30 hover:to-rb-blue/30 hover:border-electric-blue/50 transition-all duration-300 backdrop-blur-sm"
             >
               {/* Live indicator */}
@@ -244,7 +244,7 @@ export default function DashboardPage() {
           {/* Mobile Live Button */}
           <div className="md:hidden mb-4">
             <a 
-              href="/live" 
+              href="/" 
               className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-electric-blue/20 to-rb-blue/20 border border-electric-blue/30 rounded-lg hover:from-electric-blue/30 hover:to-rb-blue/30 transition-all duration-300"
             >
               <div className="w-2 h-2 rounded-full bg-green-500 animate-ping"></div>
