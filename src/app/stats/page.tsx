@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import AdminGuard from '@/components/AdminGuard'
+import { useAuth } from '@/hooks/useAuth'
 
 // Importar los gráficos dinámicamente para evitar problemas de SSR
 const HourlyRevenueChart = dynamic(() => import('@/components/HourlyRevenueChart'), { 
@@ -46,15 +48,54 @@ interface StatsData {
 export default function StatsPage() {
   const [stats, setStats] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  const { token } = useAuth()
 
   useEffect(() => {
     const fetchStats = async () => {
+      if (!token) {
+        setError('Token de autenticación requerido')
+        setLoading(false)
+        return
+      }
+
       try {
-        const response = await fetch('/api/stats')
+        const response = await fetch('/api/stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
         const data = await response.json()
-        setStats(data)
+        
+        if (data.error) {
+          throw new Error(data.error)
+        }
+        
+        // Asegurar que todos los campos tengan valores por defecto
+        const processedData: StatsData = {
+          totalRaces: data.totalRaces || 0,
+          totalDrivers: data.totalDrivers || 0,
+          driversToday: data.driversToday || 0,
+          revenueToday: data.revenueToday || 0,
+          revenueTotal: data.revenueTotal || 0,
+          averageDriversPerRace: data.averageDriversPerRace || 0,
+          lastUpdate: data.lastUpdate || new Date().toLocaleString(),
+          recentSessions: data.recentSessions || [],
+          hourlyRevenue: data.hourlyRevenue || [],
+          topDriversThisMonth: data.topDriversThisMonth || [],
+        }
+        
+        setStats(processedData)
+        setError(null)
       } catch (error) {
         console.error('Error fetching stats:', error)
+        setError(error instanceof Error ? error.message : 'Error desconocido')
       } finally {
         setLoading(false)
       }
@@ -65,9 +106,9 @@ export default function StatsPage() {
     // Actualizar cada 30 segundos
     const interval = setInterval(fetchStats, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [token])
 
-  if (loading || !stats) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-cyan-400 text-xl animate-pulse">🔄 Cargando estadísticas...</div>
@@ -75,8 +116,39 @@ export default function StatsPage() {
     )
   }
 
+  if (error) {
+    return (
+      <AdminGuard>
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="max-w-md text-center">
+            <div className="text-red-400 text-6xl mb-4">⚠️</div>
+            <h2 className="text-red-400 font-racing text-2xl mb-4">ERROR</h2>
+            <p className="text-sky-blue/80 font-digital mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-gradient-to-r from-electric-blue to-sky-blue text-midnight font-racing font-bold rounded hover:from-electric-blue/90 hover:to-sky-blue/90 transition-all"
+            >
+              RECARGAR
+            </button>
+          </div>
+        </div>
+      </AdminGuard>
+    )
+  }
+
+  if (!stats) {
+    return (
+      <AdminGuard>
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="text-yellow-400 text-xl">⚠️ No hay datos de estadísticas disponibles</div>
+        </div>
+      </AdminGuard>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden relative">
+    <AdminGuard>
+      <div className="min-h-screen bg-black text-white overflow-x-hidden relative">
       {/* Background Effects - Same as main page */}
       <div className="fixed inset-0 z-0 will-change-auto">
         <div 
@@ -280,5 +352,6 @@ export default function StatsPage() {
         </div>
       </div>
     </div>
+    </AdminGuard>
   )
 }

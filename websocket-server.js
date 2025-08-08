@@ -203,7 +203,11 @@ async function recordSessionStats(smsData) {
       body: JSON.stringify({
         action: 'record_session',
         sessionName: sessionName,
-        drivers: driverNames
+        drivers: driverNames,
+        smsData: {
+          N: sessionName,
+          D: driversData
+        }
       })
     })
     
