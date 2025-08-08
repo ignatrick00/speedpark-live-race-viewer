@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Bebas_Neue, Orbitron } from 'next/font/google'
 import './globals.css'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const bebasNeue = Bebas_Neue({ 
@@ -27,7 +28,9 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${bebasNeue.variable} ${orbitron.variable}`}>
       <body className={inter.className}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )

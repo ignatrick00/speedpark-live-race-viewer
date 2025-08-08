@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { useAuth } from '@/hooks/useAuth'
+import LoginModal from '@/components/auth/LoginModal'
+import RegisterModal from '@/components/auth/RegisterModal'
 
 interface Driver {
   pos: number
@@ -41,6 +44,13 @@ export default function LiveRaceViewer() {
   // ✅ USAR HOOK WEBSOCKET EN LUGAR DE MOCK DATA
   const { isConnected, raceData, error, retryCount, reconnect } = useWebSocket()
   
+  // Auth hooks
+  const { user, logout, isLoading } = useAuth()
+  
+  // Auth modals state
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showRegisterModal, setShowRegisterModal] = useState(false)
+  
   // Estado local (mantener el timer)
   const [sessionTime, setSessionTime] = useState("00:00")
   
@@ -53,6 +63,21 @@ export default function LiveRaceViewer() {
   const bestLap = raceData?.bestLap || "--:--.---"
   const totalLaps = raceData?.totalLaps || 0
   const averageTime = raceData?.averageTime || "--:--.---"
+
+  // Auth handlers
+  const handleLogout = () => {
+    logout()
+  }
+
+  const switchToRegister = () => {
+    setShowLoginModal(false)
+    setShowRegisterModal(true)
+  }
+
+  const switchToLogin = () => {
+    setShowRegisterModal(false)
+    setShowLoginModal(true)
+  }
 
   useEffect(() => {
     // Optimized timer - no dependencies to prevent re-creation
@@ -118,15 +143,60 @@ export default function LiveRaceViewer() {
                 </a>
               </div>
 
-              {/* Auth Buttons */}
-              <div className="flex items-center space-x-4">
-                <button className="px-4 py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium uppercase tracking-wider text-sm">
-                  Login
-                </button>
-                <button className="px-4 py-2 bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-lg hover:from-cyan-500 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-400/25 transform hover:scale-105 font-medium uppercase tracking-wider text-sm">
-                  Sign Up
-                </button>
-              </div>
+              {/* Auth Section */}
+              {isLoading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-blue-300 font-medium text-sm">Cargando...</span>
+                </div>
+              ) : user ? (
+                <div className="flex items-center space-x-4">
+                  {/* User info */}
+                  <div className="text-right">
+                    <p className="text-cyan-400 font-medium text-sm">
+                      {user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`}
+                    </p>
+                    <p className="text-xs text-blue-300">
+                      {user.kartingLink.status === 'pending_first_race' 
+                        ? '🏁 ¡Ve a correr para activar stats!'
+                        : user.kartingLink.status === 'linked'
+                        ? '📊 Estadísticas activas'
+                        : '⚠️ Sincronización pendiente'
+                      }
+                    </p>
+                  </div>
+
+                  {/* User avatar */}
+                  <div className="w-8 h-8 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full flex items-center justify-center border border-cyan-400/50">
+                    <span className="text-cyan-400 font-bold text-xs">
+                      {user.profile.firstName.charAt(0)}{user.profile.lastName.charAt(0)}
+                    </span>
+                  </div>
+
+                  {/* Logout button */}
+                  <button
+                    onClick={handleLogout}
+                    className="px-3 py-1 text-sm text-blue-300 hover:text-cyan-400 border border-blue-400/30 hover:border-cyan-400/50 rounded transition-all font-medium uppercase tracking-wider"
+                  >
+                    Salir
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="px-4 py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium uppercase tracking-wider text-sm"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => setShowRegisterModal(true)}
+                    className="px-4 py-2 bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-lg hover:from-cyan-500 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-400/25 transform hover:scale-105 font-medium uppercase tracking-wider text-sm"
+                  >
+                    Registrarse
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -467,6 +537,19 @@ export default function LiveRaceViewer() {
           </div>
         </section>
       </div>
+
+      {/* Auth Modals */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSwitchToRegister={switchToRegister}
+      />
+      
+      <RegisterModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onSwitchToLogin={switchToLogin}
+      />
     </div>
   )
 }
