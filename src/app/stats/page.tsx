@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import AdminGuard from '@/components/AdminGuard'
+import AdminNavbar from '@/components/AdminNavbar'
 import { useAuth } from '@/hooks/useAuth'
 
 // Importar los gráficos dinámicamente para evitar problemas de SSR
@@ -149,6 +150,7 @@ export default function StatsPage() {
   return (
     <AdminGuard>
       <div className="min-h-screen bg-black text-white overflow-x-hidden relative">
+      <AdminNavbar currentPage="Estadísticas del Sistema - Panel completo de métricas" />
       {/* Background Effects - Same as main page */}
       <div className="fixed inset-0 z-0 will-change-auto">
         <div 

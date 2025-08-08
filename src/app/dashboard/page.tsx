@@ -49,28 +49,147 @@ export default function DashboardPage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Load stats (real or demo)
+  // Load real stats using exact matching system
   useEffect(() => {
     if (user && isAuthenticated) {
-      // Check if user has real stats linked
-      if (user.kartingLink.status === 'linked' && authStats) {
-        // Convert real stats to dashboard format
-        const realStats = convertRealStatsToPersonal(authStats);
-        setStats(realStats);
-        setLoading(false);
-      } else {
-        // Generate demo stats
-        const timer = setTimeout(() => {
-          setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
-          setLoading(false);
-        }, 1500);
-
-        return () => clearTimeout(timer);
-      }
+      loadRealUserStats();
     }
-  }, [user, isAuthenticated, authStats]);
+  }, [user, isAuthenticated]);
 
-  // Convert real stats to dashboard format
+  const loadRealUserStats = async () => {
+    try {
+      setLoading(true);
+      
+      // Get user's recent lap records using exact matching
+      const response = await fetch(`/api/lap-capture?action=get_recent_sessions&webUserId=${user._id}&limit=20`);
+      const data = await response.json();
+      
+      if (data.success && data.sessions.length > 0) {
+        console.log(`✅ Found ${data.sessions.length} real sessions for user`);
+        
+        // Convert real lap data to dashboard format
+        const realStats = convertLapDataToPersonalStats(data.sessions, user);
+        setStats(realStats);
+      } else {
+        console.log(`ℹ️ No real race data found, using demo stats`);
+        // If no real data, show demo stats
+        setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
+      }
+      
+    } catch (error) {
+      console.error('❌ Error loading real stats:', error);
+      // Fallback to demo stats on error
+      setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Convert real lap data to dashboard format
+  function convertLapDataToPersonalStats(sessions: any[], user: any): PersonalStats {
+    if (!sessions || sessions.length === 0) {
+      return generateDemoStats(user.profile.firstName, user.profile.lastName);
+    }
+
+    console.log(`📊 Processing ${sessions.length} real sessions for stats`);
+    
+    const totalRaces = sessions.length;
+    const totalSpent = totalRaces * 17000; // $17,000 per classification session
+    
+    // Calculate best time from all sessions
+    const bestTime = Math.min(...sessions.map(s => s.bestLapTime || 999999));
+    const validBestTime = bestTime === 999999 ? 0 : bestTime;
+    
+    // Calculate best position
+    const bestPosition = Math.min(...sessions.map(s => s.bestPosition || 999));
+    const validBestPosition = bestPosition === 999 ? 1 : bestPosition;
+    
+    // Count podium finishes (positions 1, 2, 3)
+    const podiumFinishes = sessions.filter(s => (s.bestPosition || 999) <= 3).length;
+    
+    // Calculate average time from sessions with valid times
+    const sessionsWithTimes = sessions.filter(s => s.bestLapTime && s.bestLapTime > 0);
+    const averageTime = sessionsWithTimes.length > 0 
+      ? sessionsWithTimes.reduce((sum, s) => sum + s.bestLapTime, 0) / sessionsWithTimes.length
+      : validBestTime;
+    
+    // Calculate total laps (estimate based on sessions)
+    const totalLaps = sessions.reduce((sum, s) => sum + (s.totalLaps || 10), 0);
+    
+    // Get date range
+    const dates = sessions.map(s => new Date(s.lastLap)).sort((a, b) => a.getTime() - b.getTime());
+    const firstRace = dates[0] || new Date();
+    const lastRace = dates[dates.length - 1] || new Date();
+    
+    // Generate monthly progression from real data
+    const monthlyProgression = generateMonthlyProgressionFromSessions(sessions);
+    
+    // Convert sessions to recent races format
+    const recentRaces = sessions.slice(0, 5).map((session, index) => ({
+      date: new Date(session.lastLap),
+      sessionName: session.sessionName || `Clasificación ${index + 1}`,
+      position: session.bestPosition || 1,
+      kartNumber: Math.floor(Math.random() * 20) + 1, // We don't have kart number in session summary
+      bestTime: session.bestLapTime || validBestTime,
+      totalLaps: session.totalLaps || 10
+    }));
+
+    const stats: PersonalStats = {
+      totalRaces,
+      totalSpent,
+      bestTime: validBestTime,
+      averageTime,
+      bestPosition: validBestPosition,
+      podiumFinishes,
+      favoriteKart: Math.floor(Math.random() * 20) + 1, // Random kart for now
+      totalLaps,
+      firstRace,
+      lastRace,
+      monthlyProgression,
+      recentRaces
+    };
+
+    console.log(`✅ Real stats processed:`, {
+      totalRaces,
+      bestTime: validBestTime,
+      bestPosition: validBestPosition,
+      podiumFinishes
+    });
+
+    return stats;
+  }
+
+  // Generate monthly progression from real sessions
+  function generateMonthlyProgressionFromSessions(sessions: any[]) {
+    const monthlyData = new Map();
+    
+    sessions.forEach(session => {
+      const date = new Date(session.lastLap);
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      
+      if (!monthlyData.has(monthKey)) {
+        monthlyData.set(monthKey, {
+          month: date.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }),
+          races: 0,
+          bestTime: 999999,
+          bestPosition: 999
+        });
+      }
+      
+      const monthData = monthlyData.get(monthKey);
+      monthData.races += 1;
+      monthData.bestTime = Math.min(monthData.bestTime, session.bestLapTime || 999999);
+      monthData.bestPosition = Math.min(monthData.bestPosition, session.bestPosition || 999);
+    });
+    
+    return Array.from(monthlyData.values()).map(data => ({
+      ...data,
+      bestTime: data.bestTime === 999999 ? 0 : data.bestTime,
+      position: data.bestPosition === 999 ? 1 : data.bestPosition
+    }));
+  }
+
+  // Convert real stats to dashboard format (legacy, keeping for compatibility)
   function convertRealStatsToPersonal(realStats: any): PersonalStats {
     return {
       totalRaces: realStats.totalRaces,
@@ -79,10 +198,6 @@ export default function DashboardPage() {
       averageTime: realStats.averageTime,
       bestPosition: realStats.bestPosition,
       podiumFinishes: realStats.podiumFinishes,
-      favoriteKart: realStats.favoriteKart || 1,
-      totalLaps: realStats.totalLaps,
-      firstRace: new Date(realStats.firstRaceAt),
-      lastRace: new Date(realStats.lastRaceAt),
       monthlyProgression: generateMonthlyFromReal(realStats.monthlyStats || []),
       recentRaces: realStats.recentSessions?.slice(0, 5).map((session: any) => ({
         date: new Date(session.timestamp),
@@ -263,6 +378,23 @@ export default function DashboardPage() {
           <p className="text-sky-blue/80 mt-4">
             {user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`}
           </p>
+          
+          {/* Data Source Indicator */}
+          {stats && (
+            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium">
+              {stats.totalRaces > 0 && stats.recentRaces.length > 0 ? (
+                <div className="bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-full flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  DATOS REALES DE CARRERAS
+                </div>
+              ) : (
+                <div className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded-full flex items-center gap-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  DATOS DEMO - CORRE PARA VER TUS ESTADÍSTICAS REALES
+                </div>
+              )}
+            </div>
+          )}
         </header>
 
         {user.kartingLink.status === 'pending_first_race' ? (
@@ -330,7 +462,7 @@ export default function DashboardPage() {
                 <RaceHistoryTable races={stats.recentRaces} />
                 
                 {/* Lap-by-Lap Progression - REAL DATA */}
-                {user?.kartingLink?.status === 'linked' && user?._id && (
+                {user?._id && stats && stats.totalRaces > 0 && (
                   <LapProgressionChart webUserId={user._id} />
                 )}
               </div>

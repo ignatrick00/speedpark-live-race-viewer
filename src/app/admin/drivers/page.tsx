@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import AdminNavbar from '@/components/AdminNavbar';
 
 interface Driver {
   driverName: string;
@@ -179,12 +180,15 @@ export default function DriversAdminPage() {
   // Mostrar loading o verificar acceso
   if (isLoading || loading || !user) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="animate-spin w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full mx-auto"></div>
-          <p className="text-center mt-4">
-            {isLoading ? 'Verificando acceso...' : 'Cargando corredores...'}
-          </p>
+      <div className="min-h-screen bg-gray-900 text-white">
+        <AdminNavbar currentPage="Cargando..." />
+        <div className="max-w-6xl mx-auto p-6">
+          <div className="flex items-center justify-center pt-20">
+            <div className="text-center">
+              <div className="animate-spin w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p>{isLoading ? 'Verificando acceso...' : 'Cargando corredores...'}</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -193,33 +197,30 @@ export default function DriversAdminPage() {
   // Verificar acceso de administrador
   if (user.email !== 'icabreraquezada@gmail.com') {
     return (
-      <div className="min-h-screen bg-gray-900 text-white p-6">
-        <div className="max-w-6xl mx-auto text-center">
-          <div className="text-6xl mb-4">🚫</div>
-          <h1 className="text-2xl font-bold text-red-400 mb-4">Acceso Denegado</h1>
-          <p className="text-gray-400 mb-6">
-            Solo administradores pueden acceder a esta página.
-          </p>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors"
-          >
-            Volver al Dashboard
-          </button>
+      <div className="min-h-screen bg-gray-900 text-white">
+        <AdminNavbar />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🚫</div>
+            <h1 className="text-2xl font-bold text-red-400 mb-4">Acceso Denegado</h1>
+            <p className="text-gray-400 mb-6">Solo administradores pueden acceder a esta página.</p>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors"
+            >
+              Volver al Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-cyan-400 mb-2">🏁 Administrador de Corredores</h1>
-          <p className="text-sm text-gray-400">
-            👤 Admin: {user.email} | 🔒 Acceso Restringido
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <AdminNavbar currentPage="Administrador de Corredores - Vinculación manual y gestión de pilotos" />
+      
+      <div className="max-w-6xl mx-auto p-6">
         
         {/* Search */}
         <div className="mb-6">
