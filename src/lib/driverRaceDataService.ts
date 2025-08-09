@@ -373,6 +373,19 @@ export class DriverRaceDataService {
   }
   
   /**
+   * Get all drivers (for debugging)
+   */
+  static async getAllDrivers(): Promise<IDriverRaceData[]> {
+    try {
+      await connectDB();
+      return await DriverRaceData.find({}).limit(20); // Limit for debugging
+    } catch (error) {
+      console.error('❌ Error getting all drivers:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get driver race data by name
    */
   static async getDriverData(driverName: string): Promise<IDriverRaceData | null> {

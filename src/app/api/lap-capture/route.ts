@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
           totalSessions: driverData.sessions.length
         },
         stats: driverData.stats,
-        recentSessions: driverData.sessions.slice(-5) // Last 5 sessions
+        recentSessions: driverData.sessions.slice(-10).reverse() // Last 10 sessions, most recent first
       });
     }
 
@@ -192,13 +192,29 @@ export async function GET(request: NextRequest) {
     }
     
     if (action === 'get_driver_summary' && webUserId) {
+      console.log(`🔍 DEBUG: Looking for driver data with webUserId: ${webUserId}`);
+      
       const driverData = await DriverRaceDataService.getDriverDataByWebUserId(webUserId);
       
       if (!driverData) {
+        console.log(`⚠️ DEBUG: No driver data found for webUserId: ${webUserId}`);
+        
+        // Debug: Let's also check all drivers in the system
+        const allDrivers = await DriverRaceDataService.getAllDrivers();
+        console.log(`📊 DEBUG: Found ${allDrivers.length} total drivers in system`);
+        allDrivers.forEach(d => {
+          console.log(`- ${d.driverName} (webUserId: ${d.webUserId || 'null'}, linkingStatus: ${d.linkingStatus})`);
+        });
+        
         return NextResponse.json({
           success: true,
           message: 'No race data found for this driver',
-          driverData: null
+          driverData: null,
+          debug: {
+            searchedWebUserId: webUserId,
+            totalDriversInSystem: allDrivers.length,
+            driversWithWebUserId: allDrivers.filter(d => d.webUserId).length
+          }
         });
       }
       
@@ -213,6 +229,7 @@ export async function GET(request: NextRequest) {
           totalSessions: driverData.sessions.length
         },
         stats: driverData.stats,
+        recentSessions: driverData.sessions.slice(-5), // Include recent sessions with lap data
         sessionsCount: driverData.sessions.length
       });
     }
