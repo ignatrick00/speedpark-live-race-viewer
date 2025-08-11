@@ -98,9 +98,9 @@ async function checkMongoHealth() {
       totalSessions: sessionCount,
       todaySessions: todayCount,
       lastSession: lastSession ? {
-        name: lastSession.sessionName,
-        timestamp: lastSession.timestamp,
-        drivers: lastSession.drivers.length,
+        name: (lastSession as any).sessionName,
+        timestamp: (lastSession as any).timestamp,
+        drivers: (lastSession as any).drivers?.length || 0,
       } : null,
       timestamp: new Date().toISOString(),
     };
