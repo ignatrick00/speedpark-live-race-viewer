@@ -3,10 +3,8 @@
   "version": "1.0.0",
   "description": "WebSocket server for Karteando SMS-Timing integration",
   "main": "websocket-server.js",
-  "type": "module",
   "scripts": {
-    "start": "node websocket-server.js",
-    "dev": "node websocket-server.js"
+    "start": "node websocket-server.js"
   },
   "dependencies": {
     "ws": "^8.14.2",
