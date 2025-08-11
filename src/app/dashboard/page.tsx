@@ -84,7 +84,7 @@ export default function DashboardPage() {
       } else if (sessionsData.success && sessionsData.sessions.length > 0) {
         
         // Check if we have lap-by-lap data in new structure
-        const hasLapByLapData = sessionsData.sessions.some(s => s.lapByLapData && s.lapByLapData.length > 0);
+        const hasLapByLapData = sessionsData.sessions.some((s: any) => s.lapByLapData && s.lapByLapData.length > 0);
         
         if (hasLapByLapData) {
           const realStats = convertEnhancedLapDataToPersonalStats(sessionsData.sessions, summaryData.stats || null, user);
