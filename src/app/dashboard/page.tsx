@@ -101,7 +101,7 @@ export default function DashboardPage() {
       
     } catch (error) {
       console.error('Error loading real stats:', error);
-      setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
+      setStats(generateDemoStats(user?.profile?.firstName || 'Demo', user?.profile?.lastName || 'User'));
     } finally {
       setLoading(false);
     }
