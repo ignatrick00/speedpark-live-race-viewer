@@ -34,11 +34,8 @@ export class DriverRaceDataService {
       const sessionTimestamp = new Date();
       const sessionId = `${sessionName}_${sessionTimestamp.toDateString()}`;
       
-      console.log(`🏁 Processing race data: ${sessionName} - ${smsData.D.length} drivers`);
-      
       // Determine session type
       const sessionType = this.determineSessionType(sessionName);
-      console.log(`📊 Session type: ${sessionType}`);
       
       // Get previous data for lap detection
       const previousData = this.lastSessionData.get(sessionName) || [];
@@ -59,10 +56,9 @@ export class DriverRaceDataService {
       // Store current data for next comparison
       this.lastSessionData.set(sessionName, [...currentData]);
       
-      console.log(`✅ Race data processed for ${currentData.length} drivers`);
       
     } catch (error) {
-      console.error('❌ Error processing race data:', error);
+      console.error('Error processing race data:', error);
       throw error;
     }
   }
@@ -84,14 +80,12 @@ export class DriverRaceDataService {
       return; // Skip empty names
     }
     
-    console.log(`🚗 Processing driver: ${driverName} - Lap ${currentDriver.L}`);
     
     try {
       // Find or create driver record
       let driverRecord = await DriverRaceData.findOne({ driverName });
       
       if (!driverRecord) {
-        console.log(`➕ Creating new driver record: ${driverName}`);
         driverRecord = await this.createNewDriverRecord(driverName, currentDriver);
       }
       
@@ -102,7 +96,6 @@ export class DriverRaceDataService {
       let session = driverRecord.sessions.find(s => s.sessionId === sessionId);
       
       if (!session) {
-        console.log(`📅 Creating new session: ${sessionName} for ${driverName}`);
         session = this.createNewSession(sessionId, sessionName, timestamp, sessionType, currentDriver);
         driverRecord.sessions.push(session);
       }
@@ -111,7 +104,6 @@ export class DriverRaceDataService {
       const isNewLap = this.isNewLap(currentDriver, previousDriver);
       
       if (isNewLap) {
-        console.log(`🆕 NEW LAP detected: ${driverName} - Lap ${currentDriver.L}, Time: ${currentDriver.T}ms`);
         await this.addNewLap(session, currentDriver, timestamp);
       }
       
@@ -124,10 +116,9 @@ export class DriverRaceDataService {
       // Save the updated driver record
       await driverRecord.save();
       
-      console.log(`✅ Updated ${driverName}: ${session.laps.length} laps in session`);
       
     } catch (error) {
-      console.error(`❌ Error processing ${driverName}:`, error);
+      console.error(`Error processing ${driverName}:`, error);
     }
   }
   
@@ -175,7 +166,6 @@ export class DriverRaceDataService {
         driverRecord.linkingStatus = linkingResult.webUserId ? 'linked' : 'pending';
         
       } catch (error) {
-        console.log(`⚠️ Linking failed for ${driverName}:`, error);
       }
     }
   }
@@ -214,13 +204,12 @@ export class DriverRaceDataService {
   private static isNewLap(current: SMSDriverData, previous?: SMSDriverData): boolean {
     if (!previous) return true; // First time seeing this driver
     
-    // New lap if lap count increased
+    // Primary condition: New lap if lap count increased
     const lapIncreased = current.L > (previous.L || 0);
     
-    // Or if lap time changed significantly (new lap completed)
-    const timeChanged = current.T !== previous.T && current.T > 0;
-    
-    return lapIncreased || (timeChanged && current.L === previous.L);
+    // Only consider lap count increase as reliable indicator
+    // Remove time-based detection to avoid false positives from mid-lap updates
+    return lapIncreased;
   }
   
   /**
@@ -230,11 +219,8 @@ export class DriverRaceDataService {
     const lapNumber = driverData.L || 0;
     const lapTime = driverData.T || 0;
     
-    // Check if lap already exists (avoid duplicates)
-    const existingLap = session.laps.find(lap => lap.lapNumber === lapNumber);
-    if (existingLap && existingLap.time === lapTime) {
-      return; // Duplicate lap, skip
-    }
+    // Enhanced duplicate prevention: Remove any existing lap with same lap number first
+    session.laps = session.laps.filter(lap => lap.lapNumber !== lapNumber);
     
     // Determine if this is a personal best lap
     const isPersonalBest = (driverData.B === lapTime) && lapTime > 0;
@@ -249,14 +235,10 @@ export class DriverRaceDataService {
       isPersonalBest
     };
     
-    // Remove existing lap with same number if exists
-    session.laps = session.laps.filter(lap => lap.lapNumber !== lapNumber);
-    
     // Add new lap and sort
     session.laps.push(newLap);
     session.laps.sort((a, b) => a.lapNumber - b.lapNumber);
     
-    console.log(`🔥 Added lap ${lapNumber}: ${lapTime}ms (P${driverData.P}) ${isPersonalBest ? '⭐ PERSONAL BEST' : ''}`);
   }
   
   /**
@@ -380,7 +362,7 @@ export class DriverRaceDataService {
       await connectDB();
       return await DriverRaceData.find({}).limit(20); // Limit for debugging
     } catch (error) {
-      console.error('❌ Error getting all drivers:', error);
+      console.error('Error getting all drivers:', error);
       return [];
     }
   }
@@ -393,7 +375,7 @@ export class DriverRaceDataService {
       await connectDB();
       return await DriverRaceData.findOne({ driverName });
     } catch (error) {
-      console.error('❌ Error getting driver data:', error);
+      console.error('Error getting driver data:', error);
       return null;
     }
   }
@@ -406,7 +388,7 @@ export class DriverRaceDataService {
       await connectDB();
       return await DriverRaceData.findOne({ webUserId });
     } catch (error) {
-      console.error('❌ Error getting driver data by webUserId:', error);
+      console.error('Error getting driver data by webUserId:', error);
       return null;
     }
   }
@@ -426,7 +408,7 @@ export class DriverRaceDataService {
         .slice(0, limit);
         
     } catch (error) {
-      console.error('❌ Error getting recent sessions:', error);
+      console.error('Error getting recent sessions:', error);
       return [];
     }
   }
@@ -445,7 +427,7 @@ export class DriverRaceDataService {
       return session ? session.laps : [];
       
     } catch (error) {
-      console.error('❌ Error getting session laps:', error);
+      console.error('Error getting session laps:', error);
       return [];
     }
   }

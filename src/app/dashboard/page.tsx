@@ -60,11 +60,8 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       
-      console.log(`🔍 Loading real user stats for user:`, user);
-      console.log(`🆔 User ID: ${user.id}`);
       
       if (!user.id) {
-        console.log(`❌ ERROR: user.id is undefined! Using demo stats.`);
         setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
         return;
       }
@@ -79,47 +76,31 @@ export default function DashboardPage() {
       
       // PRIORITY: Use DriverRaceData if user is linked
       if (summaryData.success && summaryData.driverData) {
-        console.log(`🎯 User is LINKED to driver: ${summaryData.driverData.driverName}`);
-        console.log(`📊 Driver has ${summaryData.driverData.totalSessions} sessions`);
         
         // Convert DriverRaceData to dashboard format
         const realStats = convertDriverRaceDataToPersonalStats(summaryData, user);
         setStats(realStats);
         
       } else if (sessionsData.success && sessionsData.sessions.length > 0) {
-        console.log(`✅ Found ${sessionsData.sessions.length} sessions from legacy structure`);
         
         // Check if we have lap-by-lap data in new structure
         const hasLapByLapData = sessionsData.sessions.some(s => s.lapByLapData && s.lapByLapData.length > 0);
         
         if (hasLapByLapData) {
-          console.log(`🎯 Using ENHANCED data with lap-by-lap progression`);
           const realStats = convertEnhancedLapDataToPersonalStats(sessionsData.sessions, summaryData.stats || null, user);
           setStats(realStats);
         } else {
-          console.log(`📊 Using STANDARD session data`);
           const realStats = convertLapDataToPersonalStats(sessionsData.sessions, user);
           setStats(realStats);
         }
       } else {
         // Check if there's debug info about why no data was found
-        if (summaryData.debug) {
-          console.log(`🔍 DEBUG: No linked driver found`);
-          console.log(`- Searched webUserId: ${summaryData.debug.searchedWebUserId}`);
-          console.log(`- Total drivers in system: ${summaryData.debug.totalDriversInSystem}`);
-          console.log(`- Drivers with webUserId: ${summaryData.debug.driversWithWebUserId}`);
-          
-          if (summaryData.debug.totalDriversInSystem > 0 && summaryData.debug.driversWithWebUserId === 0) {
-            console.log(`⚠️ HINT: There are drivers in the system but none are linked. Use admin to link a driver!`);
-          }
-        }
         
-        console.log(`ℹ️ No linked driver found, using demo stats`);
         setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
       }
       
     } catch (error) {
-      console.error('❌ Error loading real stats:', error);
+      console.error('Error loading real stats:', error);
       setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
     } finally {
       setLoading(false);
@@ -131,13 +112,9 @@ export default function DashboardPage() {
     const { driverData, stats, recentSessions } = driverSummary;
     
     if (!driverData || !stats) {
-      console.log('⚠️ No driver data found in summary');
       return generateDemoStats(user.profile.firstName, user.profile.lastName);
     }
 
-    console.log(`🏁 Converting DriverRaceData for: ${driverData.driverName}`);
-    console.log(`📊 Stats:`, stats);
-    console.log(`🎯 Recent sessions: ${recentSessions?.length || 0}`);
     
     // Use ONLY real aggregated statistics from DriverRaceData - NO HARDCODING
     const totalRaces = stats.totalRaces || 0;
@@ -148,8 +125,6 @@ export default function DashboardPage() {
     const podiumFinishes = stats.podiumFinishes || 0;
     const totalLaps = stats.totalLaps || 0;
     
-    console.log(`💰 REAL DATA: totalSpent: $${totalSpent}, totalRaces: ${totalRaces}, bestTime: ${bestTime}ms`);
-    console.log(`🏁 REAL DATA: totalLaps: ${totalLaps}, bestPosition: P${bestPosition}, podiums: ${podiumFinishes}`);
     
     // Calculate favorite kart from recent sessions
     let favoriteKart = 1;
@@ -171,21 +146,14 @@ export default function DashboardPage() {
     const firstRace = stats.firstRaceDate ? new Date(stats.firstRaceDate) : (recentSessions.length > 0 ? new Date(recentSessions[recentSessions.length - 1].sessionDate) : new Date());
     const lastRace = stats.lastRaceDate ? new Date(stats.lastRaceDate) : (recentSessions.length > 0 ? new Date(recentSessions[0].sessionDate) : new Date());
     
-    console.log(`📅 REAL DATES: firstRace: ${firstRace.toLocaleDateString()}, lastRace: ${lastRace.toLocaleDateString()}`);
     
     // Generate monthly progression ONLY from real recent sessions data
     const monthlyProgression = generateMonthlyProgressionFromDriverSessions(recentSessions || []);
-    console.log(`📅 REAL MONTHLY DATA:`, monthlyProgression);
     
     // Convert recent sessions to race format with REAL lap-by-lap data ONLY
     const recentRaces = (recentSessions || []).slice(0, 5).map((session: any, index: number) => {
       const sessionDate = new Date(session.sessionDate);
       
-      console.log(`🏁 PROCESSING REAL SESSION: ${session.sessionName}`);
-      console.log(`- Date: ${sessionDate.toLocaleDateString()}`);
-      console.log(`- Best time: ${session.bestTime}ms, Position: P${session.bestPosition}`);
-      console.log(`- Total laps: ${session.totalLaps}, Kart: #${session.kartNumber}`);
-      console.log(`- Lap-by-lap data: ${session.laps?.length || 0} laps`);
       
       return {
         date: sessionDate,
@@ -202,7 +170,6 @@ export default function DashboardPage() {
       };
     });
     
-    console.log(`🏁 CONVERTED ${recentRaces.length} REAL RACES for dashboard`);
 
     const personalStats: PersonalStats = {
       totalRaces,
@@ -219,20 +186,6 @@ export default function DashboardPage() {
       recentRaces
     };
 
-    console.log(`✅ FINAL REAL STATS:`, {
-      driverName: driverData.driverName,
-      totalRaces,
-      totalSpent,
-      bestTime,
-      averageTime,
-      bestPosition,
-      podiumFinishes,
-      totalLaps,
-      favoriteKart,
-      hasLapByLapData: recentRaces.some(r => r.lapByLapProgression?.length > 0),
-      monthlyDataPoints: monthlyProgression.length,
-      recentRacesCount: recentRaces.length
-    });
 
     return personalStats;
   }
@@ -243,7 +196,6 @@ export default function DashboardPage() {
       return generateDemoStats(user.profile.firstName, user.profile.lastName);
     }
 
-    console.log(`📊 Processing ${sessions.length} enhanced sessions with lap-by-lap data`);
     
     // Use aggregate stats if available, otherwise calculate from sessions
     let totalRaces = aggregateStats?.totalRaces || sessions.length;
@@ -323,12 +275,6 @@ export default function DashboardPage() {
       recentRaces
     };
 
-    console.log(`✅ Enhanced stats processed:`, {
-      totalRaces,
-      bestTime,
-      totalLaps,
-      lapByLapSessions: sessions.filter(s => s.lapByLapData?.length > 0).length
-    });
 
     return stats;
   }
@@ -339,7 +285,6 @@ export default function DashboardPage() {
       return generateDemoStats(user.profile.firstName, user.profile.lastName);
     }
 
-    console.log(`📊 Processing ${sessions.length} real sessions for stats`);
     
     const totalRaces = sessions.length;
     const totalSpent = totalRaces * 17000; // $17,000 per classification session
@@ -397,12 +342,6 @@ export default function DashboardPage() {
       recentRaces
     };
 
-    console.log(`✅ Real stats processed:`, {
-      totalRaces,
-      bestTime: validBestTime,
-      bestPosition: validBestPosition,
-      podiumFinishes
-    });
 
     return stats;
   }
@@ -843,10 +782,6 @@ export default function DashboardPage() {
                     <h3 className="font-bold text-xl text-electric-blue">RESUMEN</h3>
                   </div>
                   <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sky-blue/70 text-sm">Total Gastado:</span>
-                      <span className="text-karting-gold text-sm font-medium">${stats.totalSpent.toLocaleString()}</span>
-                    </div>
                     <div className="flex justify-between">
                       <span className="text-sky-blue/70 text-sm">Promedio Tiempo:</span>
                       <span className="text-electric-blue text-sm font-medium">{formatTime(stats.averageTime)}</span>

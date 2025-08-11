@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
     const { action, sessionData } = await request.json();
     
     if (action === 'process_lap_data' && sessionData) {
-      console.log(`🏁 API: Processing lap data (NEW STRUCTURE) for "${sessionData.N}"`);
       
       // Process the lap-by-lap data with new driver-centric structure
       await LapCaptureService.processLapData(sessionData);
@@ -32,12 +31,39 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      const progression = await LapCaptureService.getDriverLapProgression(webUserId, sessionId);
+      // Try NEW driver-centric structure first, fallback to legacy system
+      let progression = [];
+      
+      try {
+        const sessionLaps = await DriverRaceDataService.getSessionLaps(webUserId, sessionId);
+        
+        if (sessionLaps.length > 0) {
+          // Convert to progression format expected by chart
+          progression = sessionLaps.map(lap => ({
+            lapNumber: lap.lapNumber,
+            position: lap.position,
+            lapTime: lap.time,
+            bestTime: lap.time,
+            gapToLeader: lap.gapToLeader,
+            positionChange: 0,
+            isPersonalBest: lap.isPersonalBest,
+            timestamp: lap.timestamp
+          }));
+        }
+      } catch (error) {
+        console.error('Error getting session laps from new structure:', error);
+      }
+      
+      // Fallback to legacy system if no data found in new structure
+      if (progression.length === 0) {
+        progression = await LapCaptureService.getDriverLapProgression(webUserId, sessionId);
+      }
       
       return NextResponse.json({
         success: true,
         progression,
-        totalLaps: progression.length
+        totalLaps: progression.length,
+        dataSource: progression.length > 0 ? 'hybrid' : 'none'
       });
     }
     
@@ -150,7 +176,7 @@ export async function POST(request: NextRequest) {
     );
     
   } catch (error) {
-    console.error('❌ Error in lap-capture API:', error);
+    console.error('Error in lap-capture API:', error);
     return NextResponse.json(
       { 
         error: 'Error processing lap capture request',
@@ -192,19 +218,11 @@ export async function GET(request: NextRequest) {
     }
     
     if (action === 'get_driver_summary' && webUserId) {
-      console.log(`🔍 DEBUG: Looking for driver data with webUserId: ${webUserId}`);
       
       const driverData = await DriverRaceDataService.getDriverDataByWebUserId(webUserId);
       
       if (!driverData) {
-        console.log(`⚠️ DEBUG: No driver data found for webUserId: ${webUserId}`);
-        
-        // Debug: Let's also check all drivers in the system
         const allDrivers = await DriverRaceDataService.getAllDrivers();
-        console.log(`📊 DEBUG: Found ${allDrivers.length} total drivers in system`);
-        allDrivers.forEach(d => {
-          console.log(`- ${d.driverName} (webUserId: ${d.webUserId || 'null'}, linkingStatus: ${d.linkingStatus})`);
-        });
         
         return NextResponse.json({
           success: true,
@@ -235,12 +253,39 @@ export async function GET(request: NextRequest) {
     }
     
     if (action === 'get_driver_progression' && webUserId && sessionId) {
-      const progression = await LapCaptureService.getDriverLapProgression(webUserId, sessionId);
+      // Try NEW driver-centric structure first, fallback to legacy system
+      let progression = [];
+      
+      try {
+        const sessionLaps = await DriverRaceDataService.getSessionLaps(webUserId, sessionId);
+        
+        if (sessionLaps.length > 0) {
+          // Convert to progression format expected by chart
+          progression = sessionLaps.map(lap => ({
+            lapNumber: lap.lapNumber,
+            position: lap.position,
+            lapTime: lap.time,
+            bestTime: lap.time,
+            gapToLeader: lap.gapToLeader,
+            positionChange: 0,
+            isPersonalBest: lap.isPersonalBest,
+            timestamp: lap.timestamp
+          }));
+        }
+      } catch (error) {
+        console.error('Error getting session laps from new structure:', error);
+      }
+      
+      // Fallback to legacy system if no data found in new structure
+      if (progression.length === 0) {
+        progression = await LapCaptureService.getDriverLapProgression(webUserId, sessionId);
+      }
       
       return NextResponse.json({
         success: true,
         progression,
-        totalLaps: progression.length
+        totalLaps: progression.length,
+        dataSource: progression.length > 0 ? 'hybrid' : 'none'
       });
     }
     
@@ -259,7 +304,7 @@ export async function GET(request: NextRequest) {
     );
     
   } catch (error) {
-    console.error('❌ Error in lap-capture GET:', error);
+    console.error('Error in lap-capture GET:', error);
     return NextResponse.json(
       { 
         error: 'Error getting lap capture data',

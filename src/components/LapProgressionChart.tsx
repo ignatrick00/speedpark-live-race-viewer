@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface LapData {
   lapNumber: number;
@@ -259,7 +259,7 @@ export default function LapProgressionChart({ webUserId, selectedSessionId }: La
           <div className="bg-gray-800 rounded-lg p-4">
             <h4 className="text-white font-semibold mb-4">⏱️ Tiempos por Vuelta</h4>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={lapProgression}>
+              <LineChart data={lapProgression}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
                   dataKey="lapNumber" 
@@ -272,12 +272,27 @@ export default function LapProgressionChart({ webUserId, selectedSessionId }: La
                   label={{ value: 'Tiempo', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9CA3AF' } }}
                 />
                 <Tooltip content={<LapTimeTooltip />} />
-                <Bar 
+                <Line 
+                  type="monotone" 
                   dataKey="lapTime" 
-                  fill={(entry: any) => entry?.isPersonalBest ? '#A855F7' : '#10B981'}
-                  radius={[2, 2, 0, 0]}
+                  stroke="#10B981" 
+                  strokeWidth={2}
+                  dot={(props: any) => {
+                    const { cx, cy, payload } = props;
+                    return (
+                      <circle 
+                        cx={cx} 
+                        cy={cy} 
+                        r={payload?.isPersonalBest ? 6 : 4} 
+                        fill={payload?.isPersonalBest ? '#A855F7' : '#10B981'}
+                        strokeWidth={2}
+                        stroke={payload?.isPersonalBest ? '#A855F7' : '#10B981'}
+                      />
+                    );
+                  }}
+                  activeDot={{ r: 6, fill: '#F59E0B' }}
                 />
-              </BarChart>
+              </LineChart>
             </ResponsiveContainer>
           </div>
 
