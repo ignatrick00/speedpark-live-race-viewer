@@ -13,11 +13,8 @@ export function useWebSocket() {
 
   const connect = () => {
     try {
-      // Determinar la URL correcta del WebSocket según el dispositivo
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      const wsUrl = isLocalhost 
-        ? 'ws://localhost:8080' 
-        : `ws://${window.location.hostname}:8080`
+      // Usar variable de entorno para WebSocket URL
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://rom3v84xzg.execute-api.us-east-1.amazonaws.com/production'
       
       console.log('🔗 Conectando a:', wsUrl)
       wsRef.current = new WebSocket(wsUrl)
@@ -28,8 +25,10 @@ export function useWebSocket() {
         setError(null)
         setRetryCount(0)
         
-        // Pedir datos iniciales
-        wsRef.current?.send('REQUEST_DATA')
+        // Unirse a las carreras en vivo (compatible con AWS WebSocket)
+        wsRef.current?.send(JSON.stringify({
+          action: 'join_race'
+        }))
       }
       
       wsRef.current.onmessage = (event) => {
