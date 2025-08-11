@@ -226,7 +226,12 @@ export class DetailedStatsProcessor {
    * Find the fastest lap across all drivers
    */
   private static findFastestLap(drivers: any[]) {
-    let fastest = null;
+    let fastest: {
+      driverName: string;
+      lapTime: number;
+      lapNumber: number;
+      kartNumber: string;
+    } | null = null;
     
     drivers.forEach(driver => {
       const driverFastest = Math.min(...driver.laps.map((lap: any) => lap.lapTime));

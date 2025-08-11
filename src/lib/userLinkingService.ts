@@ -136,7 +136,7 @@ export class UserLinkingService {
     // 2. First name + Last name combination
     // 3. Alias match
     
-    const searchQueries = [
+    const searchQueries: any[] = [
       // Exact full name match
       {
         $or: [

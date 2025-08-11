@@ -156,7 +156,7 @@ class StatsTracker {
       }
       
       // Filtrar solo conductores únicos válidos
-      const uniqueSessionDrivers = [...new Set(drivers.filter(d => d && d.trim()))]
+      const uniqueSessionDrivers = Array.from(new Set(drivers.filter(d => d && d.trim())))
       
       if (uniqueSessionDrivers.length === 0) {
         console.log('⚠️ No hay conductores válidos para registrar')

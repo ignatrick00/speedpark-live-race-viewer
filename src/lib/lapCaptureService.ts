@@ -62,7 +62,8 @@ export class LapCaptureService {
     const currentData = smsData.D;
     
     // Process each driver's current data
-    for (const [index, driverData] of currentData.entries()) {
+    for (let index = 0; index < currentData.length; index++) {
+      const driverData = currentData[index];
       await this.processDriverLap(
         sessionId,
         sessionName,

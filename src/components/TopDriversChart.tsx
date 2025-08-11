@@ -119,9 +119,6 @@ export default function TopDriversChart({ topDrivers }: TopDriversChartProps) {
           callback: function(value) {
             return '$' + Number(value).toLocaleString('es-CL')
           }
-        },
-        border: {
-          display: false
         }
       },
       y: {

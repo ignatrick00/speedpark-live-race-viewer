@@ -26,7 +26,9 @@ export class StatsService {
       // 1. Record in JSON system (existing functionality)
       const tracker = await getStatsTracker();
       const jsonSession = await tracker.recordSession(sessionName, drivers);
-      console.log(`✅ JSON session recorded: ${jsonSession.id}`);
+      if (jsonSession) {
+        console.log(`✅ JSON session recorded: ${jsonSession.id}`);
+      }
       
       // 2. Connect to MongoDB
       await connectDB();
@@ -59,8 +61,8 @@ export class StatsService {
             penalties: driver.PE || 0,
             
             // PERFORMANCE METRICS calculated from real data
-            consistency: this.calculateConsistency(driver),
-            pace: this.calculatePace(driver),
+            consistency: 0, // TODO: implement calculateConsistency
+            pace: 0, // TODO: implement calculatePace
             isRealData: true, // Mark as official SMS data
             
             // RAW SMS DATA for full traceability

@@ -177,25 +177,25 @@ driverRaceDataSchema.methods.recalculateStats = function() {
   
   // Calculate totals
   this.stats.totalRaces = sessions.length;
-  this.stats.totalLaps = sessions.reduce((sum, s) => sum + s.totalLaps, 0);
+  this.stats.totalLaps = sessions.reduce((sum: number, s: any) => sum + s.totalLaps, 0);
   
   // Revenue calculation (only clasificación sessions)
-  const clasificacionSessions = sessions.filter(s => s.sessionType === 'clasificacion');
+  const clasificacionSessions = sessions.filter((s: any) => s.sessionType === 'clasificacion');
   this.stats.totalSpent = clasificacionSessions.length * 17000;
   
   // Best times and positions
-  const allTimes = sessions.map(s => s.bestTime).filter(t => t > 0);
+  const allTimes = sessions.map((s: any) => s.bestTime).filter((t: number) => t > 0);
   this.stats.allTimeBestLap = allTimes.length > 0 ? Math.min(...allTimes) : 0;
   
-  const allPositions = sessions.map(s => s.bestPosition).filter(p => p > 0);
+  const allPositions = sessions.map((s: any) => s.bestPosition).filter((p: number) => p > 0);
   this.stats.bestPosition = allPositions.length > 0 ? Math.min(...allPositions) : 999;
   
   // Average lap time across all laps in all sessions
   let totalLapTimes = 0;
   let totalLapsWithTimes = 0;
   
-  sessions.forEach(session => {
-    session.laps.forEach(lap => {
+  sessions.forEach((session: any) => {
+    session.laps.forEach((lap: any) => {
       if (lap.time > 0) {
         totalLapTimes += lap.time;
         totalLapsWithTimes++;
@@ -206,12 +206,12 @@ driverRaceDataSchema.methods.recalculateStats = function() {
   this.stats.averageLapTime = totalLapsWithTimes > 0 ? totalLapTimes / totalLapsWithTimes : 0;
   
   // Podium finishes (final positions 1, 2, 3)
-  this.stats.podiumFinishes = sessions.filter(s => 
+  this.stats.podiumFinishes = sessions.filter((s: any) => 
     s.finalPosition && s.finalPosition <= 3
   ).length;
   
   // Date range
-  const dates = sessions.map(s => s.sessionDate).sort((a, b) => a.getTime() - b.getTime());
+  const dates = sessions.map((s: any) => s.sessionDate).sort((a: any, b: any) => a.getTime() - b.getTime());
   this.stats.firstRaceDate = dates[0];
   this.stats.lastRaceDate = dates[dates.length - 1];
 };

@@ -228,13 +228,13 @@ UserStatsSchema.index({ bestTime: 1 });
 UserStatsSchema.index({ lastRaceAt: -1 });
 
 // Virtual for podium percentage
-UserStatsSchema.virtual('podiumPercentage').get(function() {
+UserStatsSchema.virtual('podiumPercentage').get(function(this: IUserStats) {
   if (this.totalRaces === 0) return 0;
   return Math.round((this.podiumFinishes / this.totalRaces) * 100);
 });
 
 // Method to add a new race result
-UserStatsSchema.methods.addRaceResult = function(sessionData: any) {
+UserStatsSchema.methods.addRaceResult = function(this: IUserStats, sessionData: any) {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();

@@ -55,7 +55,7 @@ export class DriverIdentityService {
       return {
         confidence: 'low',
         method: 'exact_match',
-        driverIdentityId: identityResult._id.toString(),
+        driverIdentityId: identityResult._id ? identityResult._id.toString() : undefined,
         personId: personId || undefined
       };
       
@@ -383,7 +383,7 @@ export class DriverIdentityService {
         totalSessions: driverIdentity.totalSessions,
         firstRace: driverIdentity.firstRaceDate,
         lastRace: driverIdentity.lastRaceDate,
-        namesUsed: driverIdentity.nameHistory.map(h => h.name),
+        namesUsed: driverIdentity.nameHistory.map((h: any) => h.name),
         linkingStatus: driverIdentity.linkingStatus,
         confidence: driverIdentity.confidence,
         personId: driverIdentity.personId

@@ -153,12 +153,12 @@ RaceSessionSchema.index({ 'linkedUsers.driverName': 1 });
 RaceSessionSchema.index({ 'linkedUsers.webUserId': 1 });
 
 // Virtual for driver count
-RaceSessionSchema.virtual('driverCount').get(function() {
+RaceSessionSchema.virtual('driverCount').get(function(this: IRaceSession) {
   return this.drivers.length;
 });
 
 // Method to calculate revenue
-RaceSessionSchema.methods.calculateRevenue = function() {
+RaceSessionSchema.methods.calculateRevenue = function(this: IRaceSession) {
   if (this.sessionType === 'classification') {
     this.revenue = this.drivers.length * this.pricePerDriver;
   } else {
@@ -168,8 +168,8 @@ RaceSessionSchema.methods.calculateRevenue = function() {
 };
 
 // Method to get unique driver names
-RaceSessionSchema.methods.getDriverNames = function() {
-  return this.drivers.map(driver => driver.name);
+RaceSessionSchema.methods.getDriverNames = function(this: IRaceSession) {
+  return this.drivers.map((driver: any) => driver.name);
 };
 
 const RaceSession = mongoose.models.RaceSession || mongoose.model<IRaceSession>('RaceSession', RaceSessionSchema);

@@ -42,7 +42,8 @@ export class DriverRaceDataService {
       const currentData = smsData.D;
       
       // Process each driver
-      for (const [index, driverData] of currentData.entries()) {
+      for (let index = 0; index < currentData.length; index++) {
+        const driverData = currentData[index];
         await this.processDriverData(
           sessionId,
           sessionName,
@@ -93,7 +94,7 @@ export class DriverRaceDataService {
       await this.updateDriverLinking(driverRecord, driverName, timestamp);
       
       // Find or create session within driver record
-      let session = driverRecord.sessions.find(s => s.sessionId === sessionId);
+      let session = driverRecord.sessions.find((s: IRaceSession) => s.sessionId === sessionId);
       
       if (!session) {
         session = this.createNewSession(sessionId, sessionName, timestamp, sessionType, currentDriver);
@@ -404,7 +405,7 @@ export class DriverRaceDataService {
       if (!driverData) return [];
       
       return driverData.sessions
-        .sort((a, b) => b.sessionDate.getTime() - a.sessionDate.getTime())
+        .sort((a: IRaceSession, b: IRaceSession) => b.sessionDate.getTime() - a.sessionDate.getTime())
         .slice(0, limit);
         
     } catch (error) {
@@ -423,7 +424,7 @@ export class DriverRaceDataService {
       const driverData = await DriverRaceData.findOne({ webUserId });
       if (!driverData) return [];
       
-      const session = driverData.sessions.find(s => s.sessionId === sessionId);
+      const session = driverData.sessions.find((s: IRaceSession) => s.sessionId === sessionId);
       return session ? session.laps : [];
       
     } catch (error) {

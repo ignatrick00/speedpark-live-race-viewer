@@ -123,17 +123,17 @@ WebUserSchema.index({ 'kartingLink.personId': 1 });
 WebUserSchema.index({ 'profile.firstName': 1, 'profile.lastName': 1 });
 
 // Virtual for full name
-WebUserSchema.virtual('profile.fullName').get(function() {
+WebUserSchema.virtual('profile.fullName').get(function(this: IWebUser) {
   return `${this.profile.firstName} ${this.profile.lastName}`;
 });
 
 // Method to get display name (alias or full name)
-WebUserSchema.methods.getDisplayName = function() {
-  return this.profile.alias || this.profile.fullName;
+WebUserSchema.methods.getDisplayName = function(this: IWebUser) {
+  return this.profile.alias || `${this.profile.firstName} ${this.profile.lastName}`;
 };
 
 // Method to check if user is linked to karting system
-WebUserSchema.methods.isLinked = function() {
+WebUserSchema.methods.isLinked = function(this: IWebUser) {
   return this.kartingLink.status === 'linked' && this.kartingLink.personId;
 };
 
