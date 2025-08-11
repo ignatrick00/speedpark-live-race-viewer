@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       }
       
       // Try NEW driver-centric structure first, fallback to legacy system
-      let progression = [];
+      let progression: any[] = [];
       
       try {
         const sessionLaps = await DriverRaceDataService.getSessionLaps(webUserId, sessionId);
@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
     
     if (action === 'get_driver_progression' && webUserId && sessionId) {
       // Try NEW driver-centric structure first, fallback to legacy system
-      let progression = [];
+      let progression: any[] = [];
       
       try {
         const sessionLaps = await DriverRaceDataService.getSessionLaps(webUserId, sessionId);
