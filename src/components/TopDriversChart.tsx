@@ -105,7 +105,10 @@ export default function TopDriversChart({ topDrivers }: TopDriversChartProps) {
         beginAtZero: true,
         grid: {
           color: 'rgba(0, 212, 255, 0.1)',
-          drawBorder: false
+          display: true
+        },
+        border: {
+          display: false
         },
         ticks: {
           color: '#60A5FA',
