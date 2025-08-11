@@ -423,8 +423,10 @@ export default function DriversAdminPage() {
                     
                     // Verificar si algún nombre coincide con el driver seleccionado
                     const hasMatch = possibleNames.some(name => 
-                      name.toLowerCase().includes(selectedDriver.driverName.toLowerCase()) ||
-                      selectedDriver.driverName.toLowerCase().includes(name.toLowerCase())
+                      name && (
+                        name.toLowerCase().includes(selectedDriver.driverName.toLowerCase()) ||
+                        selectedDriver.driverName.toLowerCase().includes(name.toLowerCase())
+                      )
                     );
                     
                     return (
