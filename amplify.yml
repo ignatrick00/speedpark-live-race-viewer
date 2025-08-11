@@ -3,6 +3,11 @@ frontend:
   phases:
     preBuild:
       commands:
+        - echo "Working directory is $(pwd)"
+        - echo "Contents of current directory:"
+        - ls -la
+        - echo "Checking package.json exists:"
+        - cat package.json | head -10
         - npm ci
     build:
       commands:

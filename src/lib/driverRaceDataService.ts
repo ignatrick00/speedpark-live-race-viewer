@@ -28,38 +28,58 @@ export class DriverRaceDataService {
    */
   static async processRaceData(smsData: SMSData): Promise<void> {
     try {
+      console.log(`🔍 DriverRaceDataService.processRaceData starting for: ${smsData.N}`);
+      
       await connectDB();
+      console.log(`✅ Database connected in DriverRaceDataService`);
       
       const sessionName = smsData.N;
       const sessionTimestamp = new Date();
       const sessionId = `${sessionName}_${sessionTimestamp.toDateString()}`;
       
+      console.log(`📋 Session details: ID=${sessionId}, Timestamp=${sessionTimestamp.toISOString()}`);
+      
       // Determine session type
       const sessionType = this.determineSessionType(sessionName);
+      console.log(`🏁 Session type determined: ${sessionType}`);
       
       // Get previous data for lap detection
       const previousData = this.lastSessionData.get(sessionName) || [];
       const currentData = smsData.D;
       
+      console.log(`👥 Processing ${currentData.length} drivers (had ${previousData.length} previous)`);
+      
       // Process each driver
       for (let index = 0; index < currentData.length; index++) {
         const driverData = currentData[index];
-        await this.processDriverData(
-          sessionId,
-          sessionName,
-          sessionTimestamp,
-          sessionType,
-          driverData,
-          previousData[index]
-        );
+        console.log(`👤 Processing driver ${index + 1}/${currentData.length}: ${driverData.N}`);
+        
+        try {
+          await this.processDriverData(
+            sessionId,
+            sessionName,
+            sessionTimestamp,
+            sessionType,
+            driverData,
+            previousData[index]
+          );
+          console.log(`✅ Driver ${driverData.N} processed successfully`);
+        } catch (driverError) {
+          console.error(`❌ Error processing driver ${driverData.N}:`, driverError);
+          throw driverError;
+        }
       }
       
       // Store current data for next comparison
       this.lastSessionData.set(sessionName, [...currentData]);
       
+      console.log(`✅ DriverRaceDataService.processRaceData completed successfully for: ${sessionName}`);
       
     } catch (error) {
-      console.error('Error processing race data:', error);
+      console.error('❌ Error in DriverRaceDataService.processRaceData:', error);
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('❌ Session name that caused error:', smsData.N);
+      console.error('❌ Drivers count that caused error:', smsData.D?.length || 0);
       throw error;
     }
   }

@@ -11,6 +11,7 @@ const nextConfig = {
       },
     ]
   },
+  output: 'standalone', // Para AWS Amplify SSR
 }
 
 module.exports = nextConfig

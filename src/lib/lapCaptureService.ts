@@ -29,22 +29,41 @@ export class LapCaptureService {
    */
   static async processLapData(smsData: SMSData): Promise<void> {
     try {
+      console.log(`🔍 Starting processLapData for: ${smsData.N}`);
+      
       await connectDB();
+      console.log(`✅ Database connected successfully`);
       
       console.log(`🏁 Processing lap data (NEW STRUCTURE): ${smsData.N} - ${smsData.D.length} drivers`);
       
       // PRIORITY 1: Use new driver-centric structure
-      await DriverRaceDataService.processRaceData(smsData);
+      try {
+        console.log(`📊 Calling DriverRaceDataService.processRaceData...`);
+        await DriverRaceDataService.processRaceData(smsData);
+        console.log(`✅ DriverRaceDataService.processRaceData completed`);
+      } catch (driverServiceError) {
+        console.error('❌ Error in DriverRaceDataService.processRaceData:', driverServiceError);
+        throw driverServiceError;
+      }
       
       // PRIORITY 2: Maintain legacy individual records for compatibility (reduced frequency)
       if (Math.random() < 0.1) { // Only 10% of the time to reduce duplicates
-        await this.processLegacyLapData(smsData);
+        try {
+          console.log(`📝 Processing legacy lap data...`);
+          await this.processLegacyLapData(smsData);
+          console.log(`✅ Legacy lap data processed`);
+        } catch (legacyError) {
+          console.error('⚠️ Error in legacy processing (non-critical):', legacyError);
+          // Don't throw - legacy processing is optional
+        }
       }
       
       console.log(`✅ Lap data processed with NEW driver-centric structure`);
       
     } catch (error) {
       console.error('❌ Error processing lap data:', error);
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('❌ SMS Data that caused error:', JSON.stringify(smsData, null, 2));
       throw error;
     }
   }

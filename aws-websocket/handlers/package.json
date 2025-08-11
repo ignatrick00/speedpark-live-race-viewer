@@ -1,0 +1,8 @@
+{
+  "name": "karteando-websocket-handlers",
+  "version": "1.0.0",
+  "description": "WebSocket handlers for Karteando",
+  "dependencies": {
+    "aws-sdk": "^2.1062.0"
+  }
+}
