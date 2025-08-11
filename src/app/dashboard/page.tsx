@@ -61,8 +61,8 @@ export default function DashboardPage() {
       setLoading(true);
       
       
-      if (!user.id) {
-        setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
+      if (!user || !user.id) {
+        setStats(generateDemoStats(user?.profile?.firstName || 'Demo', user?.profile?.lastName || 'User'));
         return;
       }
       
