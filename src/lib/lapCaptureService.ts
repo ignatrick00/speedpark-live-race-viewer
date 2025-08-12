@@ -415,18 +415,79 @@ export class LapCaptureService {
 
         // Update driver record (Top 10 unique drivers)
         try {
-          const driverResult = await BestDriverTime.updateDriverRecord(
-            driverName,
-            bestTime,
-            kartNumber,
-            sessionId,
-            sessionName,
-            sessionDate,
-            sessionTime
-          );
-
-          if (driverResult.newRecord) {
-            console.log(`🎉 NEW DRIVER RECORD: ${driverName} - ${bestTime}ms`);
+          console.log(`🏆 Checking driver record for: ${driverName} - ${bestTime}ms`);
+          
+          // Find existing record for this driver
+          const existingDriverRecord = await BestDriverTime.findOne({ driverName });
+          
+          if (existingDriverRecord) {
+            // Driver exists - only update if new time is better
+            if (bestTime < existingDriverRecord.bestTime) {
+              console.log(`🎯 NEW DRIVER RECORD! ${driverName}: ${existingDriverRecord.bestTime}ms → ${bestTime}ms`);
+              existingDriverRecord.bestTime = bestTime;
+              existingDriverRecord.kartNumber = kartNumber;
+              existingDriverRecord.sessionId = sessionId;
+              existingDriverRecord.sessionName = sessionName;
+              existingDriverRecord.sessionDate = sessionDate;
+              existingDriverRecord.sessionTime = sessionTime;
+              existingDriverRecord.lastUpdated = new Date();
+              await existingDriverRecord.save();
+              
+              // Recalculate positions
+              await this.recalculateDriverPositions();
+            } else {
+              console.log(`⏱️ No improvement for ${driverName}: current ${existingDriverRecord.bestTime}ms vs new ${bestTime}ms`);
+            }
+          } else {
+            // New driver - check if there's room in top 10
+            const currentCount = await BestDriverTime.countDocuments();
+            
+            if (currentCount < 10) {
+              // Room available - add new driver
+              const newRecord = new BestDriverTime({
+                position: currentCount + 1,
+                driverName,
+                bestTime,
+                kartNumber,
+                sessionId,
+                sessionName,
+                sessionDate,
+                sessionTime
+              });
+              
+              await newRecord.save();
+              console.log(`✨ NEW DRIVER ADDED to top 10: ${driverName} - ${bestTime}ms`);
+              
+              // Recalculate positions
+              await this.recalculateDriverPositions();
+            } else {
+              // Check if new time beats the worst in top 10
+              const worstRecord = await BestDriverTime.findOne().sort({ bestTime: -1 });
+              
+              if (worstRecord && bestTime < worstRecord.bestTime) {
+                console.log(`🔄 REPLACING worst record: ${worstRecord.driverName} (${worstRecord.bestTime}ms) with ${driverName} (${bestTime}ms)`);
+                
+                await BestDriverTime.deleteOne({ _id: worstRecord._id });
+                
+                const newRecord = new BestDriverTime({
+                  position: 10,
+                  driverName,
+                  bestTime,
+                  kartNumber,
+                  sessionId,
+                  sessionName,
+                  sessionDate,
+                  sessionTime
+                });
+                
+                await newRecord.save();
+                
+                // Recalculate positions
+                await this.recalculateDriverPositions();
+              } else {
+                console.log(`📊 ${driverName} time ${bestTime}ms not good enough for top 10`);
+              }
+            }
           }
         } catch (driverError) {
           console.error(`❌ Error updating driver record for ${driverName}:`, driverError);
@@ -434,18 +495,79 @@ export class LapCaptureService {
 
         // Update kart record (Top 20 unique karts)
         try {
-          const kartResult = await BestKartTime.updateKartRecord(
-            kartNumber,
-            bestTime,
-            driverName,
-            sessionId,
-            sessionName,
-            sessionDate,
-            sessionTime
-          );
-
-          if (kartResult.newRecord) {
-            console.log(`🎉 NEW KART RECORD: Kart #${kartNumber} - ${bestTime}ms by ${driverName}`);
+          console.log(`🏎️ Checking kart record for: Kart #${kartNumber} - ${bestTime}ms by ${driverName}`);
+          
+          // Find existing record for this kart
+          const existingKartRecord = await BestKartTime.findOne({ kartNumber });
+          
+          if (existingKartRecord) {
+            // Kart exists - only update if new time is better
+            if (bestTime < existingKartRecord.bestTime) {
+              console.log(`🎯 NEW KART RECORD! Kart #${kartNumber}: ${existingKartRecord.bestTime}ms → ${bestTime}ms (${existingKartRecord.driverName} → ${driverName})`);
+              existingKartRecord.bestTime = bestTime;
+              existingKartRecord.driverName = driverName;
+              existingKartRecord.sessionId = sessionId;
+              existingKartRecord.sessionName = sessionName;
+              existingKartRecord.sessionDate = sessionDate;
+              existingKartRecord.sessionTime = sessionTime;
+              existingKartRecord.lastUpdated = new Date();
+              await existingKartRecord.save();
+              
+              // Recalculate positions
+              await this.recalculateKartPositions();
+            } else {
+              console.log(`⏱️ No improvement for Kart #${kartNumber}: current ${existingKartRecord.bestTime}ms vs new ${bestTime}ms`);
+            }
+          } else {
+            // New kart - check if there's room in top 20
+            const currentCount = await BestKartTime.countDocuments();
+            
+            if (currentCount < 20) {
+              // Room available - add new kart
+              const newRecord = new BestKartTime({
+                position: currentCount + 1,
+                kartNumber,
+                bestTime,
+                driverName,
+                sessionId,
+                sessionName,
+                sessionDate,
+                sessionTime
+              });
+              
+              await newRecord.save();
+              console.log(`✨ NEW KART ADDED to top 20: Kart #${kartNumber} - ${bestTime}ms by ${driverName}`);
+              
+              // Recalculate positions
+              await this.recalculateKartPositions();
+            } else {
+              // Check if new time beats the worst in top 20
+              const worstRecord = await BestKartTime.findOne().sort({ bestTime: -1 });
+              
+              if (worstRecord && bestTime < worstRecord.bestTime) {
+                console.log(`🔄 REPLACING worst kart record: Kart #${worstRecord.kartNumber} (${worstRecord.bestTime}ms) with Kart #${kartNumber} (${bestTime}ms)`);
+                
+                await BestKartTime.deleteOne({ _id: worstRecord._id });
+                
+                const newRecord = new BestKartTime({
+                  position: 20,
+                  kartNumber,
+                  bestTime,
+                  driverName,
+                  sessionId,
+                  sessionName,
+                  sessionDate,
+                  sessionTime
+                });
+                
+                await newRecord.save();
+                
+                // Recalculate positions
+                await this.recalculateKartPositions();
+              } else {
+                console.log(`📊 Kart #${kartNumber} time ${bestTime}ms not good enough for top 20`);
+              }
+            }
           }
         } catch (kartError) {
           console.error(`❌ Error updating kart record for Kart #${kartNumber}:`, kartError);
@@ -457,6 +579,46 @@ export class LapCaptureService {
     } catch (error) {
       console.error('❌ Error in updateRealTimeRecords:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Recalculate driver positions based on best times
+   */
+  private static async recalculateDriverPositions() {
+    try {
+      const records = await BestDriverTime.find().sort({ bestTime: 1 });
+      
+      for (let i = 0; i < records.length; i++) {
+        if (records[i].position !== i + 1) {
+          records[i].position = i + 1;
+          await records[i].save();
+        }
+      }
+      
+      console.log(`📊 Recalculated positions for ${records.length} driver records`);
+    } catch (error) {
+      console.error('❌ Error recalculating driver positions:', error);
+    }
+  }
+
+  /**
+   * Recalculate kart positions based on best times
+   */
+  private static async recalculateKartPositions() {
+    try {
+      const records = await BestKartTime.find().sort({ bestTime: 1 });
+      
+      for (let i = 0; i < records.length; i++) {
+        if (records[i].position !== i + 1) {
+          records[i].position = i + 1;
+          await records[i].save();
+        }
+      }
+      
+      console.log(`📊 Recalculated positions for ${records.length} kart records`);
+    } catch (error) {
+      console.error('❌ Error recalculating kart positions:', error);
     }
   }
 
