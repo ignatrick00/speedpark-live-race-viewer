@@ -25,10 +25,14 @@ export function useWebSocket() {
         setError(null)
         setRetryCount(0)
         
-        // Unirse a las carreras en vivo (compatible con AWS WebSocket)
-        wsRef.current?.send(JSON.stringify({
-          action: 'join_race'
-        }))
+        // Pequeño delay para asegurar que el WebSocket esté completamente listo
+        setTimeout(() => {
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              action: 'join_race'
+            }))
+          }
+        }, 100)
       }
       
       wsRef.current.onmessage = (event) => {
