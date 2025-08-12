@@ -35,13 +35,48 @@ export function useWebSocket() {
         }, 100)
       }
       
-      wsRef.current.onmessage = (event) => {
+      wsRef.current.onmessage = async (event) => {
         try {
           const parsedData = parseSMSTimingData(event.data)
           if (parsedData) {
             setRaceData(parsedData)
             setError(null)
             console.log('🏆 Datos actualizados:', parsedData.activeDrivers, 'pilotos')
+            
+            // 🆕 GUARDAR EN BASE DE DATOS - Enviar al API lap-capture
+            try {
+              console.log('💾 Enviando datos al API lap-capture para guardar...')
+              const response = await fetch('/api/lap-capture', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  action: 'process_lap_data',
+                  sessionData: {
+                    N: parsedData.sessionName || 'Live Session',
+                    D: parsedData.drivers?.map(driver => ({
+                      N: driver.name,
+                      P: driver.pos,
+                      K: driver.kart,
+                      L: driver.lap,
+                      B: parseFloat(driver.bestTime.replace(':', '').replace('.', '')) || 0,
+                      T: parseFloat(driver.lastTime.replace(':', '').replace('.', '')) || 0,
+                      A: parseFloat(driver.avgTime.replace(':', '').replace('.', '')) || 0,
+                      G: driver.gap
+                    })) || []
+                  }
+                })
+              })
+              
+              if (response.ok) {
+                console.log('✅ Datos guardados en base de datos exitosamente')
+              } else {
+                console.warn('⚠️ Error guardando datos en BD:', response.status)
+              }
+            } catch (dbError) {
+              console.error('❌ Error enviando datos al API lap-capture:', dbError)
+            }
           }
         } catch (parseError) {
           console.warn('⚠️ Error parseando datos:', parseError)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-// import LapCaptureService from '@/lib/lapCaptureService';
-// import DriverRaceDataService from '@/lib/driverRaceDataService';
+import LapCaptureService from '@/lib/lapCaptureService';
+import DriverRaceDataService from '@/lib/driverRaceDataService';
 
 export async function POST(request: NextRequest) {
   try {
