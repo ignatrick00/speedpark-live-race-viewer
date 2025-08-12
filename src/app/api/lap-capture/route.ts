@@ -37,12 +37,14 @@ export async function POST(request: NextRequest) {
         driversCount: sessionData.D?.length || 0
       });
       
-      // TEMPORARY: Import fix - will reactivate after fixing import issues
-      console.log('⚠️ TEMPORARY: Processing disabled while fixing production imports');
+      // REACTIVATED: Processing enabled with new real-time records system
+      console.log('✅ PROCESSING ENABLED: Calling LapCaptureService with real-time records');
+      
+      await LapCaptureService.processLapData(sessionData);
       
       return NextResponse.json({
         success: true,
-        message: 'TEMPORARY: Endpoint working, processing disabled for import fix',
+        message: 'Data processed successfully with real-time records system',
         sessionName: sessionData.N,
         driversCount: sessionData.D?.length || 0,
         timestamp: new Date().toISOString()
