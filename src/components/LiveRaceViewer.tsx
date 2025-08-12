@@ -59,11 +59,15 @@ export default function LiveRaceViewer() {
   const [bestTimesLoading, setBestTimesLoading] = useState(true)
   const [bestTimesError, setBestTimesError] = useState<string | null>(null)
   
+  // 🆕 Estado para mejores karts desde MongoDB
+  const [kartRanking, setKartRanking] = useState<Array<{kart: number, time: string, driver: string}>>([])
+  const [kartsLoading, setKartsLoading] = useState(true)
+  const [kartsError, setKartsError] = useState<string | null>(null)
+  
   // Estados derivados de WebSocket (mantener para datos en tiempo real)
   const isLive = isConnected && !!raceData
   const activeDrivers = raceData?.activeDrivers || 0
   const drivers = raceData?.drivers || []
-  const kartRanking = raceData?.kartRanking || []
   const bestLap = raceData?.bestLap || "--:--.---"
   const totalLaps = raceData?.totalLaps || 0
   const averageTime = raceData?.averageTime || "--:--.---"
@@ -92,6 +96,30 @@ export default function LiveRaceViewer() {
     }
   }
 
+  // 🆕 Función para obtener mejores karts desde MongoDB
+  const fetchBestKarts = async () => {
+    try {
+      setKartsLoading(true)
+      setKartsError(null)
+      
+      const response = await fetch('/api/best-karts')
+      const data = await response.json()
+      
+      if (data.success) {
+        setKartRanking(data.bestKarts)
+        console.log(`🏎️ Loaded ${data.bestKarts.length} best karts from MongoDB`)
+      } else {
+        setKartsError(data.error || 'Error loading best karts')
+        console.error('❌ Error fetching best karts:', data.error)
+      }
+    } catch (error) {
+      setKartsError('Connection error')
+      console.error('❌ Fetch error:', error)
+    } finally {
+      setKartsLoading(false)
+    }
+  }
+
   // Auth handlers
   const handleLogout = () => {
     logout()
@@ -107,15 +135,19 @@ export default function LiveRaceViewer() {
     setShowLoginModal(true)
   }
 
-  // 🆕 useEffect para cargar mejores tiempos desde MongoDB
+  // 🆕 useEffect para cargar mejores tiempos y karts desde MongoDB
   useEffect(() => {
     // Cargar datos iniciales
     fetchBestTimes()
+    fetchBestKarts()
     
     // Actualizar cada 30 segundos
-    const bestTimesInterval = setInterval(fetchBestTimes, 30000)
+    const dataInterval = setInterval(() => {
+      fetchBestTimes()
+      fetchBestKarts()
+    }, 30000)
     
-    return () => clearInterval(bestTimesInterval)
+    return () => clearInterval(dataInterval)
   }, [])
 
   useEffect(() => {
@@ -489,9 +521,9 @@ export default function LiveRaceViewer() {
                   </div>
                 )) : (
                   <div className="text-center text-blue-300 py-4">
-                    {error ? 'Sin datos de karts' : 
-                     !isConnected ? 'Cargando...' : 
-                     'Esperando tiempos de karts...'}
+                    {kartsError ? 'Error cargando karts' : 
+                     kartsLoading ? 'Cargando mejores karts...' : 
+                     'No hay datos de karts disponibles'}
                   </div>
                 )}
               </div>
