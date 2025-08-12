@@ -184,25 +184,25 @@ export default function LiveRaceViewer() {
 
       {/* Navigation Bar */}
       <nav className="relative z-20 border-b border-blue-800/30 bg-black/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 via-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-400/25">
-                <span className="text-white font-bold text-xl">🏁</span>
+            {/* Logo - Responsive */}
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-400 via-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-400/25">
+                <span className="text-white font-bold text-lg sm:text-xl">🏁</span>
               </div>
-              <div>
-                <h1 className="font-racing text-2xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-wider">
+              <div className="min-w-0">
+                <h1 className="font-racing text-lg sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-wider">
                   KARTEANDO<span className="text-sky-400">.CL</span>
                 </h1>
-                <p className="text-blue-300 text-xs font-medium">Racing Platform</p>
+                <p className="text-blue-300 text-xs font-medium hidden sm:block">Racing Platform</p>
               </div>
             </div>
 
-            {/* Navigation Links & Auth */}
-            <div className="flex items-center space-x-6">
+            {/* Navigation Links & Auth - Responsive */}
+            <div className="flex items-center space-x-2 sm:space-x-6 min-w-0">
               {/* Navigation Links */}
-              <div className="hidden md:flex items-center space-x-6">
+              <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
                 <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Live View
                 </a>
@@ -214,20 +214,20 @@ export default function LiveRaceViewer() {
                 </a>
               </div>
 
-              {/* Auth Section */}
+              {/* Auth Section - Responsive */}
               {isLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-blue-300 font-medium text-sm">Cargando...</span>
+                  <span className="text-blue-300 font-medium text-sm hidden sm:inline">Cargando...</span>
                 </div>
               ) : user ? (
-                <div className="flex items-center space-x-4">
-                  {/* User info */}
-                  <div className="text-right">
+                <div className="flex items-center space-x-2 sm:space-x-4">
+                  {/* User info - Hidden on mobile, compact on tablet */}
+                  <div className="text-right hidden md:block">
                     <p className="text-cyan-400 font-medium text-sm">
                       {user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`}
                     </p>
-                    <p className="text-xs text-blue-300">
+                    <p className="text-xs text-blue-300 hidden lg:block">
                       {user.kartingLink.status === 'pending_first_race' 
                         ? '🏁 ¡Ve a correr para activar stats!'
                         : user.kartingLink.status === 'linked'
@@ -237,12 +237,13 @@ export default function LiveRaceViewer() {
                     </p>
                   </div>
 
-                  {/* Dashboard button */}
+                  {/* Dashboard button - Responsive */}
                   <a
                     href="/dashboard"
-                    className="px-4 py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium text-sm"
+                    className="px-2 sm:px-4 py-1.5 sm:py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium text-xs sm:text-sm"
                   >
-                    🏆 Dashboard
+                    <span className="sm:hidden">🏆</span>
+                    <span className="hidden sm:inline">🏆 Dashboard</span>
                   </a>
 
                   {/* User avatar */}
@@ -252,27 +253,29 @@ export default function LiveRaceViewer() {
                     </span>
                   </div>
 
-                  {/* Logout button */}
+                  {/* Logout button - Responsive */}
                   <button
                     onClick={handleLogout}
-                    className="px-3 py-1 text-sm text-blue-300 hover:text-cyan-400 border border-blue-400/30 hover:border-cyan-400/50 rounded transition-all font-medium uppercase tracking-wider"
+                    className="px-2 sm:px-3 py-1 text-xs sm:text-sm text-blue-300 hover:text-cyan-400 border border-blue-400/30 hover:border-cyan-400/50 rounded transition-all font-medium uppercase tracking-wider"
                   >
-                    Salir
+                    <span className="sm:hidden">✕</span>
+                    <span className="hidden sm:inline">Salir</span>
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 sm:space-x-4">
                   <button
                     onClick={() => setShowLoginModal(true)}
-                    className="px-4 py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium uppercase tracking-wider text-sm"
+                    className="px-2 sm:px-4 py-1.5 sm:py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium uppercase tracking-wider text-xs sm:text-sm"
                   >
                     Login
                   </button>
                   <button
                     onClick={() => setShowRegisterModal(true)}
-                    className="px-4 py-2 bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-lg hover:from-cyan-500 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-400/25 transform hover:scale-105 font-medium uppercase tracking-wider text-sm"
+                    className="px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-lg hover:from-cyan-500 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-400/25 transform hover:scale-105 font-medium uppercase tracking-wider text-xs sm:text-sm"
                   >
-                    Registrarse
+                    <span className="sm:hidden">Join</span>
+                    <span className="hidden sm:inline">Registrarse</span>
                   </button>
                 </div>
               )}
