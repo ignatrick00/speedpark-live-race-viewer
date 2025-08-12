@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IBestDriverTime extends Document {
   position: number;
@@ -16,6 +16,25 @@ export interface IBestDriverTime extends Document {
   // Methods
   updateRecord(newTime: number, kartNumber: number, sessionId: string, sessionName: string, sessionDate: Date, sessionTime: string): void;
   getFormattedTime(): string;
+}
+
+export interface IBestDriverTimeModel extends Model<IBestDriverTime> {
+  updateDriverRecord(
+    driverName: string,
+    newTime: number,
+    kartNumber: number,
+    sessionId: string,
+    sessionName: string,
+    sessionDate: Date,
+    sessionTime: string
+  ): Promise<any>;
+  recalculatePositions(): Promise<void>;
+  getTop10ForDisplay(): Promise<Array<{
+    pos: number;
+    name: string;
+    time: string;
+    details: string;
+  }>>;
 }
 
 const BestDriverTimeSchema: Schema = new Schema({
@@ -224,6 +243,6 @@ BestDriverTimeSchema.statics.getTop10ForDisplay = async function() {
   }
 };
 
-const BestDriverTime = mongoose.models.BestDriverTime || mongoose.model<IBestDriverTime>('BestDriverTime', BestDriverTimeSchema);
+const BestDriverTime = mongoose.models.BestDriverTime || mongoose.model<IBestDriverTime, IBestDriverTimeModel>('BestDriverTime', BestDriverTimeSchema);
 
 export default BestDriverTime;
