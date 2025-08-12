@@ -69,7 +69,11 @@ const generateSchedule = () => {
   for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
     const currentDate = new Date(today)
     currentDate.setDate(today.getDate() + dayOffset)
-    const dateString = currentDate.toISOString().split('T')[0]
+    // Fix timezone offset issue by using local date formatting
+    const year = currentDate.getFullYear()
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0')
+    const day = String(currentDate.getDate()).padStart(2, '0')
+    const dateString = `${year}-${month}-${day}`
     
     // Horarios de 14:00 a 22:00 (cada hora)
     const hours = [14, 15, 16, 17, 18, 19, 20, 21]
@@ -550,7 +554,7 @@ export default function ClasesPage() {
                 
                 <div className="bg-blue-900/20 border border-blue-400/20 rounded-xl p-6">
                   <h2 className="text-2xl font-bold text-cyan-400 mb-4">
-                    Clases de {mockInstructors.find(i => i.id === selectedInstructor)?.name} - {new Date(selectedDate).toLocaleDateString('es-CL')}
+                    Clases de {mockInstructors.find(i => i.id === selectedInstructor)?.name} - {selectedCalendarDate?.toLocaleDateString('es-CL') || new Date().toLocaleDateString('es-CL')}
                   </h2>
                   
                   <div className="grid lg:grid-cols-2 gap-4">
@@ -595,28 +599,26 @@ export default function ClasesPage() {
                             {/* Reservation Panel */}
                             <div className="sm:ml-6 w-full sm:w-auto">
                               {slotStatus.status !== 'occupied' && (
-                                <div className="bg-blue-900/30 border border-blue-400/20 rounded-lg p-4 w-full sm:min-w-[200px]">
+                                <div className="bg-blue-900/30 border border-blue-400/20 rounded-lg p-4 w-full sm:w-[240px]">
                                   {/* Mode Switch */}
                                   <div className="flex bg-blue-800/30 rounded-lg p-1 mb-3">
                                     <button
                                       onClick={() => setBloqueReservationMode(bloque.id, 'individual')}
-                                      className={`flex-1 px-3 py-1 rounded text-xs font-medium transition-all ${
+                                      className={`w-1/2 px-3 py-1 rounded text-xs font-medium transition-all ${
                                         getBloqueReservationMode(bloque.id) === 'individual'
                                           ? 'bg-cyan-400 text-black'
                                           : 'text-blue-300 hover:text-cyan-400'
                                       }`}
-                                      disabled={!isSlotAvailable(bloque, 'individual')}
                                     >
                                       👤 Individual
                                     </button>
                                     <button
                                       onClick={() => setBloqueReservationMode(bloque.id, 'group')}
-                                      className={`flex-1 px-3 py-1 rounded text-xs font-medium transition-all ${
+                                      className={`w-1/2 px-3 py-1 rounded text-xs font-medium transition-all ${
                                         getBloqueReservationMode(bloque.id) === 'group'
                                           ? 'bg-cyan-400 text-black'
                                           : 'text-blue-300 hover:text-cyan-400'
                                       }`}
-                                      disabled={!isSlotAvailable(bloque, 'group')}
                                     >
                                       👥 Grupal
                                     </button>
@@ -763,7 +765,7 @@ export default function ClasesPage() {
             {/* Classes for selected date */}
             <div className="bg-blue-900/20 border border-blue-400/20 rounded-xl p-6">
               <h2 className="text-2xl font-bold text-cyan-400 mb-6">
-                Clases disponibles - {new Date(selectedDate).toLocaleDateString('es-CL')}
+                Clases disponibles - {selectedCalendarDate?.toLocaleDateString('es-CL') || new Date().toLocaleDateString('es-CL')}
               </h2>
               
               <div className="grid lg:grid-cols-2 gap-4">
@@ -808,28 +810,26 @@ export default function ClasesPage() {
                         {/* Reservation Panel */}
                         <div className="sm:ml-6 w-full sm:w-auto">
                           {slotStatus.status !== 'occupied' && (
-                            <div className="bg-blue-900/30 border border-blue-400/20 rounded-lg p-4 w-full sm:min-w-[200px]">
+                            <div className="bg-blue-900/30 border border-blue-400/20 rounded-lg p-4 w-full sm:w-[240px]">
                               {/* Mode Switch */}
                               <div className="flex bg-blue-800/30 rounded-lg p-1 mb-3">
                                 <button
                                   onClick={() => setBloqueReservationMode(bloque.id, 'individual')}
-                                  className={`flex-1 px-3 py-1 rounded text-xs font-medium transition-all ${
+                                  className={`w-1/2 px-3 py-1 rounded text-xs font-medium transition-all ${
                                     getBloqueReservationMode(bloque.id) === 'individual'
                                       ? 'bg-cyan-400 text-black'
                                       : 'text-blue-300 hover:text-cyan-400'
                                   }`}
-                                  disabled={!isSlotAvailable(bloque, 'individual')}
                                 >
                                   👤 Individual
                                 </button>
                                 <button
                                   onClick={() => setBloqueReservationMode(bloque.id, 'group')}
-                                  className={`flex-1 px-3 py-1 rounded text-xs font-medium transition-all ${
+                                  className={`w-1/2 px-3 py-1 rounded text-xs font-medium transition-all ${
                                     getBloqueReservationMode(bloque.id) === 'group'
                                       ? 'bg-cyan-400 text-black'
                                       : 'text-blue-300 hover:text-cyan-400'
                                   }`}
-                                  disabled={!isSlotAvailable(bloque, 'group')}
                                 >
                                   👥 Grupal
                                 </button>
