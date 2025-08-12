@@ -120,6 +120,7 @@ export default function ClasesPage() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [selectedBloque, setSelectedBloque] = useState<ClaseBloque | null>(null)
   const [reservationMode, setReservationMode] = useState<'individual' | 'group'>('individual')
+  const [bloqueReservationModes, setBloqueReservationModes] = useState<Record<string, 'individual' | 'group'>>({})
   
   // Mobile menu state
   const [showMobileMenu, setShowMobileMenu] = useState(false)
@@ -175,7 +176,11 @@ export default function ClasesPage() {
     // Only allow future dates
     if (selectedDate >= today) {
       setSelectedCalendarDate(selectedDate)
-      setSelectedDate(selectedDate.toISOString().split('T')[0])
+      // Fix timezone offset issue by using local date formatting
+      const year = selectedDate.getFullYear()
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
+      const dayStr = String(selectedDate.getDate()).padStart(2, '0')
+      setSelectedDate(`${year}-${month}-${dayStr}`)
     }
   }
 
@@ -213,6 +218,17 @@ export default function ClasesPage() {
 
   const getPrice = (mode: 'individual' | 'group') => {
     return mode === 'individual' ? 45000 : 25000
+  }
+
+  const getBloqueReservationMode = (bloqueId: string) => {
+    return bloqueReservationModes[bloqueId] || 'individual'
+  }
+
+  const setBloqueReservationMode = (bloqueId: string, mode: 'individual' | 'group') => {
+    setBloqueReservationModes(prev => ({
+      ...prev,
+      [bloqueId]: mode
+    }))
   }
 
   const getSlotStatus = (bloque: ClaseBloque) => {
@@ -583,9 +599,9 @@ export default function ClasesPage() {
                                   {/* Mode Switch */}
                                   <div className="flex bg-blue-800/30 rounded-lg p-1 mb-3">
                                     <button
-                                      onClick={() => setReservationMode('individual')}
+                                      onClick={() => setBloqueReservationMode(bloque.id, 'individual')}
                                       className={`flex-1 px-3 py-1 rounded text-xs font-medium transition-all ${
-                                        reservationMode === 'individual'
+                                        getBloqueReservationMode(bloque.id) === 'individual'
                                           ? 'bg-cyan-400 text-black'
                                           : 'text-blue-300 hover:text-cyan-400'
                                       }`}
@@ -594,9 +610,9 @@ export default function ClasesPage() {
                                       👤 Individual
                                     </button>
                                     <button
-                                      onClick={() => setReservationMode('group')}
+                                      onClick={() => setBloqueReservationMode(bloque.id, 'group')}
                                       className={`flex-1 px-3 py-1 rounded text-xs font-medium transition-all ${
-                                        reservationMode === 'group'
+                                        getBloqueReservationMode(bloque.id) === 'group'
                                           ? 'bg-cyan-400 text-black'
                                           : 'text-blue-300 hover:text-cyan-400'
                                       }`}
@@ -608,29 +624,29 @@ export default function ClasesPage() {
                                   
                                   {/* Price */}
                                   <div className="text-xl font-bold text-cyan-400 mb-2">
-                                    {formatPrice(getPrice(reservationMode))}
+                                    {formatPrice(getPrice(getBloqueReservationMode(bloque.id)))}
                                   </div>
                                   
                                   {/* Additional info */}
                                   <div className="text-xs text-blue-300 mb-3">
-                                    {reservationMode === 'individual' ? (
+                                    {getBloqueReservationMode(bloque.id) === 'individual' ? (
                                       'Clase personalizada 1:1'
                                     ) : (
-                                      `Máx. ${bloque.maxGroupCapacity} estudiantes`
+                                      `$25.000 por persona • Máx. ${bloque.maxGroupCapacity} estudiantes`
                                     )}
                                   </div>
                                   
                                   {/* Reserve button */}
                                   <button 
                                     className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
-                                      isSlotAvailable(bloque, reservationMode)
+                                      isSlotAvailable(bloque, getBloqueReservationMode(bloque.id))
                                         ? 'bg-cyan-400 text-black hover:bg-cyan-300'
                                         : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                     }`}
-                                    disabled={!isSlotAvailable(bloque, reservationMode)}
+                                    disabled={!isSlotAvailable(bloque, getBloqueReservationMode(bloque.id))}
                                     onClick={() => setSelectedBloque(bloque)}
                                   >
-                                    {isSlotAvailable(bloque, reservationMode) ? 'Reservar' : 'No disponible'}
+                                    {isSlotAvailable(bloque, getBloqueReservationMode(bloque.id)) ? 'Reservar' : 'No disponible'}
                                   </button>
                                 </div>
                               )}
@@ -796,9 +812,9 @@ export default function ClasesPage() {
                               {/* Mode Switch */}
                               <div className="flex bg-blue-800/30 rounded-lg p-1 mb-3">
                                 <button
-                                  onClick={() => setReservationMode('individual')}
+                                  onClick={() => setBloqueReservationMode(bloque.id, 'individual')}
                                   className={`flex-1 px-3 py-1 rounded text-xs font-medium transition-all ${
-                                    reservationMode === 'individual'
+                                    getBloqueReservationMode(bloque.id) === 'individual'
                                       ? 'bg-cyan-400 text-black'
                                       : 'text-blue-300 hover:text-cyan-400'
                                   }`}
@@ -807,9 +823,9 @@ export default function ClasesPage() {
                                   👤 Individual
                                 </button>
                                 <button
-                                  onClick={() => setReservationMode('group')}
+                                  onClick={() => setBloqueReservationMode(bloque.id, 'group')}
                                   className={`flex-1 px-3 py-1 rounded text-xs font-medium transition-all ${
-                                    reservationMode === 'group'
+                                    getBloqueReservationMode(bloque.id) === 'group'
                                       ? 'bg-cyan-400 text-black'
                                       : 'text-blue-300 hover:text-cyan-400'
                                   }`}
@@ -821,29 +837,29 @@ export default function ClasesPage() {
                               
                               {/* Price */}
                               <div className="text-xl font-bold text-cyan-400 mb-2">
-                                {formatPrice(getPrice(reservationMode))}
+                                {formatPrice(getPrice(getBloqueReservationMode(bloque.id)))}
                               </div>
                               
                               {/* Additional info */}
                               <div className="text-xs text-blue-300 mb-3">
-                                {reservationMode === 'individual' ? (
+                                {getBloqueReservationMode(bloque.id) === 'individual' ? (
                                   'Clase personalizada 1:1'
                                 ) : (
-                                  `Máx. ${bloque.maxGroupCapacity} estudiantes`
+                                  `$25.000 por persona • Máx. ${bloque.maxGroupCapacity} estudiantes`
                                 )}
                               </div>
                               
                               {/* Reserve button */}
                               <button 
                                 className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
-                                  isSlotAvailable(bloque, reservationMode)
+                                  isSlotAvailable(bloque, getBloqueReservationMode(bloque.id))
                                     ? 'bg-cyan-400 text-black hover:bg-cyan-300'
                                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                 }`}
-                                disabled={!isSlotAvailable(bloque, reservationMode)}
+                                disabled={!isSlotAvailable(bloque, getBloqueReservationMode(bloque.id))}
                                 onClick={() => setSelectedBloque(bloque)}
                               >
-                                {isSlotAvailable(bloque, reservationMode) ? 'Reservar' : 'No disponible'}
+                                {isSlotAvailable(bloque, getBloqueReservationMode(bloque.id)) ? 'Reservar' : 'No disponible'}
                               </button>
                             </div>
                           )}
