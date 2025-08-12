@@ -13,7 +13,14 @@ export async function GET(request: NextRequest) {
     console.log('⚡ Fetching pre-calculated best times (INSTANT QUERY)...');
     
     // SUPER FAST: Direct query to pre-calculated records (max 10 documents)
-    const bestTimes = await BestDriverTime.getTop10ForDisplay();
+    const records = await BestDriverTime.find().sort({ position: 1 }).limit(10);
+    
+    const bestTimes = records.map(record => ({
+      pos: record.position,
+      name: record.driverName,
+      time: `${Math.floor(record.bestTime / 60000)}:${Math.floor((record.bestTime % 60000) / 1000).toString().padStart(2, '0')}.${(record.bestTime % 1000).toString().padStart(3, '0')}`,
+      details: `Kart #${record.kartNumber} • ${record.sessionTime}`
+    }));
     
     console.log(`🏁 INSTANT RESULT: Found ${bestTimes.length} best driver times`);
     

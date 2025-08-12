@@ -13,7 +13,14 @@ export async function GET(request: NextRequest) {
     console.log('⚡ Fetching pre-calculated best karts (INSTANT QUERY)...');
     
     // SUPER FAST: Direct query to pre-calculated records (max 20 documents)
-    const bestKarts = await BestKartTime.getTop20ForDisplay();
+    const records = await BestKartTime.find().sort({ position: 1 }).limit(20);
+    
+    const bestKarts = records.map(record => ({
+      kart: record.kartNumber,
+      time: `${Math.floor(record.bestTime / 60000)}:${Math.floor((record.bestTime % 60000) / 1000).toString().padStart(2, '0')}.${(record.bestTime % 1000).toString().padStart(3, '0')}`,
+      driver: record.driverName,
+      details: `${record.sessionTime} • ${record.sessionDate.toLocaleDateString('es-CL')}`
+    }));
     
     console.log(`🏁 INSTANT RESULT: Found ${bestKarts.length} best kart times`);
     
