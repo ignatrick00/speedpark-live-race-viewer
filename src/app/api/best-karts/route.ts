@@ -4,20 +4,39 @@ import DriverRaceData from '@/models/DriverRaceData';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🏎️ GET /api/best-karts - Fetching best karts from MongoDB');
+    console.log('🏎️ GET /api/best-karts - START');
+    console.log('🔧 Environment check:', {
+      NODE_ENV: process.env.NODE_ENV,
+      MONGODB_URI_EXISTS: !!process.env.MONGODB_URI,
+      MONGODB_URI_LENGTH: process.env.MONGODB_URI?.length || 0
+    });
     
-    await connectDB();
+    console.log('📦 Importing modules...');
+    console.log('🔌 About to import connectDB...');
+    const connectModule = await import('@/lib/mongodb');
+    console.log('✅ connectDB imported successfully');
+    
+    console.log('📊 About to import DriverRaceData...');
+    const modelModule = await import('@/models/DriverRaceData');
+    console.log('✅ DriverRaceData imported successfully');
+    
+    console.log('🔗 Attempting to connect to MongoDB...');
+    await connectModule.default();
+    console.log('✅ MongoDB connection successful');
     
     // Obtener los mejores karts de la semana (últimos 7 días)
     const today = new Date();
     const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     
+    console.log('🔍 About to query MongoDB for kart data...');
+    console.log('📅 Date range:', { lastWeek: lastWeek.toISOString(), today: today.toISOString() });
+    
     // Buscar drivers con sesiones de la última semana
-    const driversWithRecentSessions = await DriverRaceData.find({
+    const driversWithRecentSessions = await modelModule.default.find({
       'sessions.sessionDate': { $gte: lastWeek }
     }).select('driverName sessions');
     
-    console.log(`📊 Found ${driversWithRecentSessions.length} drivers with recent sessions`);
+    console.log(`📊 MongoDB query successful! Found ${driversWithRecentSessions.length} drivers with recent sessions`);
     
     // Map para almacenar el mejor tiempo por kart
     const kartBestTimes = new Map<number, {
@@ -88,12 +107,21 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('❌ Error fetching best karts:', error);
+    console.error('❌ CRITICAL ERROR in /api/best-karts:');
+    console.error('❌ Error type:', typeof error);
+    console.error('❌ Error constructor:', error?.constructor?.name);
+    console.error('❌ Error message:', error instanceof Error ? error.message : String(error));
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('❌ Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    
     return NextResponse.json(
       { 
         success: false,
         error: 'Error fetching best karts from database',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : String(error),
+        errorType: typeof error,
+        errorConstructor: error?.constructor?.name,
+        timestamp: new Date().toISOString()
       },
       { status: 500 }
     );
