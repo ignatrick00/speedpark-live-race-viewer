@@ -39,21 +39,21 @@ const mockInstructors: Instructor[] = [
   },
   {
     id: '2',
-    name: 'Carlos Mendoza',
+    name: 'Gori Gori',
     specialties: ['Principiantes', 'Técnica de Frenado'],
     rating: 4.8,
     experience: '5 años'
   },
   {
     id: '3', 
-    name: 'Ana Rodriguez',
+    name: 'Break Pitt',
     specialties: ['Avanzado', 'Racing Line'],
     rating: 4.9,
     experience: '8 años'
   },
   {
     id: '4',
-    name: 'Miguel Torres',
+    name: 'JP',
     specialties: ['Niños', 'Seguridad'],
     rating: 4.7,
     experience: '3 años'
