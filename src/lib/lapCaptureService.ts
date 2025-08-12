@@ -2,6 +2,8 @@ import connectDB from './mongodb';
 import LapRecord from '@/models/LapRecord';
 import DriverIdentityService from './driverIdentityService';
 import DriverRaceDataService from './driverRaceDataService';
+import BestDriverTime from '@/models/BestDriverTimes';
+import BestKartTime from '@/models/BestKartTimes';
 
 interface SMSDriverData {
   N: string; // Name
@@ -44,6 +46,16 @@ export class LapCaptureService {
       } catch (driverServiceError) {
         console.error('❌ Error in DriverRaceDataService.processRaceData:', driverServiceError);
         throw driverServiceError;
+      }
+
+      // PRIORITY 2: Update real-time records (FASTEST QUERIES)
+      try {
+        console.log(`🏆 Updating real-time records...`);
+        await this.updateRealTimeRecords(smsData);
+        console.log(`✅ Real-time records updated`);
+      } catch (recordError) {
+        console.error('❌ Error updating real-time records:', recordError);
+        // Don't throw - this is not critical for race processing
       }
       
       // PRIORITY 2: Maintain legacy individual records for compatibility (reduced frequency)
@@ -373,6 +385,81 @@ export class LapCaptureService {
     }
   }
   
+  /**
+   * Update real-time records (Best Driver Times & Best Kart Times)
+   * This is the FASTEST way to get rankings - no searching needed!
+   */
+  private static async updateRealTimeRecords(smsData: SMSData): Promise<void> {
+    try {
+      const sessionName = smsData.N;
+      const sessionDate = new Date();
+      const sessionTime = sessionDate.toLocaleTimeString('es-CL', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      const sessionId = `${sessionName}_${sessionDate.toDateString()}`;
+
+      console.log(`🏆 Processing ${smsData.D.length} drivers for real-time records...`);
+
+      for (const driverData of smsData.D) {
+        const driverName = driverData.N?.trim();
+        const kartNumber = driverData.K;
+        const bestTime = driverData.B; // Best time in milliseconds
+        
+        // Skip invalid data
+        if (!driverName || !kartNumber || !bestTime || bestTime <= 0) {
+          continue;
+        }
+
+        console.log(`🚗 Checking records for: ${driverName} on Kart #${kartNumber} - ${bestTime}ms`);
+
+        // Update driver record (Top 10 unique drivers)
+        try {
+          const driverResult = await BestDriverTime.updateDriverRecord(
+            driverName,
+            bestTime,
+            kartNumber,
+            sessionId,
+            sessionName,
+            sessionDate,
+            sessionTime
+          );
+
+          if (driverResult.newRecord) {
+            console.log(`🎉 NEW DRIVER RECORD: ${driverName} - ${bestTime}ms`);
+          }
+        } catch (driverError) {
+          console.error(`❌ Error updating driver record for ${driverName}:`, driverError);
+        }
+
+        // Update kart record (Top 20 unique karts)
+        try {
+          const kartResult = await BestKartTime.updateKartRecord(
+            kartNumber,
+            bestTime,
+            driverName,
+            sessionId,
+            sessionName,
+            sessionDate,
+            sessionTime
+          );
+
+          if (kartResult.newRecord) {
+            console.log(`🎉 NEW KART RECORD: Kart #${kartNumber} - ${bestTime}ms by ${driverName}`);
+          }
+        } catch (kartError) {
+          console.error(`❌ Error updating kart record for Kart #${kartNumber}:`, kartError);
+        }
+      }
+
+      console.log(`✅ Real-time records processing completed`);
+
+    } catch (error) {
+      console.error('❌ Error in updateRealTimeRecords:', error);
+      throw error;
+    }
+  }
+
   /**
    * Clean up old lap records (keep only last 30 days)
    */
