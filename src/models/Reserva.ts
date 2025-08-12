@@ -44,6 +44,25 @@ export interface IReserva extends Document {
   // Metadata
   createdAt: Date;
   updatedAt: Date;
+  
+  // Virtual properties
+  isPaid: boolean;
+  isActive: boolean;
+  
+  // Methods
+  cancel(): boolean;
+  complete(): boolean;
+  markAsPaid(transactionId: string, method: string): void;
+  processRefund(): boolean;
+  getBookingInfo(): {
+    spotsReserved: number;
+    totalAmount: number;
+    studentName: string;
+    isPaid: boolean;
+    isActive: boolean;
+    status: string;
+    paymentStatus: string;
+  };
 }
 
 const ReservaSchema: Schema = new Schema({

@@ -29,6 +29,10 @@ export interface IInstructor extends Document {
   // Metadata
   createdAt: Date;
   updatedAt: Date;
+  
+  // Methods
+  isAvailableOnDay(dayOfWeek: string): boolean;
+  getFormattedRating(): string;
 }
 
 const InstructorSchema: Schema = new Schema({

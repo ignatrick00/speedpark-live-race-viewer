@@ -28,6 +28,16 @@ export interface IClaseBloque extends Document {
   // Metadata
   createdAt: Date;
   updatedAt: Date;
+  
+  // Methods
+  canAcceptBookings(requestedSpots?: number): boolean;
+  addBooking(spots?: number): boolean;
+  removeBooking(spots?: number): void;
+  getFormattedDateTime(): {
+    date: string;
+    time: string;
+    dayOfWeek: string;
+  };
 }
 
 const ClaseBloqueSchema: Schema = new Schema({
