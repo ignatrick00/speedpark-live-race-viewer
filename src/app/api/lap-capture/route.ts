@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import LapCaptureService from '@/lib/lapCaptureService';
-import DriverRaceDataService from '@/lib/driverRaceDataService';
+// import LapCaptureService from '@/lib/lapCaptureService';
+// import DriverRaceDataService from '@/lib/driverRaceDataService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,30 +37,16 @@ export async function POST(request: NextRequest) {
         driversCount: sessionData.D?.length || 0
       });
       
-      // REACTIVATED: Full processing with real data saving
-      console.log('✅ PROCESSING: Full lap data processing activated');
+      // TEMPORARY: Import fix - will reactivate after fixing import issues
+      console.log('⚠️ TEMPORARY: Processing disabled while fixing production imports');
       
-      try {
-        const result = await DriverRaceDataService.processLapByLapData(sessionData);
-        
-        return NextResponse.json({
-          success: true,
-          message: 'Lap data processed successfully',
-          sessionName: sessionData.N,
-          driversCount: sessionData.D?.length || 0,
-          recordsCreated: result.recordsCreated || 0,
-          timestamp: new Date().toISOString()
-        });
-      } catch (processError) {
-        console.error('❌ Error processing lap data:', processError);
-        return NextResponse.json({
-          success: false,
-          error: 'Error processing lap data',
-          details: processError instanceof Error ? processError.message : 'Unknown processing error',
-          sessionName: sessionData.N,
-          timestamp: new Date().toISOString()
-        }, { status: 500 });
-      }
+      return NextResponse.json({
+        success: true,
+        message: 'TEMPORARY: Endpoint working, processing disabled for import fix',
+        sessionName: sessionData.N,
+        driversCount: sessionData.D?.length || 0,
+        timestamp: new Date().toISOString()
+      });
     }
     
     // All other actions temporarily disabled for debugging
