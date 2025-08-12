@@ -54,15 +54,43 @@ export default function LiveRaceViewer() {
   // Estado local (mantener el timer)
   const [sessionTime, setSessionTime] = useState("00:00")
   
-  // Estados derivados de WebSocket
+  // 🆕 Estado para mejores tiempos desde MongoDB
+  const [dailyBest, setDailyBest] = useState<DailyBestTime[]>([])
+  const [bestTimesLoading, setBestTimesLoading] = useState(true)
+  const [bestTimesError, setBestTimesError] = useState<string | null>(null)
+  
+  // Estados derivados de WebSocket (mantener para datos en tiempo real)
   const isLive = isConnected && !!raceData
   const activeDrivers = raceData?.activeDrivers || 0
   const drivers = raceData?.drivers || []
-  const dailyBest = raceData?.dailyBest || []
   const kartRanking = raceData?.kartRanking || []
   const bestLap = raceData?.bestLap || "--:--.---"
   const totalLaps = raceData?.totalLaps || 0
   const averageTime = raceData?.averageTime || "--:--.---"
+
+  // 🆕 Función para obtener mejores tiempos desde MongoDB
+  const fetchBestTimes = async () => {
+    try {
+      setBestTimesLoading(true)
+      setBestTimesError(null)
+      
+      const response = await fetch('/api/best-times')
+      const data = await response.json()
+      
+      if (data.success) {
+        setDailyBest(data.bestTimes)
+        console.log(`🏆 Loaded ${data.bestTimes.length} best times from MongoDB`)
+      } else {
+        setBestTimesError(data.error || 'Error loading best times')
+        console.error('❌ Error fetching best times:', data.error)
+      }
+    } catch (error) {
+      setBestTimesError('Connection error')
+      console.error('❌ Fetch error:', error)
+    } finally {
+      setBestTimesLoading(false)
+    }
+  }
 
   // Auth handlers
   const handleLogout = () => {
@@ -78,6 +106,17 @@ export default function LiveRaceViewer() {
     setShowRegisterModal(false)
     setShowLoginModal(true)
   }
+
+  // 🆕 useEffect para cargar mejores tiempos desde MongoDB
+  useEffect(() => {
+    // Cargar datos iniciales
+    fetchBestTimes()
+    
+    // Actualizar cada 30 segundos
+    const bestTimesInterval = setInterval(fetchBestTimes, 30000)
+    
+    return () => clearInterval(bestTimesInterval)
+  }, [])
 
   useEffect(() => {
     // Optimized timer - no dependencies to prevent re-creation
@@ -407,9 +446,9 @@ export default function LiveRaceViewer() {
                   </div>
                 )) : (
                   <div className="text-center text-blue-300 py-4">
-                    {error ? 'Sin datos disponibles' : 
-                     !isConnected ? 'Cargando...' : 
-                     'Esperando mejores tiempos...'}
+                    {bestTimesError ? 'Error cargando datos' : 
+                     bestTimesLoading ? 'Cargando mejores tiempos...' : 
+                     'No hay datos disponibles'}
                   </div>
                 )}
               </div>
