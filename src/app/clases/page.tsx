@@ -123,6 +123,10 @@ export default function ClasesPage() {
   
   // Mobile menu state
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  
+  // Calendar state
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null)
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CL', {
@@ -141,6 +145,52 @@ export default function ClasesPage() {
       dates.push(date.toISOString().split('T')[0])
     }
     return dates
+  }
+
+  // Calendar functions
+  const getDaysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+  }
+
+  const getFirstDayOfMonth = (date: Date) => {
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay()
+    return firstDay === 0 ? 6 : firstDay - 1 // Convert Sunday (0) to 6, Monday becomes 0
+  }
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newMonth = new Date(currentMonth)
+    if (direction === 'prev') {
+      newMonth.setMonth(currentMonth.getMonth() - 1)
+    } else {
+      newMonth.setMonth(currentMonth.getMonth() + 1)
+    }
+    setCurrentMonth(newMonth)
+  }
+
+  const selectCalendarDate = (day: number) => {
+    const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    // Only allow future dates
+    if (selectedDate >= today) {
+      setSelectedCalendarDate(selectedDate)
+      setSelectedDate(selectedDate.toISOString().split('T')[0])
+    }
+  }
+
+  const isDateAvailable = (day: number) => {
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return date >= today
+  }
+
+  const isDateSelected = (day: number) => {
+    if (!selectedCalendarDate) return false
+    return selectedCalendarDate.getDate() === day && 
+           selectedCalendarDate.getMonth() === currentMonth.getMonth() &&
+           selectedCalendarDate.getFullYear() === currentMonth.getFullYear()
   }
 
   const getBloquesByInstructor = (instructorId: string) => {
@@ -500,44 +550,100 @@ export default function ClasesPage() {
         ) : (
           /* Day-based search */
           <div className="space-y-8">
-            {/* Date Selection - Responsive */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-cyan-400 text-center mb-4">Selecciona una fecha</h3>
-              <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-                {getAvailableDates().map((date) => {
-                  const dateObj = new Date(date)
-                  const isSelected = selectedDate === date
-                  const isToday = date === new Date().toISOString().split('T')[0]
+            {/* Calendar */}
+            <div className="space-y-6">
+              <h3 className="text-xl font-bold text-cyan-400 text-center">Selecciona una fecha</h3>
+              
+              {/* Calendar Container */}
+              <div className="bg-blue-900/20 border border-blue-400/20 rounded-xl p-4 sm:p-6 max-w-md mx-auto">
+                {/* Calendar Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={() => navigateMonth('prev')}
+                    className="p-2 text-blue-300 hover:text-cyan-400 transition-colors rounded-lg hover:bg-blue-800/30"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
                   
-                  return (
-                    <button
-                      key={date}
-                      onClick={() => setSelectedDate(date)}
-                      className={`flex-shrink-0 px-3 py-3 sm:px-4 sm:py-4 rounded-xl border transition-all font-medium text-center min-w-[80px] sm:min-w-[120px] ${
-                        isSelected
-                          ? 'bg-cyan-400 text-black border-cyan-400 shadow-lg shadow-cyan-400/25'
-                          : 'bg-blue-900/30 text-blue-300 border-blue-400/20 hover:bg-blue-800/40 hover:border-cyan-400/40 hover:text-cyan-400'
-                      }`}
-                    >
-                      <div className="flex flex-col items-center">
-                        <span className="text-xs uppercase font-bold">
-                          {dateObj.toLocaleDateString('es-CL', { weekday: 'short' })}
-                        </span>
-                        <span className="text-lg sm:text-xl font-bold">
-                          {dateObj.getDate()}
-                        </span>
-                        <span className="text-xs opacity-75">
-                          {dateObj.toLocaleDateString('es-CL', { month: 'short' })}
-                        </span>
-                        {isToday && (
-                          <span className="text-xs bg-yellow-400 text-black px-1 rounded mt-1">
-                            HOY
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
+                  <h4 className="text-lg font-bold text-cyan-400">
+                    {currentMonth.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
+                  </h4>
+                  
+                  <button
+                    onClick={() => navigateMonth('next')}
+                    className="p-2 text-blue-300 hover:text-cyan-400 transition-colors rounded-lg hover:bg-blue-800/30"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Days of Week Header */}
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day) => (
+                    <div key={day} className="text-center text-xs font-medium text-blue-300 py-2">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-1">
+                  {/* Empty cells for days before month start */}
+                  {Array.from({ length: getFirstDayOfMonth(currentMonth) }, (_, i) => (
+                    <div key={`empty-${i}`} className="h-10"></div>
+                  ))}
+                  
+                  {/* Days of the month */}
+                  {Array.from({ length: getDaysInMonth(currentMonth) }, (_, i) => {
+                    const day = i + 1
+                    const isAvailable = isDateAvailable(day)
+                    const isSelected = isDateSelected(day)
+                    const isToday = new Date().getDate() === day && 
+                                   new Date().getMonth() === currentMonth.getMonth() &&
+                                   new Date().getFullYear() === currentMonth.getFullYear()
+                    
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => selectCalendarDate(day)}
+                        disabled={!isAvailable}
+                        className={`h-10 w-full rounded-lg text-sm font-medium transition-all ${
+                          isSelected
+                            ? 'bg-cyan-400 text-black shadow-lg shadow-cyan-400/25'
+                            : isAvailable
+                            ? 'text-blue-300 hover:bg-blue-800/40 hover:text-cyan-400 border border-transparent hover:border-cyan-400/40'
+                            : 'text-blue-700 cursor-not-allowed'
+                        } ${
+                          isToday && !isSelected
+                            ? 'border border-yellow-400 text-yellow-400'
+                            : ''
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Legend */}
+                <div className="mt-4 flex flex-wrap justify-center gap-4 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 border border-yellow-400 rounded"></div>
+                    <span className="text-blue-300">Hoy</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-cyan-400 rounded"></div>
+                    <span className="text-blue-300">Seleccionado</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-blue-700 rounded"></div>
+                    <span className="text-blue-300">No disponible</span>
+                  </div>
+                </div>
               </div>
             </div>
 
