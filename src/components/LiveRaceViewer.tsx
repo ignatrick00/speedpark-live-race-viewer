@@ -206,6 +206,9 @@ export default function LiveRaceViewer() {
                 <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Live View
                 </a>
+                <a href="/clases" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                  Clases
+                </a>
                 <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Rankings
                 </a>
