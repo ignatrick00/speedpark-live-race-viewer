@@ -51,6 +51,9 @@ export default function LiveRaceViewer() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   
+  // Mobile menu state
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
+  
   // Estado local (mantener el timer)
   const [sessionTime, setSessionTime] = useState("00:00")
   
@@ -201,7 +204,7 @@ export default function LiveRaceViewer() {
 
             {/* Navigation Links & Auth - Responsive */}
             <div className="flex items-center space-x-2 sm:space-x-6 min-w-0">
-              {/* Navigation Links */}
+              {/* Desktop Navigation Links */}
               <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
                 <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Live View
@@ -216,6 +219,21 @@ export default function LiveRaceViewer() {
                   Carreras
                 </a>
               </div>
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="lg:hidden p-2 text-blue-300 hover:text-cyan-400 transition-colors"
+                aria-label="Toggle mobile menu"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {showMobileMenu ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
 
               {/* Auth Section - Responsive */}
               {isLoading ? (
@@ -286,6 +304,86 @@ export default function LiveRaceViewer() {
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu Dropdown */}
+      {showMobileMenu && (
+        <div className="lg:hidden relative z-30 bg-black/95 backdrop-blur-sm border-b border-blue-800/30">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex flex-col space-y-4">
+              {/* Navigation Links */}
+              <div className="space-y-3">
+                <a 
+                  href="#" 
+                  className="block text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm py-2 px-3 rounded-lg hover:bg-blue-900/30"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  🏁 Live View
+                </a>
+                <a 
+                  href="/clases" 
+                  className="block text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm py-2 px-3 rounded-lg hover:bg-blue-900/30"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  🧑‍🏫 Clases
+                </a>
+                <a 
+                  href="#" 
+                  className="block text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm py-2 px-3 rounded-lg hover:bg-blue-900/30"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  🏆 Rankings
+                </a>
+                <a 
+                  href="#" 
+                  className="block text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm py-2 px-3 rounded-lg hover:bg-blue-900/30"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  🏎️ Carreras
+                </a>
+              </div>
+
+              {/* Mobile Auth Section */}
+              {user && (
+                <div className="border-t border-blue-800/30 pt-4 mt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-cyan-400 font-medium text-sm">
+                        {user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`}
+                      </p>
+                      <p className="text-xs text-blue-300">
+                        {user.kartingLink.status === 'pending_first_race' 
+                          ? '🏁 ¡Ve a correr!'
+                          : user.kartingLink.status === 'linked'
+                          ? '📊 Stats activas'
+                          : '⚠️ Sincronizando'
+                        }
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <a
+                        href="/dashboard"
+                        className="px-3 py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 font-medium text-xs"
+                        onClick={() => setShowMobileMenu(false)}
+                      >
+                        🏆 Dashboard
+                      </a>
+                      <button
+                        onClick={() => {
+                          handleLogout()
+                          setShowMobileMenu(false)
+                        }}
+                        className="px-3 py-2 text-xs text-blue-300 hover:text-cyan-400 border border-blue-400/30 hover:border-cyan-400/50 rounded transition-all font-medium"
+                      >
+                        Salir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Container */}
       <div className="relative z-10 max-w-7xl mx-auto p-8">
