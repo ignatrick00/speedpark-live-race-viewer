@@ -399,13 +399,13 @@ export default function ClasesPage() {
                           key={bloque.id}
                           className="bg-black/30 border border-blue-400/20 rounded-lg p-4 hover:border-cyan-400/40 transition-all"
                         >
-                          <div className="flex justify-between items-start">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                             <div className="flex-1">
-                              <div className="flex items-center gap-4 mb-3">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
                                 <span className="text-cyan-400 font-medium">
                                   {new Date(bloque.date).toLocaleDateString('es-CL')}
                                 </span>
-                                <span className="text-blue-300">
+                                <span className="text-blue-300 text-lg">
                                   {bloque.startTime} - {bloque.endTime}
                                 </span>
                               </div>
@@ -430,9 +430,9 @@ export default function ClasesPage() {
                             </div>
                             
                             {/* Reservation Panel */}
-                            <div className="ml-6 text-right">
+                            <div className="sm:ml-6 w-full sm:w-auto">
                               {slotStatus.status !== 'occupied' && (
-                                <div className="bg-blue-900/30 border border-blue-400/20 rounded-lg p-4 min-w-[200px]">
+                                <div className="bg-blue-900/30 border border-blue-400/20 rounded-lg p-4 w-full sm:min-w-[200px]">
                                   {/* Mode Switch */}
                                   <div className="flex bg-blue-800/30 rounded-lg p-1 mb-3">
                                     <button
@@ -500,24 +500,45 @@ export default function ClasesPage() {
         ) : (
           /* Day-based search */
           <div className="space-y-8">
-            {/* Date Selection */}
-            <div className="flex justify-center">
-              <select
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-blue-900/30 border border-blue-400/20 rounded-lg px-4 py-2 text-cyan-400 focus:border-cyan-400 focus:outline-none"
-              >
-                {getAvailableDates().map((date) => (
-                  <option key={date} value={date} className="bg-blue-900">
-                    {new Date(date).toLocaleDateString('es-CL', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </option>
-                ))}
-              </select>
+            {/* Date Selection - Responsive */}
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-cyan-400 text-center mb-4">Selecciona una fecha</h3>
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+                {getAvailableDates().map((date) => {
+                  const dateObj = new Date(date)
+                  const isSelected = selectedDate === date
+                  const isToday = date === new Date().toISOString().split('T')[0]
+                  
+                  return (
+                    <button
+                      key={date}
+                      onClick={() => setSelectedDate(date)}
+                      className={`flex-shrink-0 px-3 py-3 sm:px-4 sm:py-4 rounded-xl border transition-all font-medium text-center min-w-[80px] sm:min-w-[120px] ${
+                        isSelected
+                          ? 'bg-cyan-400 text-black border-cyan-400 shadow-lg shadow-cyan-400/25'
+                          : 'bg-blue-900/30 text-blue-300 border-blue-400/20 hover:bg-blue-800/40 hover:border-cyan-400/40 hover:text-cyan-400'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center">
+                        <span className="text-xs uppercase font-bold">
+                          {dateObj.toLocaleDateString('es-CL', { weekday: 'short' })}
+                        </span>
+                        <span className="text-lg sm:text-xl font-bold">
+                          {dateObj.getDate()}
+                        </span>
+                        <span className="text-xs opacity-75">
+                          {dateObj.toLocaleDateString('es-CL', { month: 'short' })}
+                        </span>
+                        {isToday && (
+                          <span className="text-xs bg-yellow-400 text-black px-1 rounded mt-1">
+                            HOY
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             {/* Classes for selected date */}
@@ -535,13 +556,13 @@ export default function ClasesPage() {
                       key={bloque.id}
                       className="bg-black/30 border border-blue-400/20 rounded-lg p-4 hover:border-cyan-400/40 transition-all"
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-3">
-                            <span className="text-cyan-400 font-medium">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
+                            <span className="text-cyan-400 font-medium text-lg">
                               {bloque.startTime} - {bloque.endTime}
                             </span>
-                            <span className="text-blue-300">
+                            <span className="text-blue-300 text-sm sm:text-base">
                               con {bloque.instructor}
                             </span>
                           </div>
@@ -566,9 +587,9 @@ export default function ClasesPage() {
                         </div>
                         
                         {/* Reservation Panel */}
-                        <div className="ml-6 text-right">
+                        <div className="sm:ml-6 w-full sm:w-auto">
                           {slotStatus.status !== 'occupied' && (
-                            <div className="bg-blue-900/30 border border-blue-400/20 rounded-lg p-4 min-w-[200px]">
+                            <div className="bg-blue-900/30 border border-blue-400/20 rounded-lg p-4 w-full sm:min-w-[200px]">
                               {/* Mode Switch */}
                               <div className="flex bg-blue-800/30 rounded-lg p-1 mb-3">
                                 <button
