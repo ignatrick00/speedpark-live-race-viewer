@@ -414,7 +414,7 @@ export default function LiveRaceViewer() {
             {/* Daily Best Times Sidebar */}
             <section className="bg-black/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 h-fit">
               <h3 className="font-racing text-2xl text-white mb-6 tracking-wider">
-                🥇 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white">Mejores del Día</span>
+                🥇 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white">Mejores de la Semana</span>
               </h3>
               
               <div className="space-y-3">

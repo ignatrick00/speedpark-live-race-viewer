@@ -8,13 +8,13 @@ export async function GET(request: NextRequest) {
     
     await connectDB();
     
-    // Obtener los mejores tiempos del día (últimas 24 horas)
+    // Obtener los mejores tiempos de la semana (últimos 7 días)
     const today = new Date();
-    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+    const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     
-    // Buscar drivers con sesiones del último día
+    // Buscar drivers con sesiones de la última semana
     const driversWithRecentSessions = await DriverRaceData.find({
-      'sessions.sessionDate': { $gte: yesterday }
+      'sessions.sessionDate': { $gte: lastWeek }
     }).select('driverName sessions stats');
     
     console.log(`📊 Found ${driversWithRecentSessions.length} drivers with recent sessions`);
@@ -28,9 +28,9 @@ export async function GET(request: NextRequest) {
     }> = [];
     
     driversWithRecentSessions.forEach(driver => {
-      // Filtrar sesiones de las últimas 24 horas
+      // Filtrar sesiones de la última semana
       const recentSessions = driver.sessions.filter((session: any) => 
-        new Date(session.sessionDate) >= yesterday
+        new Date(session.sessionDate) >= lastWeek
       );
       
       if (recentSessions.length > 0) {
