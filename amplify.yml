@@ -13,6 +13,9 @@ frontend:
       commands:
         - echo "Build phase vars:"
         - echo $MONGODB_URI
+        - export MONGODB_URI="$MONGODB_URI"
+        - export NEXTAUTH_SECRET="$NEXTAUTH_SECRET"
+        - export JWT_SECRET="$JWT_SECRET"
         - npm run build
   artifacts:
     baseDirectory: .next
