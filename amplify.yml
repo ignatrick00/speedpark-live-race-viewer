@@ -5,6 +5,15 @@ frontend:
       commands:
         - echo "Checking MONGODB_URI environment variable"
         - echo $MONGODB_URI
+        - echo "Creating .env file for Next.js runtime"
+        - echo "MONGODB_URI=$MONGODB_URI" > .env
+        - echo "NEXTAUTH_SECRET=$NEXTAUTH_SECRET" >> .env
+        - echo "NEXTAUTH_URL=$NEXTAUTH_URL" >> .env
+        - echo "JWT_SECRET=$JWT_SECRET" >> .env
+        - echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> .env
+        - echo "ADMIN_PASSWORD=$ADMIN_PASSWORD" >> .env
+        - echo "NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL" >> .env
+        - cat .env
         - export MONGODB_URI="$MONGODB_URI"
         - export NEXTAUTH_SECRET="$NEXTAUTH_SECRET"
         - export JWT_SECRET="$JWT_SECRET"
