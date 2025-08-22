@@ -1,17 +1,9 @@
 import mongoose from 'mongoose';
 
-// Debug: Log all environment variables to understand what's available
-console.log('🔍 DEBUG: Available env vars:', Object.keys(process.env).filter(key => 
-  key.includes('MONGO') || key.includes('NEXT') || key.includes('AMPLIFY')
-));
-
-const MONGODB_URI = process.env.MONGODB_URI || 
-  'mongodb+srv://icabreraquezada:JxniGpDeCy3VRlHs@karteando.370vwxo.mongodb.net/karteando-cl?retryWrites=true&w=majority&appName=Karteando';
-
-console.log('🔍 DEBUG: MONGODB_URI found:', MONGODB_URI ? 'YES' : 'NO');
+const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('MONGODB_URI environment variable is not defined');
+  throw new Error('Please define the MONGODB_URI environment variable in Amplify configuration');
 }
 
 interface MongooseCache {
