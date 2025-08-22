@@ -8,6 +8,8 @@ frontend:
         - ls -la
         - echo "Checking package.json exists:"
         - cat package.json | head -10
+        - echo "Environment variables check:"
+        - echo "MONGODB_URI = $MONGODB_URI"
         - npm ci
     build:
       commands:
