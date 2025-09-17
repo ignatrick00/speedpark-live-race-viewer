@@ -267,6 +267,17 @@ export default function LiveRaceViewer() {
                     <span className="hidden sm:inline">🏆 Dashboard</span>
                   </a>
 
+                  {/* Admin button - Only for admin */}
+                  {user.email === 'icabreraquezada@gmail.com' && (
+                    <a
+                      href="/admin"
+                      className="px-2 sm:px-4 py-1.5 sm:py-2 text-red-400 hover:text-white transition-all border border-red-400/30 rounded-lg hover:bg-red-400/10 hover:shadow-lg hover:shadow-red-400/20 font-medium text-xs sm:text-sm"
+                    >
+                      <span className="sm:hidden">👑</span>
+                      <span className="hidden sm:inline">👑 Admin</span>
+                    </a>
+                  )}
+
                   {/* User avatar */}
                   <div className="w-8 h-8 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full flex items-center justify-center border border-cyan-400/50">
                     <span className="text-cyan-400 font-bold text-xs">
