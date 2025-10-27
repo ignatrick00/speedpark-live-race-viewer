@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
+import CreateSquadronModal from '@/components/CreateSquadronModal';
 
 interface Squadron {
   _id: string;
@@ -46,6 +47,7 @@ export default function SquadronDashboard() {
   const [hasSquadron, setHasSquadron] = useState(false);
   const [squadron, setSquadron] = useState<Squadron | null>(null);
   const [isCaptain, setIsCaptain] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -120,9 +122,44 @@ export default function SquadronDashboard() {
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {!hasSquadron ? (
-            <div className="bg-gradient-to-r from-rb-blue/20 to-electric-blue/20 border-2 border-electric-blue/50 rounded-lg p-6">
-              <h2 className="text-xl font-racing text-electric-blue">SIN ESCUDERÍA</h2>
-              <p className="text-sky-blue/80 mt-2">Próximamente: Crear y buscar escuderías</p>
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl p-8 text-center">
+                <div className="mb-6">
+                  <h2 className="text-3xl font-racing text-electric-blue mb-2">SIN ESCUDERÍA</h2>
+                  <p className="text-sky-blue/80">No perteneces a ninguna escudería</p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="group relative px-8 py-6 bg-gradient-to-r from-electric-blue to-cyan-400 text-midnight font-racing text-xl rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-electric-blue opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
+                    <div className="relative">
+                      🏁 CREAR NUEVA ESCUDERÍA
+                    </div>
+                  </button>
+
+                  <button className="px-8 py-6 border-2 border-electric-blue/50 text-electric-blue font-racing text-xl rounded-lg hover:bg-electric-blue/10 transition-all">
+                    🔍 BUSCAR ESCUDERÍAS
+                  </button>
+                </div>
+
+                <div className="mt-8 grid md:grid-cols-3 gap-4 text-left">
+                  <div className="p-4 bg-midnight/50 border border-electric-blue/20 rounded-lg">
+                    <p className="text-electric-blue font-digital text-sm mb-1">👥 EQUIPO</p>
+                    <p className="text-sky-blue/70 text-xs">Forma un equipo de 2-4 pilotos</p>
+                  </div>
+                  <div className="p-4 bg-midnight/50 border border-electric-blue/20 rounded-lg">
+                    <p className="text-electric-blue font-digital text-sm mb-1">🏆 COMPETICIÓN</p>
+                    <p className="text-sky-blue/70 text-xs">Compite en 4 divisiones</p>
+                  </div>
+                  <div className="p-4 bg-midnight/50 border border-electric-blue/20 rounded-lg">
+                    <p className="text-electric-blue font-digital text-sm mb-1">⚡ FAIR RACING</p>
+                    <p className="text-sky-blue/70 text-xs">Mantén un puntaje limpio</p>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="text-white">
@@ -132,6 +169,16 @@ export default function SquadronDashboard() {
           )}
         </div>
       </div>
+
+      <CreateSquadronModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          fetchMySquadron();
+          setIsCreateModalOpen(false);
+        }}
+        token={token || ''}
+      />
     </div>
   );
 }
