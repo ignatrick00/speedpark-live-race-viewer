@@ -26,8 +26,9 @@ export async function GET(
     }
 
     // Obtener Fair Racing Scores de todos los miembros
-    const memberIds = Array.isArray(squadron.members)
-      ? squadron.members.map((m: any) => m._id)
+    const squadronData = squadron as any;
+    const memberIds = Array.isArray(squadronData.members)
+      ? squadronData.members.map((m: any) => m._id)
       : [];
     const fairRacingScores = await FairRacingScore.find({
       pilotId: { $in: memberIds },
