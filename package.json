@@ -5,6 +5,9 @@
   "description": "Plataforma completa de karting competitivo con sistema de registro, rankings y carreras",
   "scripts": {
     "dev": "concurrently \"node websocket-server.js\" \"next dev -H 0.0.0.0\" --names \"WS,NEXT\" --prefix-colors \"cyan,green\"",
+    "dev:seed": "concurrently \"node websocket-server.js\" \"next dev -H 0.0.0.0\" \"npm run seed:watch\" --names \"WS,NEXT,SEED\" --prefix-colors \"cyan,green,yellow\"",
+    "seed": "node scripts/setup-test-data.js",
+    "seed:watch": "sleep 5 && curl -s http://localhost:3000/api/seed > /dev/null && echo '✅ Test users seeded'",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

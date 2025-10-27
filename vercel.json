@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "MONGODB_URI": "@mongodb-uri",
+    "JWT_SECRET": "@jwt-secret",
+    "NEXTAUTH_SECRET": "@nextauth-secret",
+    "NEXTAUTH_URL": "@nextauth-url",
+    "ADMIN_EMAIL": "@admin-email",
+    "ADMIN_PASSWORD": "@admin-password",
+    "NEXT_PUBLIC_WS_URL": "@next-public-ws-url",
+    "CLOUDFLARE_R2_ACCOUNT_ID": "@cloudflare-r2-account-id",
+    "CLOUDFLARE_R2_ACCESS_KEY_ID": "@cloudflare-r2-access-key",
+    "CLOUDFLARE_R2_SECRET_ACCESS_KEY": "@cloudflare-r2-secret-key",
+    "CLOUDFLARE_R2_BUCKET_NAME": "@cloudflare-r2-bucket-name"
+  },
+  "regions": ["iad1"],
+  "framework": "nextjs"
+}

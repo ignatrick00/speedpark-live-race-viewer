@@ -1,0 +1,404 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import Navbar from '@/components/Navbar';
+
+interface Squadron {
+  _id: string;
+  squadronId: string;
+  name: string;
+  description: string;
+  colors: {
+    primary: string;
+    secondary: string;
+  };
+  division: 'Elite' | 'Masters' | 'Pro' | 'Open';
+  ranking: number;
+  totalPoints: number;
+  fairRacingAverage: number;
+  members: Array<{
+    _id: string;
+    email: string;
+    profile: {
+      firstName: string;
+      lastName: string;
+      alias?: string;
+    };
+    role: string;
+    joinedAt: string;
+    currentScore: number;
+    totalRacesClean: number;
+  }>;
+  stats: {
+    memberCount: number;
+    availableSpots: number;
+    isFull: boolean;
+    winRate: string;
+    averageFairRacing: number;
+  };
+}
+
+interface MySquadronResponse {
+  success: boolean;
+  hasSquadron: boolean;
+  squadron?: Squadron;
+  userRole?: string;
+  isCaptain?: boolean;
+  message?: string;
+}
+
+export default function SquadronDashboard() {
+  const { user, token } = useAuth();
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [hasSquadron, setHasSquadron] = useState(false);
+  const [squadron, setSquadron] = useState<Squadron | null>(null);
+  const [isCaptain, setIsCaptain] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/');
+      return;
+    }
+
+    fetchMySquadron();
+  }, [user]);
+
+  const fetchMySquadron = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/squadron/my-squadron', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data: MySquadronResponse = await response.json();
+
+      if (data.success) {
+        setHasSquadron(data.hasSquadron);
+        setSquadron(data.squadron || null);
+        setIsCaptain(data.isCaptain || false);
+      }
+    } catch (error) {
+      console.error('Error fetching squadron:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-midnight flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-electric-blue mx-auto"></div>
+          <p className="mt-4 text-electric-blue font-digital">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-black">
+      {/* Background Effects */}
+      <div className="fixed inset-0 z-0">
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(0, 212, 255, 0.1) 2px, transparent 2px)',
+            backgroundSize: '100px 100px'
+          }}
+        />
+        <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-blue-600/15 rounded-full blur-2xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-400/15 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
+
+      {/* Navbar */}
+      <Navbar />
+
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Header con efecto neón */}
+        <div className="border-b border-electric-blue/30 bg-gradient-to-r from-midnight via-rb-blue/10 to-midnight">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <h1 className="text-4xl font-racing text-electric-blue tracking-wider">
+              SQUADRON COMMAND
+            </h1>
+            <p className="text-sky-blue/80 mt-2">Sistema de Escuderías • Karteando.cl</p>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {!hasSquadron ? (
+            <DashboardWithoutSquadron
+              user={user}
+              onCreateClick={() => setShowCreateModal(true)}
+            />
+          ) : (
+            <DashboardWithSquadron
+              squadron={squadron!}
+              isCaptain={isCaptain}
+              onUpdate={fetchMySquadron}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Dashboard SIN escudería
+function DashboardWithoutSquadron({ user, onCreateClick }: any) {
+  return (
+    <div className="space-y-6">
+      {/* Alert de estado */}
+      <div className="bg-gradient-to-r from-rb-blue/20 to-electric-blue/20 border-2 border-electric-blue/50 rounded-lg p-6 animate-glow">
+        <div className="flex items-center gap-4">
+          <div className="text-4xl">⚠️</div>
+          <div className="flex-1">
+            <h2 className="text-xl font-racing text-electric-blue">SIN ESCUDERÍA ASIGNADA</h2>
+            <p className="text-sky-blue/80 mt-1">
+              No puedes competir en eventos oficiales sin una escudería
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Piloto info card */}
+      <div className="bg-gradient-to-br from-midnight to-rb-blue/10 border border-electric-blue/30 rounded-xl p-6">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-electric-blue to-rb-blue flex items-center justify-center">
+            <span className="text-2xl font-digital text-white">
+              {user?.profile?.firstName?.[0]}{user?.profile?.lastName?.[0]}
+            </span>
+          </div>
+          <div>
+            <h3 className="text-xl font-racing text-white">
+              {user?.profile?.firstName} {user?.profile?.lastName}
+            </h3>
+            <p className="text-electric-blue/80">{user?.email}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Action cards */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Crear Escudería */}
+        <button
+          onClick={onCreateClick}
+          className="group relative bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight
+            border-2 border-electric-blue/50 rounded-xl p-8
+            hover:border-electric-blue hover:shadow-[0_0_30px_rgba(0,212,255,0.3)]
+            transition-all duration-300 text-left"
+        >
+          <div className="text-5xl mb-4">🏁</div>
+          <h3 className="text-2xl font-racing text-electric-blue mb-2 group-hover:text-cyan">
+            CREAR NUEVA ESCUDERÍA
+          </h3>
+          <p className="text-sky-blue/70">
+            Forma tu propio equipo y compite por el campeonato
+          </p>
+          <div className="mt-4 text-electric-blue text-sm font-digital">
+            → MÍNIMO 2 PILOTOS
+          </div>
+        </button>
+
+        {/* Buscar Escudería */}
+        <button
+          onClick={() => window.location.href = '/squadron/search'}
+          className="group relative bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight
+            border-2 border-electric-blue/50 rounded-xl p-8
+            hover:border-electric-blue hover:shadow-[0_0_30px_rgba(0,212,255,0.3)]
+            transition-all duration-300 text-left"
+        >
+          <div className="text-5xl mb-4">🔍</div>
+          <h3 className="text-2xl font-racing text-electric-blue mb-2 group-hover:text-cyan">
+            BUSCAR ESCUDERÍA
+          </h3>
+          <p className="text-sky-blue/70">
+            Únete a un equipo existente y compite juntos
+          </p>
+          <div className="mt-4 text-electric-blue text-sm font-digital">
+            → EXPLORAR EQUIPOS
+          </div>
+        </button>
+      </div>
+
+      {/* Info adicional */}
+      <div className="bg-midnight/50 border border-electric-blue/20 rounded-lg p-6">
+        <h4 className="text-lg font-racing text-electric-blue mb-4">
+          ¿Por qué necesitas una escudería?
+        </h4>
+        <div className="space-y-3 text-sky-blue/70">
+          <div className="flex items-start gap-3">
+            <span className="text-electric-blue">✓</span>
+            <span>Competir en campeonatos oficiales (Elite, Masters, Pro, Open)</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="text-electric-blue">✓</span>
+            <span>Acumular puntos como equipo y escalar divisiones</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="text-electric-blue">✓</span>
+            <span>Logros compartidos y reconocimientos de escudería</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="text-electric-blue">✓</span>
+            <span>Estrategia grupal para maximizar resultados</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Dashboard CON escudería
+function DashboardWithSquadron({ squadron, isCaptain, onUpdate }: any) {
+  return (
+    <div className="space-y-6">
+      {/* Squadron Header */}
+      <div
+        className="relative bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight
+          border-2 rounded-xl p-8 overflow-hidden"
+        style={{
+          borderColor: squadron.colors.primary,
+          boxShadow: `0 0 30px ${squadron.colors.primary}40`,
+        }}
+      >
+        {/* Background pattern */}
+        <div
+          className="absolute inset-0 opacity-5"
+          style={{
+            backgroundImage: `linear-gradient(45deg, ${squadron.colors.primary} 25%, transparent 25%, transparent 75%, ${squadron.colors.primary} 75%, ${squadron.colors.primary}),
+                            linear-gradient(45deg, ${squadron.colors.primary} 25%, transparent 25%, transparent 75%, ${squadron.colors.primary} 75%, ${squadron.colors.primary})`,
+            backgroundSize: '20px 20px',
+            backgroundPosition: '0 0, 10px 10px',
+          }}
+        />
+
+        <div className="relative z-10">
+          <div className="flex items-start justify-between">
+            <div>
+              {isCaptain && (
+                <span className="inline-block px-3 py-1 bg-karting-gold text-midnight text-xs font-bold rounded-full mb-2">
+                  CAPITÁN
+                </span>
+              )}
+              <h2 className="text-4xl font-racing mb-2" style={{ color: squadron.colors.primary }}>
+                {squadron.name}
+              </h2>
+              <p className="text-sky-blue/80">{squadron.description || 'Sin descripción'}</p>
+            </div>
+
+            <div className="text-right">
+              <div className="text-sm text-sky-blue/60">División</div>
+              <div className="text-2xl font-digital" style={{ color: squadron.colors.secondary }}>
+                {squadron.division}
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div className="bg-midnight/50 rounded-lg p-4 border border-electric-blue/20">
+              <div className="text-sm text-sky-blue/60">Ranking</div>
+              <div className="text-2xl font-digital text-electric-blue">
+                #{squadron.ranking || '---'}
+              </div>
+            </div>
+
+            <div className="bg-midnight/50 rounded-lg p-4 border border-electric-blue/20">
+              <div className="text-sm text-sky-blue/60">Puntos</div>
+              <div className="text-2xl font-digital text-electric-blue">
+                {squadron.totalPoints}
+              </div>
+            </div>
+
+            <div className="bg-midnight/50 rounded-lg p-4 border border-electric-blue/20">
+              <div className="text-sm text-sky-blue/60">Fair Racing</div>
+              <div className="text-2xl font-digital text-electric-blue">
+                {squadron.stats.averageFairRacing}/100
+              </div>
+            </div>
+
+            <div className="bg-midnight/50 rounded-lg p-4 border border-electric-blue/20">
+              <div className="text-sm text-sky-blue/60">Win Rate</div>
+              <div className="text-2xl font-digital text-electric-blue">
+                {squadron.stats.winRate}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Members */}
+      <div className="bg-gradient-to-br from-midnight to-rb-blue/10 border border-electric-blue/30 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-racing text-electric-blue">
+            MIEMBROS ({squadron.stats.memberCount}/4)
+          </h3>
+          {!squadron.stats.isFull && (
+            <span className="text-sm text-karting-gold font-digital">
+              {squadron.stats.availableSpots} ESPACIOS DISPONIBLES
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {squadron.members.map((member: any) => (
+            <div
+              key={member._id}
+              className="bg-midnight/50 border border-electric-blue/20 rounded-lg p-4
+                hover:border-electric-blue/50 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-electric-blue to-rb-blue flex items-center justify-center">
+                    <span className="font-digital text-white">
+                      {member.profile.firstName[0]}{member.profile.lastName[0]}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-semibold">
+                        {member.profile.firstName} {member.profile.lastName}
+                      </span>
+                      {member.role === 'captain' && (
+                        <span className="px-2 py-0.5 bg-karting-gold text-midnight text-xs font-bold rounded">
+                          CAPITÁN
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-sky-blue/60">
+                      Fair Racing: {member.currentScore}/100 • {member.totalRacesClean} carreras limpias
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Actions */}
+      {isCaptain && (
+        <div className="flex gap-4">
+          <button className="px-6 py-3 bg-electric-blue text-midnight font-bold rounded-lg hover:bg-cyan transition-colors">
+            Gestionar Escudería
+          </button>
+        </div>
+      )}
+
+      <button
+        className="w-full px-6 py-3 border-2 border-red-500/50 text-red-400 font-bold rounded-lg
+          hover:bg-red-500/10 hover:border-red-500 transition-colors"
+      >
+        Salir de Escudería
+      </button>
+    </div>
+  );
+}

@@ -23,7 +23,14 @@ export interface IWebUser extends Document {
     status: 'pending_first_race' | 'linked' | 'verification_failed';
     speedParkProfile?: any; // Speed Park API data
   };
-  
+
+  // Squadron system
+  squadron: {
+    squadronId?: mongoose.Types.ObjectId;
+    role: 'none' | 'member' | 'captain';
+    joinedAt?: Date;
+  };
+
   // Account status
   accountStatus: 'active' | 'suspended' | 'deleted';
   
@@ -100,7 +107,25 @@ const WebUserSchema: Schema = new Schema({
       default: null,
     },
   },
-  
+
+  // Squadron system
+  squadron: {
+    squadronId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Squadron',
+      default: null,
+    },
+    role: {
+      type: String,
+      enum: ['none', 'member', 'captain'],
+      default: 'none',
+    },
+    joinedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+
   // Account status
   accountStatus: {
     type: String,

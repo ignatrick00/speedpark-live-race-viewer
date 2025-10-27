@@ -140,17 +140,29 @@ export default function LiveRaceViewer() {
 
   // 🆕 useEffect para cargar mejores tiempos y karts desde MongoDB
   useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (isMounted) {
+        await fetchBestTimes();
+        await fetchBestKarts();
+      }
+    };
+
     // Cargar datos iniciales
-    fetchBestTimes()
-    fetchBestKarts()
-    
+    loadData();
+
     // Actualizar cada 30 segundos
     const dataInterval = setInterval(() => {
-      fetchBestTimes()
-      fetchBestKarts()
-    }, 30000)
-    
-    return () => clearInterval(dataInterval)
+      if (isMounted) {
+        loadData();
+      }
+    }, 30000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(dataInterval);
+    };
   }, [])
 
   useEffect(() => {
@@ -206,8 +218,11 @@ export default function LiveRaceViewer() {
             <div className="flex items-center space-x-2 sm:space-x-6 min-w-0">
               {/* Desktop Navigation Links */}
               <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
-                <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Live View
+                </a>
+                <a href="/squadron" className="text-electric-blue hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm font-racing">
+                  🏁 Escuderías
                 </a>
                 <a href="/clases" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Clases
