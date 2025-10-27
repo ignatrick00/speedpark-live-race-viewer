@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import CreateSquadronModal from '@/components/CreateSquadronModal';
+import SquadronSearchModal from '@/components/SquadronSearchModal';
+import SquadronDashboardView from '@/components/SquadronDashboardView';
 
 interface Squadron {
   _id: string;
@@ -48,6 +50,7 @@ export default function SquadronDashboard() {
   const [squadron, setSquadron] = useState<Squadron | null>(null);
   const [isCaptain, setIsCaptain] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -140,7 +143,10 @@ export default function SquadronDashboard() {
                     </div>
                   </button>
 
-                  <button className="px-8 py-6 border-2 border-electric-blue/50 text-electric-blue font-racing text-xl rounded-lg hover:bg-electric-blue/10 transition-all">
+                  <button
+                    onClick={() => setIsSearchModalOpen(true)}
+                    className="px-8 py-6 border-2 border-electric-blue/50 text-electric-blue font-racing text-xl rounded-lg hover:bg-electric-blue/10 transition-all"
+                  >
                     🔍 BUSCAR ESCUDERÍAS
                   </button>
                 </div>
@@ -161,12 +167,15 @@ export default function SquadronDashboard() {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="text-white">
-              <h2 className="text-2xl font-racing text-electric-blue">{squadron?.name}</h2>
-              <p className="text-sky-blue/80">{squadron?.description}</p>
-            </div>
-          )}
+          ) : squadron ? (
+            <SquadronDashboardView
+              squadron={squadron}
+              isCaptain={isCaptain}
+              onLeave={() => fetchMySquadron()}
+              onTransferCaptain={() => fetchMySquadron()}
+              token={token || ''}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -176,6 +185,16 @@ export default function SquadronDashboard() {
         onSuccess={() => {
           fetchMySquadron();
           setIsCreateModalOpen(false);
+        }}
+        token={token || ''}
+      />
+
+      <SquadronSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onJoinSuccess={() => {
+          fetchMySquadron();
+          setIsSearchModalOpen(false);
         }}
         token={token || ''}
       />
