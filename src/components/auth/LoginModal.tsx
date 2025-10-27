@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import EmailVerificationNotice from './EmailVerificationNotice';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -14,23 +15,31 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setShowEmailVerification(false);
     setIsLoading(true);
 
     try {
       const result = await login(email, password);
-      
+
       if (result.success) {
         setEmail('');
         setPassword('');
         onClose();
       } else {
-        setError(result.error || 'Login failed');
+        // Check if error is due to unverified email
+        if (result.error === 'Email no verificado') {
+          setShowEmailVerification(true);
+          setError('');
+        } else {
+          setError(result.error || 'Login failed');
+        }
       }
     } catch (error) {
       setError('Network error during login');
@@ -43,6 +52,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
     setEmail('');
     setPassword('');
     setError('');
+    setShowEmailVerification(false);
   };
 
   const handleClose = () => {
@@ -74,6 +84,14 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
             Accede a tus estadísticas de carrera
           </p>
         </div>
+
+        {/* Email verification notice */}
+        {showEmailVerification && (
+          <EmailVerificationNotice
+            email={email}
+            onClose={() => setShowEmailVerification(false)}
+          />
+        )}
 
         {/* Error message */}
         {error && (

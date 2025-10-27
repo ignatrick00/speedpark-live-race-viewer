@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import connectDB from '@/lib/mongodb';
 import WebUser from '@/models/WebUser';
 import { RealStatsLinker } from '@/lib/realStatsLinker';
+import emailService from '@/lib/emailService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,12 +40,21 @@ export async function POST(request: NextRequest) {
     // Hash password
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    
+
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationSentAt = new Date();
+
+    // Check if email validation is enabled
+    const emailValidationEnabled = process.env.ENABLE_EMAIL_VALIDATION === 'true';
+
     // Create user
     const user = await WebUser.create({
       email: email.toLowerCase(),
       password: hashedPassword,
-      emailVerified: false, // For future implementation
+      emailVerified: !emailValidationEnabled, // If validation disabled, mark as verified
+      emailVerificationToken: emailValidationEnabled ? verificationToken : undefined,
+      emailVerificationSentAt: emailValidationEnabled ? verificationSentAt : undefined,
       profile: {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -54,51 +65,95 @@ export async function POST(request: NextRequest) {
         linkedAt: null,
         status: 'pending_first_race',
       },
-      accountStatus: 'active', // Active immediately without email verification
+      accountStatus: 'active',
     });
     
+    // Send verification email if enabled
+    let emailSent = false;
+    if (emailValidationEnabled) {
+      try {
+        emailSent = await emailService.sendVerificationEmail(
+          user.email,
+          user.profile.firstName,
+          verificationToken
+        );
+
+        if (emailSent) {
+          console.log(`✅ Verification email sent to ${user.email}`);
+        } else {
+          console.warn(`⚠️ Failed to send verification email to ${user.email}`);
+        }
+      } catch (error) {
+        console.error('Error sending verification email:', error);
+      }
+    }
+
     // Try to link with real racing data
     console.log(`🔗 Attempting to link ${firstName} with real race data...`);
     const isLinked = await RealStatsLinker.linkUserWithRealStats(
-      user._id.toString(), 
-      firstName, 
+      user._id.toString(),
+      firstName,
       lastName
     );
-    
-    // Generate JWT token
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        email: user.email,
-      },
-      process.env.JWT_SECRET!,
-      { expiresIn: '30d' }
-    );
-    
-    // Return success response
+
+    // Generate JWT token ONLY if email validation is disabled or email is already verified
+    let token = null;
+    if (!emailValidationEnabled) {
+      token = jwt.sign(
+        {
+          userId: user._id,
+          email: user.email,
+        },
+        process.env.JWT_SECRET!,
+        { expiresIn: '30d' }
+      );
+    }
+
     // Update user object if linked
-    const updatedUser = isLinked 
+    const updatedUser = isLinked
       ? await WebUser.findById(user._id)
       : user;
 
-    return NextResponse.json({
-      success: true,
-      message: isLinked 
-        ? '✅ ¡Cuenta creada y estadísticas vinculadas! Tus datos de carrera están listos.'
-        : '✅ ¡Cuenta creada exitosamente! Ve a correr para activar tus estadísticas.',
-      user: {
-        id: updatedUser._id,
-        email: updatedUser.email,
-        profile: updatedUser.profile,
-        kartingLink: updatedUser.kartingLink,
-        accountStatus: updatedUser.accountStatus,
-      },
-      token,
-      linked: isLinked,
-      note: isLinked 
-        ? '🏁 Estadísticas encontradas y vinculadas automáticamente'
-        : '🚧 Verificación de correo se implementará en una futura actualización',
-    });
+    // Different response based on email validation setting
+    if (emailValidationEnabled) {
+      return NextResponse.json({
+        success: true,
+        requiresEmailVerification: true,
+        message: emailSent
+          ? '✅ ¡Cuenta creada! Revisa tu correo para verificar tu cuenta.'
+          : '✅ Cuenta creada, pero no pudimos enviar el email de verificación. Contacta soporte.',
+        user: {
+          id: updatedUser._id,
+          email: updatedUser.email,
+          emailVerified: false,
+        },
+        linked: isLinked,
+        note: emailSent
+          ? '📧 Te enviamos un correo de verificación. Revisa tu bandeja de entrada y spam.'
+          : '⚠️ El servicio de email no está configurado. Contacta al administrador.',
+      });
+    } else {
+      // Old behavior - return token immediately
+      return NextResponse.json({
+        success: true,
+        requiresEmailVerification: false,
+        message: isLinked
+          ? '✅ ¡Cuenta creada y estadísticas vinculadas! Tus datos de carrera están listos.'
+          : '✅ ¡Cuenta creada exitosamente! Ve a correr para activar tus estadísticas.',
+        user: {
+          id: updatedUser._id,
+          email: updatedUser.email,
+          profile: updatedUser.profile,
+          kartingLink: updatedUser.kartingLink,
+          accountStatus: updatedUser.accountStatus,
+        },
+        token,
+        linked: isLinked,
+        note: isLinked
+          ? '🏁 Estadísticas encontradas y vinculadas automáticamente'
+          : '🚧 Verificación de correo deshabilitada',
+      });
+    }
     
   } catch (error) {
     console.error('Registration error:', error);

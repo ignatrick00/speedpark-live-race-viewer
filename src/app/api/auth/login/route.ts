@@ -44,9 +44,20 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-    
-    // Note: We're not checking email verification for now
-    // This will be implemented in a future update
+
+    // Check email verification if enabled
+    const emailValidationEnabled = process.env.ENABLE_EMAIL_VALIDATION === 'true';
+    if (emailValidationEnabled && !user.emailVerified) {
+      return NextResponse.json(
+        {
+          error: 'Email no verificado',
+          requiresEmailVerification: true,
+          message: 'Por favor verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.',
+          canResendEmail: true,
+        },
+        { status: 403 }
+      );
+    }
     
     // Update last login
     user.lastLoginAt = new Date();
