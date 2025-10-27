@@ -272,6 +272,189 @@ Karteando.cl
   }
 
   /**
+   * Send password reset email
+   */
+  async sendPasswordResetEmail(
+    to: string,
+    firstName: string,
+    resetToken: string
+  ): Promise<boolean> {
+    // Clean URL - remove any whitespace/newlines from env var
+    const baseUrl = (process.env.NEXTAUTH_URL || 'https://karteando.cl').trim();
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+
+    console.log('🔑 Sending password reset email:', {
+      to,
+      firstName,
+      baseUrl,
+      tokenLength: resetToken.length,
+    });
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: 'Arial', sans-serif;
+              background-color: #0a0e27;
+              color: #e0e7ff;
+              margin: 0;
+              padding: 0;
+            }
+            .container {
+              max-width: 600px;
+              margin: 40px auto;
+              background: linear-gradient(135deg, #1a1f3a 0%, #0a0e27 100%);
+              border: 2px solid #fbbf24;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 0 30px rgba(251, 191, 36, 0.3);
+            }
+            .header {
+              background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+              padding: 30px;
+              text-align: center;
+            }
+            .header h1 {
+              margin: 0;
+              color: #0a0e27;
+              font-size: 32px;
+              font-weight: bold;
+              letter-spacing: 2px;
+            }
+            .content {
+              padding: 40px 30px;
+            }
+            .content h2 {
+              color: #fbbf24;
+              font-size: 24px;
+              margin-bottom: 20px;
+            }
+            .content p {
+              line-height: 1.8;
+              margin-bottom: 20px;
+              color: #cbd5e1;
+            }
+            .button {
+              display: inline-block;
+              padding: 15px 40px;
+              background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+              color: #0a0e27;
+              text-decoration: none;
+              border-radius: 8px;
+              font-weight: bold;
+              font-size: 18px;
+              text-align: center;
+              margin: 20px 0;
+              letter-spacing: 1px;
+              transition: transform 0.2s;
+            }
+            .button:hover {
+              transform: scale(1.05);
+            }
+            .footer {
+              background-color: #0a0e27;
+              padding: 20px;
+              text-align: center;
+              font-size: 12px;
+              color: #64748b;
+              border-top: 1px solid #1e293b;
+            }
+            .racing-stripe {
+              height: 4px;
+              background: repeating-linear-gradient(
+                90deg,
+                #fbbf24 0px,
+                #fbbf24 20px,
+                #0a0e27 20px,
+                #0a0e27 40px
+              );
+            }
+            .warning {
+              background-color: rgba(239, 68, 68, 0.1);
+              border-left: 4px solid #ef4444;
+              padding: 15px;
+              margin: 20px 0;
+              border-radius: 4px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="racing-stripe"></div>
+            <div class="header">
+              <h1>🔑 KARTEANDO.CL</h1>
+            </div>
+            <div class="content">
+              <h2>Recuperación de Contraseña</h2>
+              <p>
+                Hola <strong>${firstName}</strong>,
+              </p>
+              <p>
+                Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>Karteando.cl</strong>.
+              </p>
+              <p>
+                Para crear una nueva contraseña, haz clic en el botón de abajo:
+              </p>
+              <div style="text-align: center;">
+                <a href="${resetUrl}" class="button">
+                  RESTABLECER CONTRASEÑA
+                </a>
+              </div>
+              <div class="warning">
+                <p style="margin: 0;">
+                  <strong>⚠️ Importante:</strong> Este enlace expirará en 1 hora por seguridad.
+                </p>
+              </div>
+              <p style="font-size: 14px; color: #94a3b8;">
+                Si no solicitaste restablecer tu contraseña, puedes ignorar este correo de forma segura.
+                Tu contraseña no cambiará a menos que hagas clic en el enlace de arriba.
+              </p>
+              <p style="font-size: 14px; color: #94a3b8;">
+                Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+                <a href="${resetUrl}" style="color: #fbbf24; word-break: break-all;">
+                  ${resetUrl}
+                </a>
+              </p>
+            </div>
+            <div class="footer">
+              <p>© 2025 Karteando.cl - Plataforma de Karting Competitivo</p>
+              <p>¡Nos vemos en la pista! 🏁</p>
+            </div>
+            <div class="racing-stripe"></div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `
+Recuperación de Contraseña - Karteando.cl
+
+Hola ${firstName},
+
+Recibimos una solicitud para restablecer la contraseña de tu cuenta en Karteando.cl.
+
+Para crear una nueva contraseña, visita este enlace:
+${resetUrl}
+
+Este enlace expirará en 1 hora por seguridad.
+
+Si no solicitaste restablecer tu contraseña, puedes ignorar este correo. Tu contraseña no cambiará a menos que hagas clic en el enlace de arriba.
+
+¡Nos vemos en la pista! 🏁
+Karteando.cl
+    `;
+
+    return this.sendEmail({
+      to,
+      subject: '🔑 Recupera tu contraseña - Karteando.cl',
+      html,
+      text,
+    });
+  }
+
+  /**
    * Check if email service is configured
    */
   isReady(): boolean {

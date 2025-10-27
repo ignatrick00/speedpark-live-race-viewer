@@ -4,11 +4,15 @@ export interface IWebUser extends Document {
   email: string;
   password: string;
   
-  // Email validation (for future implementation)
+  // Email validation
   emailVerified: boolean;
   emailVerificationToken?: string;
   emailVerificationSentAt?: Date;
-  
+
+  // Password reset
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
+
   // User profile
   profile: {
     firstName: string;
@@ -54,7 +58,7 @@ const WebUserSchema: Schema = new Schema({
     select: false, // Don't return password by default
   },
   
-  // Email validation (prepared for future)
+  // Email validation
   emailVerified: {
     type: Boolean,
     default: false,
@@ -67,7 +71,17 @@ const WebUserSchema: Schema = new Schema({
     type: Date,
     default: null,
   },
-  
+
+  // Password reset
+  passwordResetToken: {
+    type: String,
+    default: null,
+  },
+  passwordResetExpires: {
+    type: Date,
+    default: null,
+  },
+
   // User profile
   profile: {
     firstName: {
