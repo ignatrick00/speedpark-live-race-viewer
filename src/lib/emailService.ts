@@ -101,7 +101,16 @@ class EmailService {
     firstName: string,
     verificationToken: string
   ): Promise<boolean> {
-    const verificationUrl = `${process.env.NEXTAUTH_URL}/api/auth/verify-email?token=${verificationToken}`;
+    // Clean URL - remove any whitespace/newlines from env var
+    const baseUrl = (process.env.NEXTAUTH_URL || 'https://karteando.cl').trim();
+    const verificationUrl = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
+
+    console.log('📧 Sending verification email:', {
+      to,
+      firstName,
+      baseUrl,
+      tokenLength: verificationToken.length,
+    });
 
     const html = `
       <!DOCTYPE html>

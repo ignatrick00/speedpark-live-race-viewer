@@ -48,6 +48,12 @@ export async function POST(request: NextRequest) {
     // Check if email validation is enabled
     const emailValidationEnabled = process.env.ENABLE_EMAIL_VALIDATION === 'true';
 
+    console.log('🔍 Email validation check:', {
+      ENABLE_EMAIL_VALIDATION: process.env.ENABLE_EMAIL_VALIDATION,
+      emailValidationEnabled,
+      willCreateAsVerified: !emailValidationEnabled,
+    });
+
     // Create user
     const user = await WebUser.create({
       email: email.toLowerCase(),
