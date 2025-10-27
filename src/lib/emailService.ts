@@ -26,9 +26,22 @@ class EmailService {
     // Check if all required SMTP credentials are provided
     if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
       console.warn('⚠️ SMTP credentials not configured. Email sending disabled.');
+      console.warn('SMTP Config Status:', {
+        SMTP_HOST: smtpHost ? '✅ SET' : '❌ MISSING',
+        SMTP_PORT: smtpPort ? '✅ SET' : '❌ MISSING',
+        SMTP_USER: smtpUser ? '✅ SET' : '❌ MISSING',
+        SMTP_PASS: smtpPass ? '✅ SET' : '❌ MISSING',
+      });
       this.isConfigured = false;
       return;
     }
+
+    console.log('📧 Initializing email service with:', {
+      host: smtpHost,
+      port: smtpPort,
+      user: smtpUser,
+      secure: parseInt(smtpPort) === 465,
+    });
 
     try {
       // Configure Zoho Mail SMTP
