@@ -49,28 +49,26 @@ export async function POST(request: NextRequest) {
     user.passwordResetExpires = resetExpires;
     await user.save();
 
-    // Send reset email
-    const emailSent = await emailService.sendPasswordResetEmail(
+    // Send reset email (async - don't wait for it)
+    emailService.sendPasswordResetEmail(
       user.email,
       user.profile.firstName,
       resetToken
-    );
+    ).then((sent) => {
+      if (sent) {
+        console.log(`✅ Password reset email sent to ${user.email}`);
+      } else {
+        console.error(`❌ Failed to send password reset email to ${user.email}`);
+      }
+    }).catch((error) => {
+      console.error('Error sending password reset email:', error);
+    });
 
-    if (emailSent) {
-      console.log(`✅ Password reset email sent to ${user.email}`);
-      return NextResponse.json({
-        success: true,
-        message: '✅ Correo enviado. Revisa tu bandeja de entrada.',
-      });
-    } else {
-      console.error(`❌ Failed to send password reset email to ${user.email}`);
-      return NextResponse.json(
-        {
-          error: 'No se pudo enviar el correo. Intenta más tarde o contacta soporte.',
-        },
-        { status: 500 }
-      );
-    }
+    // Return immediately without waiting for email
+    return NextResponse.json({
+      success: true,
+      message: '✅ Correo enviado. Revisa tu bandeja de entrada.',
+    });
   } catch (error) {
     console.error('Forgot password error:', error);
     return NextResponse.json(

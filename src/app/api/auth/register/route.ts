@@ -74,24 +74,22 @@ export async function POST(request: NextRequest) {
       accountStatus: 'active',
     });
     
-    // Send verification email if enabled
-    let emailSent = false;
+    // Send verification email if enabled (async - don't wait for it)
     if (emailValidationEnabled) {
-      try {
-        emailSent = await emailService.sendVerificationEmail(
-          user.email,
-          user.profile.firstName,
-          verificationToken
-        );
-
-        if (emailSent) {
+      // Fire-and-forget email sending to avoid blocking response
+      emailService.sendVerificationEmail(
+        user.email,
+        user.profile.firstName,
+        verificationToken
+      ).then((sent) => {
+        if (sent) {
           console.log(`✅ Verification email sent to ${user.email}`);
         } else {
           console.warn(`⚠️ Failed to send verification email to ${user.email}`);
         }
-      } catch (error) {
+      }).catch((error) => {
         console.error('Error sending verification email:', error);
-      }
+      });
     }
 
     // Try to link with real racing data
@@ -125,18 +123,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         requiresEmailVerification: true,
-        message: emailSent
-          ? '✅ ¡Cuenta creada! Revisa tu correo para verificar tu cuenta.'
-          : '✅ Cuenta creada, pero no pudimos enviar el email de verificación. Contacta soporte.',
+        message: '✅ ¡Cuenta creada! Revisa tu correo para verificar tu cuenta.',
         user: {
           id: updatedUser._id,
           email: updatedUser.email,
           emailVerified: false,
         },
         linked: isLinked,
-        note: emailSent
-          ? '📧 Te enviamos un correo de verificación. Revisa tu bandeja de entrada y spam.'
-          : '⚠️ El servicio de email no está configurado. Contacta al administrador.',
+        note: '📧 Te enviamos un correo de verificación. Revisa tu bandeja de entrada y spam.',
       });
     } else {
       // Old behavior - return token immediately
