@@ -188,19 +188,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        // Check if email verification is required
+        if (data.requiresEmailVerification) {
+          // Don't set token or user if email verification is required
+          return {
+            success: true,
+            requiresEmailVerification: true,
+            message: data.message || 'Cuenta creada. Por favor verifica tu correo.',
+            email: data.user?.email,
+          };
+        }
+
+        // Normal flow - email verification disabled or not required
         setToken(data.token);
         setUser(data.user);
         setStats(null);
         localStorage.setItem('auth-token', data.token);
-        
-        return { 
-          success: true, 
-          message: data.message || 'Cuenta creada exitosamente' 
+
+        return {
+          success: true,
+          requiresEmailVerification: false,
+          message: data.message || 'Cuenta creada exitosamente'
         };
       } else {
-        return { 
-          success: false, 
-          error: data.error || 'Error de registro' 
+        return {
+          success: false,
+          error: data.error || 'Error de registro'
         };
       }
     } catch (error) {

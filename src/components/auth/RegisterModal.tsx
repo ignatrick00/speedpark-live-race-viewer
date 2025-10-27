@@ -21,7 +21,9 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [requiresVerification, setRequiresVerification] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+
   const { register } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,12 +63,19 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
       
       if (result.success) {
         setSuccess(result.message || 'Account created successfully!');
-        resetForm();
-        
-        // Auto-close after successful registration
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+
+        // Check if email verification is required
+        if (result.requiresEmailVerification) {
+          setRequiresVerification(true);
+          setRegisteredEmail(result.email || formData.email);
+          // Don't reset form or close modal - keep it open to show verification message
+        } else {
+          // Old behavior - auto-close after successful registration
+          resetForm();
+          setTimeout(() => {
+            onClose();
+          }, 2000);
+        }
       } else {
         setError(result.error || 'Registration failed');
       }
@@ -88,6 +97,8 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
     });
     setError('');
     setSuccess('');
+    setRequiresVerification(false);
+    setRegisteredEmail('');
   };
 
   const handleClose = () => {
@@ -121,10 +132,44 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
         </div>
 
         {/* Success message */}
-        {success && (
+        {success && !requiresVerification && (
           <div className="mb-4 p-3 bg-karting-gold/20 border border-karting-gold/40 rounded-md backdrop-blur-sm">
             <p className="text-karting-gold text-sm font-digital font-semibold">{success}</p>
             <p className="text-electric-blue text-xs mt-1 font-digital">🏁 Go racing to activate your statistics!</p>
+          </div>
+        )}
+
+        {/* Email verification required message */}
+        {requiresVerification && (
+          <div className="mb-4 p-4 bg-yellow-500/20 border border-yellow-400/40 rounded-md backdrop-blur-sm">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-digital font-semibold text-yellow-300 mb-2">
+                  📧 Verifica tu correo
+                </h3>
+                <p className="text-sm text-yellow-200/90 mb-2">
+                  Te enviamos un correo de verificación a <strong>{registeredEmail}</strong>
+                </p>
+                <p className="text-xs text-yellow-200/70">
+                  Por favor revisa tu bandeja de entrada (y spam) y haz clic en el enlace de verificación para activar tu cuenta.
+                </p>
+                <button
+                  onClick={handleClose}
+                  className="mt-3 px-4 py-2 bg-yellow-500 text-midnight font-digital font-semibold rounded-md hover:bg-yellow-400 transition-colors text-sm"
+                >
+                  ENTENDIDO
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -135,7 +180,8 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
           </div>
         )}
 
-        {/* Register form */}
+        {/* Register form - hide when verification is required */}
+        {!requiresVerification && (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -249,8 +295,10 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
             {isLoading ? 'REGISTRANDO...' : 'UNIRSE AL CIRCUITO'}
           </button>
         </form>
+        )}
 
         {/* Switch to login */}
+        {!requiresVerification && (
         <div className="mt-6 text-center">
           <p className="text-sky-blue/70 font-digital text-sm">
             ¿Ya tienes cuenta?{' '}
@@ -262,6 +310,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
             </button>
           </p>
         </div>
+        )}
 
         {/* Racing theme decoration */}
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-electric-blue rounded-full animate-pulse"></div>
