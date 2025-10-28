@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+    const resetExpires = new Date(Date.now() + 3 * 60 * 1000); // 3 minutes from now (rate limit)
 
     // Update user with reset token
     user.passwordResetToken = resetToken;
@@ -50,6 +50,13 @@ export async function POST(request: NextRequest) {
     await user.save();
 
     // Send reset email (async - don't wait for it)
+    console.log('📧 Attempting to send password reset email...', {
+      to: user.email,
+      firstName: user.profile.firstName,
+      tokenLength: resetToken.length,
+      smtpConfigured: process.env.SMTP_HOST ? 'YES' : 'NO'
+    });
+
     emailService.sendPasswordResetEmail(
       user.email,
       user.profile.firstName,
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
         console.error(`❌ Failed to send password reset email to ${user.email}`);
       }
     }).catch((error) => {
-      console.error('Error sending password reset email:', error);
+      console.error('❌ Error sending password reset email:', error);
     });
 
     // Return immediately without waiting for email
