@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     user.passwordResetExpires = resetExpires;
     await user.save();
 
-    // Send reset email (async - don't wait for it)
+    // Send reset email (WAIT for it to see errors)
     console.log('📧 Attempting to send password reset email...', {
       to: user.email,
       firstName: user.profile.firstName,
@@ -57,25 +57,33 @@ export async function POST(request: NextRequest) {
       smtpConfigured: process.env.SMTP_HOST ? 'YES' : 'NO'
     });
 
-    emailService.sendPasswordResetEmail(
-      user.email,
-      user.profile.firstName,
-      resetToken
-    ).then((sent) => {
-      if (sent) {
+    try {
+      const emailSent = await emailService.sendPasswordResetEmail(
+        user.email,
+        user.profile.firstName,
+        resetToken
+      );
+
+      if (emailSent) {
         console.log(`✅ Password reset email sent to ${user.email}`);
+        return NextResponse.json({
+          success: true,
+          message: '✅ Correo enviado. Revisa tu bandeja de entrada.',
+        });
       } else {
         console.error(`❌ Failed to send password reset email to ${user.email}`);
+        return NextResponse.json({
+          success: false,
+          error: 'No se pudo enviar el correo. El servicio de email no está configurado.',
+        }, { status: 500 });
       }
-    }).catch((error) => {
-      console.error('❌ Error sending password reset email:', error);
-    });
-
-    // Return immediately without waiting for email
-    return NextResponse.json({
-      success: true,
-      message: '✅ Correo enviado. Revisa tu bandeja de entrada.',
-    });
+    } catch (emailError) {
+      console.error('❌ Error sending password reset email:', emailError);
+      return NextResponse.json({
+        success: false,
+        error: 'Error al enviar el correo. Por favor intenta más tarde.',
+      }, { status: 500 });
+    }
   } catch (error) {
     console.error('Forgot password error:', error);
     return NextResponse.json(
