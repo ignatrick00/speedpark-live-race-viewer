@@ -1,0 +1,40 @@
+# Ignore Next.js files
+.next/
+out/
+node_modules/
+.env*
+!.env.example
+
+# Ignore development files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Ignore git
+.git
+.gitignore
+
+# Ignore IDE
+.vscode/
+.idea/
+
+# Ignore tests and docs
+*.md
+test/
+tests/
+docs/
+
+# Ignore source files (Next.js app)
+src/
+public/
+app/
+pages/
+components/
+styles/
+
+# Keep only what we need
+!websocket-server.js
+!package.json
+!package-lock.json
