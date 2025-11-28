@@ -217,7 +217,8 @@ async function recordSessionStats(smsData) {
     }
 
     // Llamar a la API de estadísticas - SOLO cada 5 minutos
-    const response = await fetch('http://localhost:3000/api/stats', {
+    const apiUrl = process.env.API_URL || 'http://localhost:3000'
+    const response = await fetch(`${apiUrl}/api/stats`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -318,7 +319,8 @@ async function captureLapByLapData(smsData) {
     }
 
     // Llamar a la API para procesar datos lap-by-lap - SOLO cuando hay vueltas completas
-    const response = await fetch('http://localhost:3000/api/lap-capture', {
+    const apiUrl = process.env.API_URL || 'http://localhost:3000'
+    const response = await fetch(`${apiUrl}/api/lap-capture`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
