@@ -38,7 +38,7 @@ export interface PersonalStats {
 }
 
 export default function DashboardPage() {
-  const { user, stats: authStats, isLoading, isAuthenticated } = useAuth();
+  const { user, stats: authStats, isLoading, isAuthenticated, token } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<PersonalStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -811,7 +811,7 @@ export default function DashboardPage() {
           setShowLinkModal(false);
           loadRealUserStats(); // Reload stats after successful link
         }}
-        token={localStorage.getItem('token') || ''}
+        token={token || ''}
         userFullName={`${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`}
       />
     </div>
