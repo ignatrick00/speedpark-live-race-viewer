@@ -119,10 +119,12 @@ export default function LinkageRequestsPage() {
         alert(`✅ Solicitud ${action === 'approve' ? 'aprobada' : 'rechazada'} exitosamente`);
         loadRequests(); // Reload list
       } else {
-        setError(data.error || 'Error al procesar solicitud');
+        console.error('Error al procesar solicitud:', data);
+        setError(data.error || `Error al procesar solicitud (${response.status})`);
       }
-    } catch (err) {
-      setError('Error de conexión');
+    } catch (err: any) {
+      console.error('Error de conexión:', err);
+      setError(`Error de conexión: ${err.message || 'Unknown error'}`);
     } finally {
       setProcessingId(null);
     }

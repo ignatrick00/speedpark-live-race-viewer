@@ -87,11 +87,21 @@ export async function PATCH(
     if (action === 'approve') {
       // APPROVE: Link the user to the driver profile
 
+      console.log('🔗 Approving linkage request:', {
+        requestId: id,
+        webUserId: linkageRequest.webUserId,
+        driverRaceDataId: linkageRequest.driverRaceDataId,
+      });
+
       // Get the user and driver
       const user = await WebUser.findById(linkageRequest.webUserId);
       const driver = await DriverRaceData.findById(linkageRequest.driverRaceDataId);
 
+      console.log('📊 Found user:', user ? user.email : 'NOT FOUND');
+      console.log('📊 Found driver:', driver ? driver.driverName : 'NOT FOUND');
+
       if (!user || !driver) {
+        console.error('❌ User or driver not found!');
         return NextResponse.json(
           { error: 'Usuario o perfil de corredor no encontrado' },
           { status: 404 }
