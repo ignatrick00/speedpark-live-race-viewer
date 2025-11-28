@@ -62,9 +62,9 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       
-      
+
       if (!user || !user.id) {
-        setStats(generateDemoStats(user?.profile?.firstName || 'Demo', user?.profile?.lastName || 'User'));
+        setStats(null);
         return;
       }
       
@@ -96,25 +96,26 @@ export default function DashboardPage() {
           setStats(realStats);
         }
       } else {
-        // Check if there's debug info about why no data was found
-        
-        setStats(generateDemoStats(user.profile.firstName, user.profile.lastName));
+        // No data found - user not linked yet
+        // Don't show demo stats, let the banner show instead
+        setStats(null);
       }
-      
+
     } catch (error) {
       console.error('Error loading real stats:', error);
-      setStats(generateDemoStats(user?.profile?.firstName || 'Demo', user?.profile?.lastName || 'User'));
+      // On error, also don't show demo stats
+      setStats(null);
     } finally {
       setLoading(false);
     }
   };
 
   // Convert DriverRaceData to dashboard format - REAL LINKED DATA
-  function convertDriverRaceDataToPersonalStats(driverSummary: any, user: any): PersonalStats {
+  function convertDriverRaceDataToPersonalStats(driverSummary: any, user: any): PersonalStats | null {
     const { driverData, stats, recentSessions } = driverSummary;
-    
+
     if (!driverData || !stats) {
-      return generateDemoStats(user.profile.firstName, user.profile.lastName);
+      return null;
     }
 
     
@@ -193,9 +194,9 @@ export default function DashboardPage() {
   }
 
   // Convert ENHANCED lap data with lap-by-lap progression to dashboard format
-  function convertEnhancedLapDataToPersonalStats(sessions: any[], aggregateStats: any, user: any): PersonalStats {
+  function convertEnhancedLapDataToPersonalStats(sessions: any[], aggregateStats: any, user: any): PersonalStats | null {
     if (!sessions || sessions.length === 0) {
-      return generateDemoStats(user.profile.firstName, user.profile.lastName);
+      return null;
     }
 
     
@@ -282,9 +283,9 @@ export default function DashboardPage() {
   }
 
   // Convert real lap data to dashboard format (legacy)
-  function convertLapDataToPersonalStats(sessions: any[], user: any): PersonalStats {
+  function convertLapDataToPersonalStats(sessions: any[], user: any): PersonalStats | null {
     if (!sessions || sessions.length === 0) {
-      return generateDemoStats(user.profile.firstName, user.profile.lastName);
+      return null;
     }
 
     
@@ -530,70 +531,8 @@ export default function DashboardPage() {
   }
 
   // Generate realistic demo statistics
-  function generateDemoStats(firstName: string, lastName: string): PersonalStats {
-    const fullName = `${firstName} ${lastName}`;
-    
-    // Based on real drivers, create realistic stats
-    const baseStats = {
-      totalRaces: Math.floor(Math.random() * 25) + 3, // 3-28 races
-      bestPosition: Math.floor(Math.random() * 8) + 1, // 1-8 position
-      podiumFinishes: Math.floor(Math.random() * 5), // 0-4 podiums
-    };
-
-    const totalRaces = baseStats.totalRaces;
-    const bestTime = 42000 + Math.random() * 8000; // 42-50 seconds in ms
-    const averageTime = bestTime + Math.random() * 3000; // slightly slower than best
-    
-    return {
-      totalRaces,
-      totalSpent: totalRaces * 17000, // $17,000 per race
-      bestTime: Math.round(bestTime),
-      averageTime: Math.round(averageTime),
-      bestPosition: baseStats.bestPosition,
-      podiumFinishes: baseStats.podiumFinishes,
-      favoriteKart: Math.floor(Math.random() * 23) + 1, // Kart 1-23
-      totalLaps: totalRaces * (8 + Math.floor(Math.random() * 5)), // 8-12 laps per race
-      firstRace: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-      lastRace: new Date(2025, 7, Math.floor(Math.random() * 8) + 1), // Recent in August
-      
-      // Monthly progression (last 6 months)
-      monthlyProgression: generateMonthlyProgression(totalRaces),
-      
-      // Recent races (last 5)
-      recentRaces: generateRecentRaces(Math.min(totalRaces, 5))
-    };
-  }
-
-  function generateMonthlyProgression(totalRaces: number) {
-    const months = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago'];
-    const racesPerMonth = Math.floor(totalRaces / 6);
-    
-    return months.map((month, index) => ({
-      month,
-      races: Math.max(1, racesPerMonth + Math.floor(Math.random() * 3) - 1),
-      bestTime: 42000 + Math.random() * 8000 - (index * 200), // Improvement over time
-      position: Math.floor(Math.random() * 8) + 1
-    }));
-  }
-
-  function generateRecentRaces(count: number) {
-    const sessionNames = [
-      '[HEAT] 45 - Clasificacion Premium',
-      '[HEAT] 46 - Clasificacion',
-      '[HEAT] 47 - Clasificacion Premium',
-      '[HEAT] 48 - Clasificacion',
-      '[HEAT] 49 - Clasificacion Premium',
-    ];
-
-    return Array.from({ length: count }, (_, i) => ({
-      date: new Date(2025, 7, 8 - i), // Recent dates
-      sessionName: sessionNames[i] || `[HEAT] ${50 - i} - Clasificacion`,
-      position: Math.floor(Math.random() * 12) + 1,
-      kartNumber: Math.floor(Math.random() * 23) + 1,
-      bestTime: 42000 + Math.random() * 8000,
-      totalLaps: 8 + Math.floor(Math.random() * 5)
-    }));
-  }
+  // REMOVED: Demo stats functions - no longer showing fake data
+  // Users must either link their driver profile or race for the first time
 
   function formatTime(milliseconds: number): string {
     const minutes = Math.floor(milliseconds / 60000);
@@ -710,30 +649,50 @@ export default function DashboardPage() {
         </header>
 
         {/* Show welcome banner if user has no real data yet */}
-        {user.kartingLink.status === 'pending_first_race' && (!stats || stats.totalRaces === 0) && (
-          <div className="max-w-4xl mx-auto mb-8">
-            <div className="bg-gradient-to-br from-electric-blue/10 to-rb-blue/10 border border-electric-blue/30 rounded-lg p-6">
-              <div className="flex items-center gap-4">
-                <div className="text-5xl">🏁</div>
-                <div className="flex-1">
-                  <h2 className="font-bold text-2xl text-electric-blue mb-2">¡BIENVENIDO AL CIRCUITO!</h2>
-                  <p className="text-sky-blue/80 text-sm mb-3">
+        {!stats && user.kartingLink.status === 'pending_first_race' && (
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-gradient-to-br from-electric-blue/10 to-rb-blue/10 border border-electric-blue/30 rounded-lg p-8">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="text-7xl">🏁</div>
+                <div className="flex-1 text-center md:text-left">
+                  <h2 className="font-bold text-3xl text-electric-blue mb-3">¡BIENVENIDO AL CIRCUITO!</h2>
+                  <p className="text-sky-blue/80 mb-4">
                     ¿Ya corriste en <strong>Speed Park</strong>? Vincula tu perfil de corredor para ver tus estadísticas reales.
                   </p>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col md:flex-row gap-3">
                     <button
                       onClick={() => setShowLinkModal(true)}
-                      className="bg-electric-blue hover:bg-electric-blue/80 text-dark-bg font-bold py-2 px-4 rounded-lg transition-all text-sm"
+                      className="bg-electric-blue hover:bg-electric-blue/80 text-dark-bg font-bold py-3 px-6 rounded-lg transition-all"
                     >
                       🔗 Vincular mi Perfil
                     </button>
-                    <div className="bg-rb-blue/20 border border-rb-blue/40 rounded-md px-3 py-2 flex-1">
-                      <p className="text-sky-blue text-xs">
-                        📋 <strong>O corre por primera vez:</strong> Inscríbete con tu nombre <strong>{user.profile.firstName} {user.profile.lastName}</strong> y tus datos aparecerán automáticamente
+                    <div className="bg-rb-blue/20 border border-rb-blue/40 rounded-lg px-4 py-3 flex-1">
+                      <p className="text-sky-blue text-sm">
+                        📋 <strong>¿Primera vez?</strong><br/>
+                        Inscríbete en Speed Park con tu nombre: <strong>{user.profile.firstName} {user.profile.lastName}</strong>
                       </p>
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Info Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+              <div className="bg-gray-800/50 border border-sky-blue/30 rounded-lg p-4">
+                <div className="text-3xl mb-2">🔍</div>
+                <h3 className="text-white font-semibold mb-1">Busca tu Perfil</h3>
+                <p className="text-gray-400 text-sm">Encuentra tus carreras recientes por nombre</p>
+              </div>
+              <div className="bg-gray-800/50 border border-sky-blue/30 rounded-lg p-4">
+                <div className="text-3xl mb-2">✅</div>
+                <h3 className="text-white font-semibold mb-1">Verifica tu Identidad</h3>
+                <p className="text-gray-400 text-sm">Selecciona una carrera en la que participaste</p>
+              </div>
+              <div className="bg-gray-800/50 border border-sky-blue/30 rounded-lg p-4">
+                <div className="text-3xl mb-2">⚡</div>
+                <h3 className="text-white font-semibold mb-1">Acceso Inmediato</h3>
+                <p className="text-gray-400 text-sm">Un admin aprobará tu solicitud rápidamente</p>
               </div>
             </div>
           </div>
