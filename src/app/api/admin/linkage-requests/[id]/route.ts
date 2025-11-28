@@ -22,10 +22,13 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  console.log('🔧 PATCH /api/admin/linkage-requests/[id] - START');
+
   try {
     // Verify authentication
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log('❌ No auth header');
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
@@ -39,25 +42,42 @@ export async function PATCH(
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
       userId = decoded.userId;
     } catch (error) {
+      console.log('❌ Invalid token');
       return NextResponse.json(
         { error: 'Token inválido' },
         { status: 401 }
       );
     }
 
+    console.log('✅ Token valid, userId:', userId);
+
     await connectDB();
+    console.log('✅ DB connected');
 
     // Verify admin
     const admin = await WebUser.findById(userId);
-    if (!admin || admin.email !== process.env.ADMIN_EMAIL) {
+    const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
+
+    console.log('Admin check:', {
+      adminFound: !!admin,
+      adminEmail: admin?.email,
+      envAdminEmail: adminEmail,
+      match: admin?.email.trim() === adminEmail
+    });
+
+    if (!admin || admin.email.trim() !== adminEmail) {
+      console.log('❌ Not admin');
       return NextResponse.json(
         { error: 'Acceso denegado - Solo administradores' },
         { status: 403 }
       );
     }
 
+    console.log('✅ Admin verified');
+
     const { id } = params;
     const body = await request.json();
+    console.log('Request body:', body);
     const { action, rejectionReason, adminNotes } = body;
 
     if (!action || !['approve', 'reject'].includes(action)) {
