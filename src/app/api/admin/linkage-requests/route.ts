@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/db';
+import connectDB from '@/lib/mongodb';
 import LinkageRequest from '@/models/LinkageRequest';
 import WebUser from '@/models/WebUser';
-import DriverRaceData from '@/models/DriverRaceData';
-import { verifyToken } from '@/lib/auth';
-import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 /**
  * GET /api/admin/linkage-requests
@@ -13,32 +13,37 @@ import mongoose from 'mongoose';
 export async function GET(request: NextRequest) {
   try {
     // Verify authentication
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (!token) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
       );
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    const token = authHeader.substring(7);
+    let userId: string;
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      userId = decoded.userId;
+    } catch (error) {
       return NextResponse.json(
         { error: 'Token inválido' },
         { status: 401 }
       );
     }
 
+    await connectDB();
+
     // Verify admin
-    const user = await WebUser.findById(decoded.userId);
+    const user = await WebUser.findById(userId);
     if (!user || user.email !== process.env.ADMIN_EMAIL) {
       return NextResponse.json(
         { error: 'Acceso denegado - Solo administradores' },
         { status: 403 }
       );
     }
-
-    await dbConnect();
 
     // Get query params
     const searchParams = request.nextUrl.searchParams;

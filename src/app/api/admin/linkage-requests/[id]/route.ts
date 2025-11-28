@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/db';
+import connectDB from '@/lib/mongodb';
 import LinkageRequest from '@/models/LinkageRequest';
 import WebUser from '@/models/WebUser';
 import DriverRaceData from '@/models/DriverRaceData';
-import { verifyToken } from '@/lib/auth';
+import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 /**
  * PATCH /api/admin/linkage-requests/:id
@@ -22,32 +24,37 @@ export async function PATCH(
 ) {
   try {
     // Verify authentication
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (!token) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
       );
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    const token = authHeader.substring(7);
+    let userId: string;
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      userId = decoded.userId;
+    } catch (error) {
       return NextResponse.json(
         { error: 'Token inválido' },
         { status: 401 }
       );
     }
 
+    await connectDB();
+
     // Verify admin
-    const admin = await WebUser.findById(decoded.userId);
+    const admin = await WebUser.findById(userId);
     if (!admin || admin.email !== process.env.ADMIN_EMAIL) {
       return NextResponse.json(
         { error: 'Acceso denegado - Solo administradores' },
         { status: 403 }
       );
     }
-
-    await dbConnect();
 
     const { id } = params;
     const body = await request.json();
@@ -130,7 +137,7 @@ export async function PATCH(
       // Approve the request
       linkageRequest.status = 'approved';
       linkageRequest.reviewedAt = new Date();
-      linkageRequest.reviewedBy = new mongoose.Types.ObjectId(decoded.userId);
+      linkageRequest.reviewedBy = new mongoose.Types.ObjectId(userId);
       if (adminNotes) {
         linkageRequest.adminNotes = adminNotes;
       }
@@ -146,7 +153,7 @@ export async function PATCH(
       // REJECT: Just update the request status
       linkageRequest.status = 'rejected';
       linkageRequest.reviewedAt = new Date();
-      linkageRequest.reviewedBy = new mongoose.Types.ObjectId(decoded.userId);
+      linkageRequest.reviewedBy = new mongoose.Types.ObjectId(userId);
       linkageRequest.rejectionReason = rejectionReason || 'Rechazado por el administrador';
       if (adminNotes) {
         linkageRequest.adminNotes = adminNotes;
@@ -178,25 +185,30 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (!token) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    const token = authHeader.substring(7);
+    let userId: string;
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      userId = decoded.userId;
+    } catch (error) {
       return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
     }
 
-    const admin = await WebUser.findById(decoded.userId);
+    await connectDB();
+
+    const admin = await WebUser.findById(userId);
     if (!admin || admin.email !== process.env.ADMIN_EMAIL) {
       return NextResponse.json(
         { error: 'Acceso denegado - Solo administradores' },
         { status: 403 }
       );
     }
-
-    await dbConnect();
 
     const { id } = params;
     const linkageRequest = await LinkageRequest.findByIdAndDelete(id);

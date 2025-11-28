@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/db';
+import connectDB from '@/lib/mongodb';
 import LinkageRequest from '@/models/LinkageRequest';
 import DriverRaceData from '@/models/DriverRaceData';
 import WebUser from '@/models/WebUser';
-import { verifyToken } from '@/lib/auth';
+import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 /**
  * POST /api/linkage/request
@@ -19,23 +21,27 @@ import mongoose from 'mongoose';
 export async function POST(request: NextRequest) {
   try {
     // Verify authentication
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (!token) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
       );
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    const token = authHeader.substring(7);
+    let webUserId: string;
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      webUserId = decoded.userId;
+    } catch (error) {
       return NextResponse.json(
         { error: 'Token inválido' },
         { status: 401 }
       );
     }
 
-    const webUserId = decoded.userId;
     const body = await request.json();
     const { driverRaceDataId, sessionId, searchedName } = body;
 
@@ -47,7 +53,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dbConnect();
+    await connectDB();
 
     // Check if user already has a pending request
     const existingPendingRequest = await LinkageRequest.findOne({
@@ -164,26 +170,31 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (!token) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
       );
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    const token = authHeader.substring(7);
+    let userId: string;
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      userId = decoded.userId;
+    } catch (error) {
       return NextResponse.json(
         { error: 'Token inválido' },
         { status: 401 }
       );
     }
 
-    await dbConnect();
+    await connectDB();
 
     const requests = await LinkageRequest.find({
-      webUserId: new mongoose.Types.ObjectId(decoded.userId),
+      webUserId: new mongoose.Types.ObjectId(userId),
     })
       .sort({ createdAt: -1 })
       .limit(10)

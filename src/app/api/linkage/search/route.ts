@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/db';
+import connectDB from '@/lib/mongodb';
 import DriverRaceData from '@/models/DriverRaceData';
-import { verifyToken } from '@/lib/auth';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 /**
  * POST /api/linkage/search
@@ -13,16 +15,19 @@ import { verifyToken } from '@/lib/auth';
 export async function POST(request: NextRequest) {
   try {
     // Verify user is authenticated
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (!token) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 401 }
       );
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    const token = authHeader.substring(7);
+
+    try {
+      jwt.verify(token, JWT_SECRET);
+    } catch (error) {
       return NextResponse.json(
         { error: 'Token inválido' },
         { status: 401 }
@@ -39,7 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dbConnect();
+    await connectDB();
 
     // Search for drivers matching the name (case-insensitive, partial match)
     const searchRegex = new RegExp(searchName.trim(), 'i');
