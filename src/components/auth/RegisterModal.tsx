@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
   const [registeredEmail, setRegisteredEmail] = useState('');
 
   const { register } = useAuth();
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -70,11 +72,10 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
           setRegisteredEmail(result.email || formData.email);
           // Don't reset form or close modal - keep it open to show verification message
         } else {
-          // Old behavior - auto-close after successful registration
+          // Auto-login successful - redirect to dashboard
           resetForm();
-          setTimeout(() => {
-            onClose();
-          }, 2000);
+          onClose();
+          router.push('/dashboard');
         }
       } else {
         setError(result.error || 'Registration failed');

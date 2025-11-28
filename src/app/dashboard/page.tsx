@@ -707,29 +707,30 @@ export default function DashboardPage() {
           )}
         </header>
 
-        {user.kartingLink.status === 'pending_first_race' ? (
-          // Not linked yet - Show welcome message
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="bg-gradient-to-br from-electric-blue/10 to-rb-blue/10 border border-electric-blue/30 rounded-lg p-8 mb-8">
-              <div className="text-6xl mb-4">🏁</div>
-              <h2 className="font-bold text-3xl text-electric-blue mb-4">¡BIENVENIDO AL CIRCUITO!</h2>
-              <p className="text-sky-blue/80 mb-6">
-                Tu cuenta está lista. Ve a correr a <strong>Speed Park</strong> y tus estadísticas aparecerán automáticamente aquí.
-              </p>
-              <div className="bg-rb-blue/20 border border-rb-blue/40 rounded-md p-4 mb-6">
-                <p className="text-sky-blue text-sm">
-                  📋 <strong>Instrucciones:</strong><br/>
-                  1. Ve a Speed Park<br/>
-                  2. Inscríbete con tu nombre: <strong>{user.profile.firstName} {user.profile.lastName}</strong><br/>
-                  3. ¡Corre y disfruta!<br/>
-                  4. Tus estadísticas aparecerán aquí automáticamente
-                </p>
+        {/* Show welcome banner if user has no real data yet */}
+        {user.kartingLink.status === 'pending_first_race' && (!stats || stats.totalRaces === 0) && (
+          <div className="max-w-4xl mx-auto mb-8">
+            <div className="bg-gradient-to-br from-electric-blue/10 to-rb-blue/10 border border-electric-blue/30 rounded-lg p-6">
+              <div className="flex items-center gap-4">
+                <div className="text-5xl">🏁</div>
+                <div className="flex-1">
+                  <h2 className="font-bold text-2xl text-electric-blue mb-2">¡BIENVENIDO AL CIRCUITO!</h2>
+                  <p className="text-sky-blue/80 text-sm mb-3">
+                    Tu cuenta está lista. Ve a correr a <strong>Speed Park</strong> y tus estadísticas aparecerán automáticamente aquí.
+                  </p>
+                  <div className="bg-rb-blue/20 border border-rb-blue/40 rounded-md p-3">
+                    <p className="text-sky-blue text-xs">
+                      📋 <strong>Instrucciones:</strong> Ve a Speed Park → Inscríbete con tu nombre: <strong>{user.profile.firstName} {user.profile.lastName}</strong> → ¡Corre y disfruta!
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        ) : (
-          // Show full dashboard with demo stats
-          stats && (
+        )}
+
+        {/* Show full dashboard (with demo or real stats) */}
+        {stats && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column - Main Stats */}
               <div className="lg:col-span-2 space-y-6">
@@ -830,7 +831,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-          )
         )}
       </div>
     </div>

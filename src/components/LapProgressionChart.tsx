@@ -142,7 +142,7 @@ export default function LapProgressionChart({ webUserId, selectedSessionId }: La
     return null;
   };
 
-  if (recentSessions.length === 0 && !loading) {
+  if (!recentSessions || (recentSessions.length === 0 && !loading)) {
     return (
       <div className="bg-gray-800 rounded-lg p-6 text-center">
         <p className="text-gray-400">No hay datos de carreras disponibles</p>
