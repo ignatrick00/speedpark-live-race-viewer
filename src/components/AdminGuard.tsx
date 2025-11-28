@@ -8,8 +8,6 @@ interface AdminGuardProps {
   fallback?: React.ReactNode;
 }
 
-const ADMIN_EMAIL = 'icabreraquezada@gmail.com';
-
 export default function AdminGuard({ children, fallback }: AdminGuardProps) {
   const { user, token, isLoading } = useAuth();
   const [isAdminVerified, setIsAdminVerified] = useState(false);
@@ -24,12 +22,8 @@ export default function AdminGuard({ children, fallback }: AdminGuardProps) {
         return;
       }
 
-      // Quick check - if email doesn't match, don't even call API
-      if (user.email !== ADMIN_EMAIL) {
-        setIsVerifying(false);
-        setError('Access denied. Admin privileges required.');
-        return;
-      }
+      // Verify admin access through API (which checks against env variable)
+      // No client-side email check - let the backend decide
 
       try {
         const response = await fetch('/api/auth/check-admin', {
@@ -96,13 +90,13 @@ export default function AdminGuard({ children, fallback }: AdminGuardProps) {
             <p className="text-sky-blue/60 font-digital text-xs mb-4">
               Debes iniciar sesión con una cuenta de administrador
             </p>
-          ) : user.email !== ADMIN_EMAIL ? (
+          ) : (
             <p className="text-sky-blue/60 font-digital text-xs mb-4">
               Cuenta actual: {user.email}
               <br />
               Se requiere cuenta de administrador
             </p>
-          ) : null}
+          )}
           
           <button
             onClick={() => window.location.href = '/'}
