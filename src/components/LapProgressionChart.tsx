@@ -55,7 +55,7 @@ export default function LapProgressionChart({ webUserId, selectedSessionId }: La
       if (data.success) {
         setRecentSessions(data.sessions);
         if (data.sessions.length > 0 && !selectedSession) {
-          setSelectedSession(data.sessions[0]._id);
+          setSelectedSession(data.sessions[0].sessionId);
         }
       } else {
         setError('Error loading recent sessions');
@@ -169,7 +169,7 @@ export default function LapProgressionChart({ webUserId, selectedSessionId }: La
             >
               <option value="">Seleccionar sesión...</option>
               {recentSessions.map((session) => (
-                <option key={session._id} value={session._id}>
+                <option key={session._id} value={session.sessionId}>
                   {session.sessionName} - {session.totalLaps} vueltas - Mejor P{session.bestPosition}
                 </option>
               ))}
@@ -181,7 +181,7 @@ export default function LapProgressionChart({ webUserId, selectedSessionId }: La
         {selectedSession && recentSessions.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {(() => {
-              const session = recentSessions.find(s => s._id === selectedSession);
+              const session = recentSessions.find(s => s.sessionId === selectedSession);
               if (!session) return null;
               
               return (

@@ -101,7 +101,7 @@ export default function LinkageRequestsPage() {
       setProcessingId(requestId);
       setError('');
 
-      const response = await fetch(`/api/admin/linkage-requests/${requestId}`, {
+      const response = await fetch(`/api/admin/linkage-requests?id=${requestId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -113,14 +113,29 @@ export default function LinkageRequestsPage() {
         }),
       });
 
+      if (!response.ok) {
+        // Try to parse error message from response
+        let errorMessage = `Error al procesar solicitud (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If JSON parsing fails, use default message
+          errorMessage = `Error del servidor: ${response.status} ${response.statusText}`;
+        }
+        console.error('Error al procesar solicitud:', response.status, errorMessage);
+        setError(errorMessage);
+        return;
+      }
+
       const data = await response.json();
 
-      if (response.ok && data.success) {
+      if (data.success) {
         alert(`✅ Solicitud ${action === 'approve' ? 'aprobada' : 'rechazada'} exitosamente`);
         loadRequests(); // Reload list
       } else {
         console.error('Error al procesar solicitud:', data);
-        setError(data.error || `Error al procesar solicitud (${response.status})`);
+        setError(data.error || 'Error desconocido');
       }
     } catch (err: any) {
       console.error('Error de conexión:', err);
