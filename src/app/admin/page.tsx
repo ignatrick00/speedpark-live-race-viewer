@@ -19,6 +19,15 @@ export default function AdminPage() {
       color: 'from-blue-500 to-cyan-500'
     },
     {
+      id: 'linkage-requests',
+      name: 'Solicitudes de Vinculación',
+      icon: '🔗',
+      path: '/admin/linkage-requests',
+      description: 'Aprobar o rechazar vinculaciones de usuarios con corredores',
+      color: 'from-orange-500 to-red-500',
+      badge: 'NEW'
+    },
+    {
       id: 'drivers',
       name: 'Gestión de Corredores',
       icon: '🏁',
@@ -82,10 +91,15 @@ export default function AdminPage() {
                 
                 <div className="relative z-10 text-center">
                   {/* Icon */}
-                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300 relative">
                     {page.icon}
+                    {page.badge && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        {page.badge}
+                      </span>
+                    )}
                   </div>
-                  
+
                   {/* Title */}
                   <h3 className="font-bold text-2xl text-white mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-cyan-400 transition-all duration-300">
                     {page.name}

@@ -8,6 +8,7 @@ import RaceHistoryTable from '@/components/RaceHistoryTable';
 import ProgressChart from '@/components/ProgressChart';
 import AchievementsBadge from '@/components/AchievementsBadge';
 import LapProgressionChart from '@/components/LapProgressionChart';
+import LinkDriverModal from '@/components/LinkDriverModal';
 
 export interface PersonalStats {
   totalRaces: number;
@@ -41,6 +42,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<PersonalStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showLinkModal, setShowLinkModal] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -716,12 +718,20 @@ export default function DashboardPage() {
                 <div className="flex-1">
                   <h2 className="font-bold text-2xl text-electric-blue mb-2">¡BIENVENIDO AL CIRCUITO!</h2>
                   <p className="text-sky-blue/80 text-sm mb-3">
-                    Tu cuenta está lista. Ve a correr a <strong>Speed Park</strong> y tus estadísticas aparecerán automáticamente aquí.
+                    ¿Ya corriste en <strong>Speed Park</strong>? Vincula tu perfil de corredor para ver tus estadísticas reales.
                   </p>
-                  <div className="bg-rb-blue/20 border border-rb-blue/40 rounded-md p-3">
-                    <p className="text-sky-blue text-xs">
-                      📋 <strong>Instrucciones:</strong> Ve a Speed Park → Inscríbete con tu nombre: <strong>{user.profile.firstName} {user.profile.lastName}</strong> → ¡Corre y disfruta!
-                    </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowLinkModal(true)}
+                      className="bg-electric-blue hover:bg-electric-blue/80 text-dark-bg font-bold py-2 px-4 rounded-lg transition-all text-sm"
+                    >
+                      🔗 Vincular mi Perfil
+                    </button>
+                    <div className="bg-rb-blue/20 border border-rb-blue/40 rounded-md px-3 py-2 flex-1">
+                      <p className="text-sky-blue text-xs">
+                        📋 <strong>O corre por primera vez:</strong> Inscríbete con tu nombre <strong>{user.profile.firstName} {user.profile.lastName}</strong> y tus datos aparecerán automáticamente
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -833,6 +843,18 @@ export default function DashboardPage() {
             </div>
         )}
       </div>
+
+      {/* Link Driver Modal */}
+      <LinkDriverModal
+        isOpen={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        onSuccess={() => {
+          setShowLinkModal(false);
+          loadRealUserStats(); // Reload stats after successful link
+        }}
+        token={localStorage.getItem('token') || ''}
+        userFullName={`${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`}
+      />
     </div>
   );
 }
