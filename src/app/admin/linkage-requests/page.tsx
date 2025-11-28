@@ -34,7 +34,7 @@ interface LinkageRequest {
 
 export default function LinkageRequestsPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [requests, setRequests] = useState<LinkageRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
@@ -43,19 +43,20 @@ export default function LinkageRequestsPage() {
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    loadRequests();
-  }, [filter]);
+    if (token) {
+      loadRequests();
+    }
+  }, [filter, token]);
 
   const loadRequests = async () => {
+    if (!token) {
+      setError('No autorizado');
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/');
-        return;
-      }
 
       const response = await fetch(`/api/admin/linkage-requests?status=${filter}`, {
         headers: {
@@ -83,6 +84,11 @@ export default function LinkageRequestsPage() {
     action: 'approve' | 'reject',
     reason?: string
   ) => {
+    if (!token) {
+      setError('No autorizado');
+      return;
+    }
+
     if (action === 'reject' && !reason) {
       reason = prompt('Razón del rechazo (opcional):') || 'Rechazado por el administrador';
     }
@@ -95,7 +101,6 @@ export default function LinkageRequestsPage() {
       setProcessingId(requestId);
       setError('');
 
-      const token = localStorage.getItem('token');
       const response = await fetch(`/api/admin/linkage-requests/${requestId}`, {
         method: 'PATCH',
         headers: {
