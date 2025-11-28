@@ -7,10 +7,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 /**
  * POST /api/linkage/search
- * Search for drivers by name in recent races
+ * Search for recent race sessions (last 30 days)
  *
- * Body: { searchName: string }
- * Returns: Array of matching drivers with their recent sessions
+ * Body: { searchQuery?: string } - Optional search by session name
+ * Returns: Array of recent sessions with participant count
  */
 export async function POST(request: NextRequest) {
   try {
@@ -35,75 +35,60 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { searchName } = body;
-
-    if (!searchName || searchName.trim().length < 2) {
-      return NextResponse.json(
-        { error: 'Nombre de búsqueda muy corto (mínimo 2 caracteres)' },
-        { status: 400 }
-      );
-    }
+    const { searchQuery } = body;
 
     await connectDB();
 
-    // Search for drivers matching the name (case-insensitive, partial match)
-    const searchRegex = new RegExp(searchName.trim(), 'i');
+    // Get all drivers with sessions in last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const drivers = await DriverRaceData.find({
-      $or: [
-        { driverName: searchRegex },
-        { firstName: searchRegex },
-        { lastName: searchRegex },
-      ],
+      'sessions.sessionDate': { $gte: thirtyDaysAgo }
     })
-      .select('driverName firstName lastName sessions stats linkingStatus webUserId')
-      .limit(20) // Limit results to prevent overwhelming UI
+      .select('sessions')
       .lean();
 
-    // Filter to only show drivers from last 60 days and format response
-    const sixtyDaysAgo = new Date();
-    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    // Aggregate all unique sessions
+    const sessionsMap = new Map<string, any>();
 
-    const results = drivers
-      .map((driver: any) => {
-        // Filter sessions to last 60 days only
-        const recentSessions = driver.sessions
-          .filter((session: any) => new Date(session.sessionDate) >= sixtyDaysAgo)
-          .sort((a: any, b: any) =>
-            new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
-          )
-          .slice(0, 5); // Only return 5 most recent
+    drivers.forEach((driver: any) => {
+      driver.sessions
+        .filter((session: any) => new Date(session.sessionDate) >= thirtyDaysAgo)
+        .forEach((session: any) => {
+          if (!sessionsMap.has(session.sessionId)) {
+            sessionsMap.set(session.sessionId, {
+              sessionId: session.sessionId,
+              sessionName: session.sessionName,
+              sessionDate: session.sessionDate,
+              participantCount: 1,
+            });
+          } else {
+            const existing = sessionsMap.get(session.sessionId);
+            existing.participantCount++;
+          }
+        });
+    });
 
-        if (recentSessions.length === 0) {
-          return null; // Skip drivers with no recent races
-        }
+    // Convert to array and sort by date (most recent first)
+    let sessions = Array.from(sessionsMap.values())
+      .sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime());
 
-        return {
-          driverRaceDataId: driver._id,
-          driverName: driver.driverName,
-          firstName: driver.firstName,
-          lastName: driver.lastName,
-          totalRaces: driver.stats.totalRaces,
-          lastRaceDate: driver.stats.lastRaceDate,
-          isAlreadyLinked: driver.linkingStatus === 'linked' || !!driver.webUserId,
-          recentSessions: recentSessions.map((session: any) => ({
-            sessionId: session.sessionId,
-            sessionName: session.sessionName,
-            sessionDate: session.sessionDate,
-            bestTime: session.bestTime,
-            bestPosition: session.bestPosition,
-            kartNumber: session.kartNumber,
-            totalLaps: session.totalLaps,
-          })),
-        };
-      })
-      .filter((result: any) => result !== null); // Remove nulls
+    // Apply search filter if provided
+    if (searchQuery && searchQuery.trim().length > 0) {
+      const searchRegex = new RegExp(searchQuery.trim(), 'i');
+      sessions = sessions.filter(session =>
+        searchRegex.test(session.sessionName)
+      );
+    }
+
+    // Limit to 50 most recent
+    sessions = sessions.slice(0, 50);
 
     return NextResponse.json({
       success: true,
-      query: searchName,
-      results,
-      count: results.length,
+      sessions,
+      count: sessions.length,
     });
 
   } catch (error: any) {
