@@ -32,12 +32,17 @@ export default function DashboardHeader() {
   }, [user]);
 
   const loadUserSquadron = async () => {
+    if (!token) return;
     try {
-      const response = await fetch(`/api/squadrons?userId=${user?.id}`);
+      const response = await fetch('/api/squadron/my-squadron', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
 
-      if (data.success && data.userSquadron) {
-        setUserSquadron(data.userSquadron);
+      if (data.success && data.squadron) {
+        setUserSquadron(data.squadron);
       }
     } catch (error) {
       console.error('Error loading user squadron:', error);
@@ -68,7 +73,7 @@ export default function DashboardHeader() {
     },
     {
       label: userSquadron ? '⚡ Mi Equipo' : '➕ Unirse a Equipo',
-      path: userSquadron ? `/squadrons/${userSquadron._id}` : '/squadrons',
+      path: '/squadron',
       show: true,
       highlight: !userSquadron
     },
@@ -103,7 +108,7 @@ export default function DashboardHeader() {
             {/* Squadron Badge */}
             {userSquadron && (
               <Link
-                href={`/squadrons/${userSquadron._id}`}
+                href="/squadron"
                 className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-electric-blue/30 bg-electric-blue/10 hover:bg-electric-blue/20 transition-all"
                 style={{
                   borderColor: userSquadron.colors.primary + '40',
@@ -169,7 +174,7 @@ export default function DashboardHeader() {
               {/* Squadron Badge Mobile */}
               {userSquadron && (
                 <Link
-                  href={`/squadrons/${userSquadron._id}`}
+                  href="/squadron"
                   className="flex items-center gap-2 px-4 py-2 rounded-lg border border-electric-blue/30 bg-electric-blue/10"
                   style={{
                     borderColor: userSquadron.colors.primary + '40',

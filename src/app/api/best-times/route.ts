@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       sessionDate: { $gte: dateFilter }
     }).sort({ bestTime: 1 }).limit(10);
     
+    // New format (for new components)
     const bestTimes = records.map((record, index) => ({
       position: index + 1,
       driverName: record.driverName,
@@ -48,12 +49,21 @@ export async function GET(request: NextRequest) {
       sessionDate: record.sessionDate,
       sessionTime: record.sessionTime
     }));
-    
+
+    // Old format (for backwards compatibility with live timing)
+    const bestTimesOldFormat = records.map(record => ({
+      pos: record.position,
+      name: record.driverName,
+      time: `${Math.floor(record.bestTime / 60000)}:${Math.floor((record.bestTime % 60000) / 1000).toString().padStart(2, '0')}.${(record.bestTime % 1000).toString().padStart(3, '0')}`,
+      details: `Kart #${record.kartNumber} • ${record.sessionTime}`
+    }));
+
     console.log(`🏁 INSTANT RESULT: Found ${bestTimes.length} best driver times`);
-    
+
     return NextResponse.json({
       success: true,
-      bestTimes: bestTimes,
+      bestTimes: bestTimesOldFormat, // Keep old format for live timing
+      bestTimesNew: bestTimes, // New format for new components
       timestamp: new Date().toISOString(),
       totalDrivers: bestTimes.length,
       queryMethod: 'real_time_records',

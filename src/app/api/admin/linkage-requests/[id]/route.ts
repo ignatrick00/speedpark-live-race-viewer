@@ -22,7 +22,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  console.log('🔧 PATCH /api/admin/linkage-requests/[id] - START');
+  console.log('🔧🔧🔧 PATCH /api/admin/linkage-requests/[id] - START', params);
 
   try {
     // Verify authentication
@@ -155,14 +155,19 @@ export async function PATCH(
         },
       };
 
+      // Update driver with webUserId (critical for leaderboard highlighting)
       driver.webUserId = user._id.toString();
       driver.linkingStatus = 'linked';
       driver.linkingMethod = 'manual_link';
       driver.linkingConfidence = 'high';
 
+      console.log('🔗 Setting driver.webUserId to:', user._id.toString());
+
       // Save both
       await user.save();
       await driver.save();
+
+      console.log('✅ Both user and driver saved with bidirectional link');
 
       // Approve the request
       linkageRequest.status = 'approved';

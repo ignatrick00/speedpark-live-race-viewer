@@ -220,27 +220,29 @@ export class DriverRaceDataService {
   }
   
   /**
-   * Detect if current data represents a new lap
-   * IMPROVED: Detects laps even when lap count doesn't increase
+   * Detect if we should save current data as a snapshot
+   * STRATEGY: Save every valid update (already rate-limited to 4 seconds)
+   * This captures the driver's progress without duplicates
    */
   private static isNewLap(current: SMSDriverData, previous?: SMSDriverData): boolean {
     if (!previous) {
-      console.log(`🆕 [LAP DETECTION] First time seeing driver ${current.N}`);
+      console.log(`🆕 [LAP DETECTION] First time seeing driver ${current.N} - WILL SAVE`);
       return true; // First time seeing this driver
     }
 
-    // Method 1: Lap count increased (most reliable)
+    // Method 1: Lap count increased (most reliable indicator of new lap)
     const lapIncreased = current.L > (previous.L || 0);
 
-    // Method 2: Last time changed significantly (>500ms = completed new lap)
-    const timeDiff = Math.abs((current.T || 0) - (previous.T || 0));
-    const lastTimeChanged = timeDiff > 500; // More than 0.5 seconds difference
+    // Method 2: Any data changed (driver is active in session)
+    const dataChanged =
+      current.L !== previous.L ||
+      current.T !== previous.T ||
+      current.B !== previous.B ||
+      current.P !== previous.P;
 
-    // Method 3: Best time improved (new personal record)
-    const bestTimeImproved = current.B && previous.B && current.B < previous.B;
-
-    // Determine if this is a new lap
-    const isNewLap = lapIncreased || lastTimeChanged || bestTimeImproved;
+    // Save if lap increased OR if any data changed
+    // Rate limiting (4 seconds) prevents duplicates and MongoDB overload
+    const shouldSave = lapIncreased || dataChanged;
 
     // Enhanced diagnostic logging
     console.log(`🔍 [LAP DETECTION] ${current.N}:`, {
@@ -249,18 +251,18 @@ export class DriverRaceDataService {
       lapIncreased,
       currentTime: current.T,
       previousTime: previous.T,
-      timeDiff: `${timeDiff}ms`,
-      lastTimeChanged,
+      timeChanged: current.T !== previous.T,
       currentBest: current.B,
       previousBest: previous.B,
-      bestTimeImproved,
-      WILL_SAVE: isNewLap ? '✅ YES' : '❌ NO',
-      reason: isNewLap
-        ? (lapIncreased ? 'LAP_COUNT' : lastTimeChanged ? 'TIME_CHANGE' : 'BEST_IMPROVED')
+      bestChanged: current.B !== previous.B,
+      positionChanged: current.P !== previous.P,
+      WILL_SAVE: shouldSave ? '✅ YES' : '❌ NO',
+      reason: shouldSave
+        ? (lapIncreased ? 'LAP_COUNT_INCREASED' : 'DATA_CHANGED')
         : 'NO_CHANGE'
     });
 
-    return isNewLap;
+    return shouldSave;
   }
   
   /**

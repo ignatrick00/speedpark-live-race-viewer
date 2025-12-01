@@ -11,8 +11,9 @@ import LapProgressionChart from '@/components/LapProgressionChart';
 import LinkDriverModal from '@/components/LinkDriverModal';
 import LeaderboardCard from '@/components/LeaderboardCard';
 import TrackRecordsCard from '@/components/TrackRecordsCard';
+import BestTimesCard from '@/components/BestTimesCard';
+import AllKartsRankingCard from '@/components/AllKartsRankingCard';
 import DashboardHeader from '@/components/DashboardHeader';
-import SquadronRankingCard from '@/components/SquadronRankingCard';
 
 export interface PersonalStats {
   totalRaces: number;
@@ -65,12 +66,17 @@ export default function DashboardPage() {
   }, [user, isAuthenticated]);
 
   const loadUserSquadron = async () => {
+    if (!token) return;
     try {
-      const response = await fetch(`/api/squadrons?userId=${user?.id}`);
+      const response = await fetch('/api/squadron/my-squadron', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
 
-      if (data.success && data.userSquadron) {
-        setUserSquadronId(data.userSquadron._id);
+      if (data.success && data.squadron) {
+        setUserSquadronId(data.squadron._id);
       }
     } catch (error) {
       console.error('Error loading user squadron:', error);
@@ -738,6 +744,12 @@ export default function DashboardPage() {
 
                 {/* Track Records - Full Width */}
                 <TrackRecordsCard />
+
+                {/* Best Driver Times with Filters */}
+                <BestTimesCard />
+
+                {/* All Karts Ranking with Filters */}
+                <AllKartsRankingCard />
               </div>
 
               {/* Right Column - Additional Stats */}
@@ -766,9 +778,6 @@ export default function DashboardPage() {
 
                 {/* Leaderboard */}
                 <LeaderboardCard currentUserId={user?.id} />
-
-                {/* Squadron Rankings */}
-                <SquadronRankingCard userSquadronId={userSquadronId} />
 
                 {/* Achievements */}
                 <AchievementsBadge
