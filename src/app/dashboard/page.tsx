@@ -9,6 +9,10 @@ import ProgressChart from '@/components/ProgressChart';
 import AchievementsBadge from '@/components/AchievementsBadge';
 import LapProgressionChart from '@/components/LapProgressionChart';
 import LinkDriverModal from '@/components/LinkDriverModal';
+import LeaderboardCard from '@/components/LeaderboardCard';
+import TrackRecordsCard from '@/components/TrackRecordsCard';
+import DashboardHeader from '@/components/DashboardHeader';
+import SquadronRankingCard from '@/components/SquadronRankingCard';
 
 export interface PersonalStats {
   totalRaces: number;
@@ -43,6 +47,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<PersonalStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [userSquadronId, setUserSquadronId] = useState<string | undefined>();
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -55,8 +60,22 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user && isAuthenticated) {
       loadRealUserStats();
+      loadUserSquadron();
     }
   }, [user, isAuthenticated]);
+
+  const loadUserSquadron = async () => {
+    try {
+      const response = await fetch(`/api/squadrons?userId=${user?.id}`);
+      const data = await response.json();
+
+      if (data.success && data.userSquadron) {
+        setUserSquadronId(data.userSquadron._id);
+      }
+    } catch (error) {
+      console.error('Error loading user squadron:', error);
+    }
+  };
 
   const loadRealUserStats = async () => {
     try {
@@ -557,10 +576,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-midnight text-white overflow-x-hidden relative">
+      {/* Dashboard Header */}
+      <DashboardHeader />
+
       {/* Background Effects */}
       <div className="fixed inset-0 z-0">
-        <div 
-          className="absolute inset-0 opacity-10" 
+        <div
+          className="absolute inset-0 opacity-10"
           style={{
             backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(0, 212, 255, 0.15) 2px, transparent 2px)',
             backgroundSize: '80px 80px'
@@ -571,55 +593,23 @@ export default function DashboardPage() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <header className="text-center mb-12 relative">
-          {/* Live Race Button - Top Right */}
-          <div className="absolute top-0 right-0 hidden md:block">
-            <a 
-              href="/" 
-              className="group relative inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-electric-blue/20 to-rb-blue/20 border-2 border-electric-blue/30 rounded-lg hover:from-electric-blue/30 hover:to-rb-blue/30 hover:border-electric-blue/50 transition-all duration-300 backdrop-blur-sm"
-            >
-              {/* Live indicator */}
-              <div className="relative">
-                <div className="w-3 h-3 rounded-full bg-green-500 animate-ping absolute"></div>
-                <div className="w-3 h-3 rounded-full bg-green-500 relative"></div>
-              </div>
-              
-              <span className="font-bold text-electric-blue group-hover:text-white transition-colors">
-                🏁 LIVE RACE
-              </span>
-              
-              {/* Hover effect glow */}
-              <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-electric-blue/10 to-rb-blue/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 blur-xl"></div>
-            </a>
-          </div>
-
-          {/* Mobile Live Button */}
-          <div className="md:hidden mb-4">
-            <a 
-              href="/" 
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-electric-blue/20 to-rb-blue/20 border border-electric-blue/30 rounded-lg hover:from-electric-blue/30 hover:to-rb-blue/30 transition-all duration-300"
-            >
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-ping"></div>
-              <span className="font-bold text-electric-blue text-sm">🏁 LIVE RACE</span>
-            </a>
-          </div>
-
-          <h1 className="font-bold text-5xl md:text-7xl mb-4 tracking-wider bg-gradient-to-r from-electric-blue via-sky-blue to-karting-gold bg-clip-text text-transparent">
+        {/* Page Title */}
+        <header className="text-center mb-8 relative">
+          <h1 className="font-bold text-4xl md:text-6xl mb-3 tracking-wider bg-gradient-to-r from-electric-blue via-sky-blue to-karting-gold bg-clip-text text-transparent">
             MI DASHBOARD
           </h1>
-          <div className="flex items-center justify-center gap-3 text-electric-blue font-bold text-lg">
+          <div className="flex items-center justify-center gap-3 text-electric-blue font-bold text-base">
             <div className="w-2 h-2 rounded-full bg-electric-blue animate-pulse"></div>
             PERFIL DE PILOTO
             <div className="w-2 h-2 rounded-full bg-electric-blue animate-pulse"></div>
           </div>
-          <p className="text-sky-blue/80 mt-4">
+          <p className="text-sky-blue/80 mt-2">
             {user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`}
           </p>
-          
+
           {/* Enhanced Data Source Indicator */}
           {stats && (
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium">
+            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium">
               {stats.totalRaces > 0 && stats.recentRaces.length > 0 ? (
                 // Check if we have lap-by-lap data from linked driver
                 stats.recentRaces.some((race: any) => race.lapByLapProgression?.length > 0) ? (
@@ -740,11 +730,14 @@ export default function DashboardPage() {
 
                 {/* Recent Races */}
                 <RaceHistoryTable races={stats.recentRaces} />
-                
+
                 {/* Lap-by-Lap Progression - REAL DATA */}
                 {user?.id && stats && stats.totalRaces > 0 && (
                   <LapProgressionChart webUserId={user.id} />
                 )}
+
+                {/* Track Records - Full Width */}
+                <TrackRecordsCard />
               </div>
 
               {/* Right Column - Additional Stats */}
@@ -770,6 +763,12 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Leaderboard */}
+                <LeaderboardCard currentUserId={user?.id} />
+
+                {/* Squadron Rankings */}
+                <SquadronRankingCard userSquadronId={userSquadronId} />
 
                 {/* Achievements */}
                 <AchievementsBadge

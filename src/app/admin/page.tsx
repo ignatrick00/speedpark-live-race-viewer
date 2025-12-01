@@ -19,13 +19,21 @@ export default function AdminPage() {
       color: 'from-blue-500 to-cyan-500'
     },
     {
+      id: 'organizers',
+      name: 'Gestión de Organizadores',
+      icon: '🎯',
+      path: '/admin/organizers',
+      description: 'Aprobar solicitudes y gestionar permisos de organizadores',
+      color: 'from-yellow-500 to-amber-500',
+      badge: 'NEW'
+    },
+    {
       id: 'linkage-requests',
       name: 'Solicitudes de Vinculación',
       icon: '🔗',
       path: '/admin/linkage-requests',
       description: 'Aprobar o rechazar vinculaciones de usuarios con corredores',
-      color: 'from-orange-500 to-red-500',
-      badge: 'NEW'
+      color: 'from-orange-500 to-red-500'
     },
     {
       id: 'drivers',

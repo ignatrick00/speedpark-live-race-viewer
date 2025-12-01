@@ -35,6 +35,23 @@ export interface IWebUser extends Document {
     joinedAt?: Date;
   };
 
+  // Role system
+  role: 'user' | 'organizer' | 'admin';
+
+  // Organizer permissions (only if role is 'organizer' or 'admin')
+  organizerProfile?: {
+    approvedBy?: mongoose.Types.ObjectId; // Admin who approved
+    approvedAt?: Date;
+    permissions: {
+      canCreateChampionships: boolean;
+      canApproveSquadrons: boolean;
+      canLinkRaces: boolean;
+      canModifyStandings: boolean;
+    };
+    organizationName?: string; // Optional org name
+    notes?: string; // Admin notes about this organizer
+  };
+
   // Account status
   accountStatus: 'active' | 'suspended' | 'deleted';
   
@@ -136,6 +153,53 @@ const WebUserSchema: Schema = new Schema({
     },
     joinedAt: {
       type: Date,
+      default: null,
+    },
+  },
+
+  // Role system
+  role: {
+    type: String,
+    enum: ['user', 'organizer', 'admin'],
+    default: 'user',
+  },
+
+  // Organizer permissions (only if role is 'organizer' or 'admin')
+  organizerProfile: {
+    approvedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'WebUser',
+      default: null,
+    },
+    approvedAt: {
+      type: Date,
+      default: null,
+    },
+    permissions: {
+      canCreateChampionships: {
+        type: Boolean,
+        default: false,
+      },
+      canApproveSquadrons: {
+        type: Boolean,
+        default: false,
+      },
+      canLinkRaces: {
+        type: Boolean,
+        default: false,
+      },
+      canModifyStandings: {
+        type: Boolean,
+        default: false,
+      },
+    },
+    organizationName: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    notes: {
+      type: String,
       default: null,
     },
   },
