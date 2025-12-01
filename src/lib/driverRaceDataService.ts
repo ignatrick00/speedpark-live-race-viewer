@@ -221,6 +221,7 @@ export class DriverRaceDataService {
   
   /**
    * Detect if current data represents a new lap
+   * IMPROVED: Detects laps even when lap count doesn't increase
    */
   private static isNewLap(current: SMSDriverData, previous?: SMSDriverData): boolean {
     if (!previous) {
@@ -228,24 +229,38 @@ export class DriverRaceDataService {
       return true; // First time seeing this driver
     }
 
-    // Primary condition: New lap if lap count increased
+    // Method 1: Lap count increased (most reliable)
     const lapIncreased = current.L > (previous.L || 0);
 
-    // Diagnostic logging
+    // Method 2: Last time changed significantly (>500ms = completed new lap)
+    const timeDiff = Math.abs((current.T || 0) - (previous.T || 0));
+    const lastTimeChanged = timeDiff > 500; // More than 0.5 seconds difference
+
+    // Method 3: Best time improved (new personal record)
+    const bestTimeImproved = current.B && previous.B && current.B < previous.B;
+
+    // Determine if this is a new lap
+    const isNewLap = lapIncreased || lastTimeChanged || bestTimeImproved;
+
+    // Enhanced diagnostic logging
     console.log(`🔍 [LAP DETECTION] ${current.N}:`, {
       currentLap: current.L,
       previousLap: previous.L || 0,
       lapIncreased,
       currentTime: current.T,
       previousTime: previous.T,
-      timeDiff: Math.abs((current.T || 0) - (previous.T || 0)),
-      currentPosition: current.P,
-      previousPosition: previous.P
+      timeDiff: `${timeDiff}ms`,
+      lastTimeChanged,
+      currentBest: current.B,
+      previousBest: previous.B,
+      bestTimeImproved,
+      WILL_SAVE: isNewLap ? '✅ YES' : '❌ NO',
+      reason: isNewLap
+        ? (lapIncreased ? 'LAP_COUNT' : lastTimeChanged ? 'TIME_CHANGE' : 'BEST_IMPROVED')
+        : 'NO_CHANGE'
     });
 
-    // Only consider lap count increase as reliable indicator
-    // Remove time-based detection to avoid false positives from mid-lap updates
-    return lapIncreased;
+    return isNewLap;
   }
   
   /**

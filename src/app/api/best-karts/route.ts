@@ -5,21 +5,49 @@ import BestKartTime from '@/models/BestKartTimes';
 export async function GET(request: NextRequest) {
   try {
     console.log('🏎️ GET /api/best-karts - SUPER FAST VERSION - START');
-    
-    console.log('🔗 Connecting to MongoDB...');
+
+    // Get filter and limit parameters
+    const { searchParams } = new URL(request.url);
+    const filter = searchParams.get('filter') || 'week';
+    const limit = parseInt(searchParams.get('limit') || '20');
+
+    console.log(`🔗 Connecting to MongoDB... Filter: ${filter}, Limit: ${limit}`);
     await connectDB();
     console.log('✅ MongoDB connected');
-    
+
     console.log('⚡ Fetching pre-calculated best karts (INSTANT QUERY)...');
-    
-    // SUPER FAST: Direct query to pre-calculated records (max 20 documents)
-    const records = await BestKartTime.find().sort({ position: 1 }).limit(20);
-    
-    const bestKarts = records.map(record => ({
-      kart: record.kartNumber,
-      time: `${Math.floor(record.bestTime / 60000)}:${Math.floor((record.bestTime % 60000) / 1000).toString().padStart(2, '0')}.${(record.bestTime % 1000).toString().padStart(3, '0')}`,
-      driver: record.driverName,
-      details: `${record.sessionTime} • ${record.sessionDate.toLocaleDateString('es-CL')}`
+
+    // Calculate date filter
+    const now = new Date();
+    let dateFilter: Date;
+
+    switch (filter) {
+      case 'day':
+        dateFilter = new Date(now.setHours(0, 0, 0, 0)); // Start of today
+        break;
+      case 'week':
+        dateFilter = new Date(now.setDate(now.getDate() - 7)); // 7 days ago
+        break;
+      case 'month':
+        dateFilter = new Date(now.setMonth(now.getMonth() - 1)); // 1 month ago
+        break;
+      default:
+        dateFilter = new Date(now.setDate(now.getDate() - 7)); // Default to week
+    }
+
+    // Query with date filter and limit
+    const records = await BestKartTime.find({
+      sessionDate: { $gte: dateFilter }
+    }).sort({ bestTime: 1 }).limit(limit);
+
+    const bestKarts = records.map((record, index) => ({
+      position: index + 1,
+      kartNumber: record.kartNumber,
+      driverName: record.driverName,
+      bestTime: record.bestTime,
+      sessionName: record.sessionName,
+      sessionDate: record.sessionDate,
+      sessionTime: record.sessionTime
     }));
     
     console.log(`🏁 INSTANT RESULT: Found ${bestKarts.length} best kart times`);
