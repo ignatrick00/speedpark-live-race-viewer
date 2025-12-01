@@ -223,11 +223,26 @@ export class DriverRaceDataService {
    * Detect if current data represents a new lap
    */
   private static isNewLap(current: SMSDriverData, previous?: SMSDriverData): boolean {
-    if (!previous) return true; // First time seeing this driver
-    
+    if (!previous) {
+      console.log(`🆕 [LAP DETECTION] First time seeing driver ${current.N}`);
+      return true; // First time seeing this driver
+    }
+
     // Primary condition: New lap if lap count increased
     const lapIncreased = current.L > (previous.L || 0);
-    
+
+    // Diagnostic logging
+    console.log(`🔍 [LAP DETECTION] ${current.N}:`, {
+      currentLap: current.L,
+      previousLap: previous.L || 0,
+      lapIncreased,
+      currentTime: current.T,
+      previousTime: previous.T,
+      timeDiff: Math.abs((current.T || 0) - (previous.T || 0)),
+      currentPosition: current.P,
+      previousPosition: previous.P
+    });
+
     // Only consider lap count increase as reliable indicator
     // Remove time-based detection to avoid false positives from mid-lap updates
     return lapIncreased;
@@ -239,13 +254,19 @@ export class DriverRaceDataService {
   private static async addNewLap(session: IRaceSession, driverData: SMSDriverData, timestamp: Date): Promise<void> {
     const lapNumber = driverData.L || 0;
     const lapTime = driverData.T || 0;
-    
+
+    // Check if lap already exists (duplicate detection)
+    const existingLap = session.laps.find(lap => lap.lapNumber === lapNumber);
+    if (existingLap) {
+      console.log(`⚠️ [DUPLICATE LAP] ${driverData.N} - Lap ${lapNumber} already exists, replacing...`);
+    }
+
     // Enhanced duplicate prevention: Remove any existing lap with same lap number first
     session.laps = session.laps.filter(lap => lap.lapNumber !== lapNumber);
-    
+
     // Determine if this is a personal best lap
     const isPersonalBest = (driverData.B === lapTime) && lapTime > 0;
-    
+
     const newLap: ILap = {
       lapNumber,
       time: lapTime,
@@ -255,11 +276,12 @@ export class DriverRaceDataService {
       gapToLeader: driverData.G || '0.000',
       isPersonalBest
     };
-    
+
     // Add new lap and sort
     session.laps.push(newLap);
     session.laps.sort((a, b) => a.lapNumber - b.lapNumber);
-    
+
+    console.log(`✅ [LAP ADDED] ${driverData.N} - Lap ${lapNumber}: ${lapTime}ms, P${driverData.P}, Total laps in session: ${session.laps.length}`);
   }
   
   /**

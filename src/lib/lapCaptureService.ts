@@ -22,22 +22,70 @@ interface SMSData {
 }
 
 export class LapCaptureService {
-  
+
   private static previousSessionData: Map<string, SMSDriverData[]> = new Map();
-  
+
+  // Rate limiting to prevent MongoDB overload
+  private static lastProcessTime = 0;
+  private static MIN_INTERVAL = 4000; // 4 seconds minimum between processing
+  private static pendingUpdate: SMSData | null = null;
+  private static updateTimer: NodeJS.Timeout | null = null;
+
   /**
    * Main function to process and store lap-by-lap data
-   * NOW USING NEW DRIVER-CENTRIC STRUCTURE
+   * NOW WITH RATE LIMITING to prevent MongoDB overload
    */
   static async processLapData(smsData: SMSData): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastProcess = now - this.lastProcessTime;
+
+    // Always store the most recent update
+    this.pendingUpdate = smsData;
+
+    if (timeSinceLastProcess < this.MIN_INTERVAL) {
+      // Too soon - schedule for later
+      if (!this.updateTimer) {
+        const delay = this.MIN_INTERVAL - timeSinceLastProcess;
+        console.log(`⏳ [RATE LIMIT] Update queued for ${smsData.N} - will process in ${delay}ms`);
+
+        this.updateTimer = setTimeout(async () => {
+          this.updateTimer = null;
+          if (this.pendingUpdate) {
+            console.log(`⏰ [RATE LIMIT] Processing queued update for ${this.pendingUpdate.N}`);
+            await this.processLapDataImmediate(this.pendingUpdate);
+          }
+        }, delay);
+      } else {
+        console.log(`⏭️ [RATE LIMIT] Replacing queued update with newer data for ${smsData.N}`);
+      }
+      return;
+    }
+
+    // Clear any pending timer since we're processing now
+    if (this.updateTimer) {
+      clearTimeout(this.updateTimer);
+      this.updateTimer = null;
+    }
+
+    // Process immediately
+    await this.processLapDataImmediate(smsData);
+  }
+
+  /**
+   * Internal method to actually process the lap data
+   */
+  private static async processLapDataImmediate(smsData: SMSData): Promise<void> {
+    this.lastProcessTime = Date.now();
+    this.pendingUpdate = null;
+
     try {
-      console.log(`🔍 Starting processLapData for: ${smsData.N}`);
-      
+      console.log(`🔍 [PROCESSING] Starting processLapData for: ${smsData.N}`);
+
       await connectDB();
       console.log(`✅ Database connected successfully`);
-      
+
       console.log(`🏁 Processing lap data (NEW STRUCTURE): ${smsData.N} - ${smsData.D.length} drivers`);
-      
+
       // PRIORITY 1: Use new driver-centric structure
       try {
         console.log(`📊 Calling DriverRaceDataService.processRaceData...`);
@@ -57,21 +105,21 @@ export class LapCaptureService {
         console.error('❌ Error updating real-time records:', recordError);
         // Don't throw - this is not critical for race processing
       }
-      
-      // PRIORITY 2: Maintain legacy individual records for compatibility (reduced frequency)
-      if (Math.random() < 0.1) { // Only 10% of the time to reduce duplicates
-        try {
-          console.log(`📝 Processing legacy lap data...`);
-          await this.processLegacyLapData(smsData);
-          console.log(`✅ Legacy lap data processed`);
-        } catch (legacyError) {
-          console.error('⚠️ Error in legacy processing (non-critical):', legacyError);
-          // Don't throw - legacy processing is optional
-        }
-      }
-      
-      console.log(`✅ Lap data processed with NEW driver-centric structure`);
-      
+
+      // PRIORITY 3: Maintain legacy individual records for compatibility (reduced frequency)
+      // Disabled legacy processing to reduce MongoDB load
+      // if (Math.random() < 0.05) { // Only 5% of the time
+      //   try {
+      //     console.log(`📝 Processing legacy lap data...`);
+      //     await this.processLegacyLapData(smsData);
+      //     console.log(`✅ Legacy lap data processed`);
+      //   } catch (legacyError) {
+      //     console.error('⚠️ Error in legacy processing (non-critical):', legacyError);
+      //   }
+      // }
+
+      console.log(`✅ [PROCESSING] Lap data processed successfully with rate limiting`);
+
     } catch (error) {
       console.error('❌ Error processing lap data:', error);
       console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
