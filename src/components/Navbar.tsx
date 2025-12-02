@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import LoginModal from '@/components/auth/LoginModal';
 import RegisterModal from '@/components/auth/RegisterModal';
+import Image from 'next/image';
 
 export default function Navbar() {
   const { user, logout, isLoading } = useAuth();
@@ -32,14 +33,15 @@ export default function Navbar() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-400 via-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-400/25">
-                <span className="text-white font-bold text-lg sm:text-xl">🏁</span>
-              </div>
+              <Image
+                src="/images/Friendly-races/iconokarteando.jpg"
+                alt="Karteando.cl"
+                width={250}
+                height={140}
+                className="h-24 w-auto sm:h-[140px] rounded-xl object-contain"
+              />
               <div className="min-w-0">
-                <h1 className="font-racing text-lg sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-wider">
-                  KARTEANDO<span className="text-sky-400">.CL</span>
-                </h1>
-                <p className="text-blue-300 text-xs font-medium hidden sm:block">Racing Platform</p>
+                <p className="text-blue-300 text-sm sm:text-base font-medium">Racing Platform</p>
               </div>
             </div>
 
@@ -48,10 +50,10 @@ export default function Navbar() {
               {/* Desktop Navigation Links */}
               <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
                 <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Live View
+                  En Vivo
                 </a>
-                <a href="/squadron" className="text-electric-blue hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm font-racing">
-                  🏁 Escuderías
+                <a href="/squadron" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                  Escuderías
                 </a>
                 <a href="/clases" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Clases
@@ -154,10 +156,10 @@ export default function Navbar() {
             <div className="lg:hidden mt-4 pb-4 border-t border-blue-800/30 pt-4">
               <div className="flex flex-col space-y-3">
                 <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Live View
+                  En Vivo
                 </a>
-                <a href="/squadron" className="text-electric-blue hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm font-racing">
-                  🏁 Escuderías
+                <a href="/squadron" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                  Escuderías
                 </a>
                 <a href="/clases" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Clases

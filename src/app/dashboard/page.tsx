@@ -15,7 +15,7 @@ import TopDriversDay from '@/components/TopDriversDay';
 import TopDriversWeek from '@/components/TopDriversWeek';
 import TopDriversMonth from '@/components/TopDriversMonth';
 import TopDriversAllTime from '@/components/TopDriversAllTime';
-import DashboardHeader from '@/components/DashboardHeader';
+import Navbar from '@/components/Navbar';
 
 export interface PersonalStats {
   totalRaces: number;
@@ -584,8 +584,8 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-midnight text-white overflow-x-hidden relative">
-      {/* Dashboard Header */}
-      <DashboardHeader />
+      {/* Navigation Bar */}
+      <Navbar />
 
       {/* Background Effects */}
       <div className="fixed inset-0 z-0">
