@@ -41,7 +41,6 @@ const IncidentRecordSchema = new Schema<IIncidentRecord>({
   incidentId: {
     type: String,
     required: true,
-    unique: true,
   },
   eventId: {
     type: String,
@@ -98,7 +97,6 @@ const RecognitionRecordSchema = new Schema<IRecognitionRecord>({
   recognitionId: {
     type: String,
     required: true,
-    unique: true,
   },
   eventId: {
     type: String,

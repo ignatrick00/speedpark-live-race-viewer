@@ -72,11 +72,14 @@ export default function SquadronSearchModal({ isOpen, onClose, onJoinSuccess, to
     }
   };
 
-  const handleJoin = async (squadronId: string) => {
+  const handleJoin = async (squadronId: string, recruitmentMode: string) => {
     setJoiningId(squadronId);
     setError('');
     try {
-      const response = await fetch('/api/squadron/join', {
+      // Si es "open", unirse directamente. Si es "invite-only", enviar solicitud
+      const endpoint = recruitmentMode === 'open' ? '/api/squadron/join' : '/api/squadron/join-request';
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +93,7 @@ export default function SquadronSearchModal({ isOpen, onClose, onJoinSuccess, to
         onJoinSuccess();
         onClose();
       } else {
-        setError(data.error || 'Error al unirse a la escudería');
+        setError(data.error || 'Error al procesar la solicitud');
       }
     } catch (err) {
       setError('Error de conexión');
@@ -268,20 +271,19 @@ export default function SquadronSearchModal({ isOpen, onClose, onJoinSuccess, to
 
                   {/* Join button */}
                   <button
-                    onClick={() => handleJoin(squadron._id)}
+                    onClick={() => handleJoin(squadron._id, squadron.recruitmentMode)}
                     disabled={
                       squadron.stats.isFull ||
-                      squadron.recruitmentMode === 'invite-only' ||
                       joiningId === squadron._id
                     }
                     className="w-full px-4 py-2 bg-gradient-to-r from-electric-blue to-cyan-400 text-midnight font-racing rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-600 disabled:to-gray-700"
                   >
                     {joiningId === squadron._id ? (
-                      'UNIÉNDOSE...'
+                      squadron.recruitmentMode === 'open' ? 'UNIÉNDOSE...' : 'ENVIANDO...'
                     ) : squadron.stats.isFull ? (
                       '🔒 LLENA'
                     ) : squadron.recruitmentMode === 'invite-only' ? (
-                      '🔐 SOLO INVITACIÓN'
+                      '📨 SOLICITAR'
                     ) : (
                       '✓ UNIRSE'
                     )}

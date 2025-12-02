@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import InvitePilotModal from './InvitePilotModal';
+import JoinRequestsModal from './JoinRequestsModal';
 
 interface Member {
   _id: string;
@@ -57,6 +58,7 @@ export default function SquadronDashboardView({
 }: SquadronDashboardViewProps) {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showRequestsModal, setShowRequestsModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [isLeaving, setIsLeaving] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
@@ -226,13 +228,23 @@ export default function SquadronDashboardView({
       <div className="bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-2xl font-racing text-electric-blue">MIEMBROS DEL EQUIPO</h3>
-          {isCaptain && squadron.members.length < 4 && (
-            <button
-              onClick={() => setShowInviteModal(true)}
-              className="px-4 py-2 bg-gradient-to-r from-electric-blue to-cyan-400 text-midnight font-bold rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all"
-            >
-              + Invitar Piloto
-            </button>
+          {isCaptain && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRequestsModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition-all"
+              >
+                📨 Solicitudes
+              </button>
+              {squadron.members.length < 4 && (
+                <button
+                  onClick={() => setShowInviteModal(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-electric-blue to-cyan-400 text-midnight font-bold rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all"
+                >
+                  + Invitar Piloto
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -371,6 +383,16 @@ export default function SquadronDashboardView({
         onClose={() => setShowInviteModal(false)}
         onSuccess={() => {
           setShowInviteModal(false);
+          onTransferCaptain(''); // Trigger refresh
+        }}
+        token={token}
+      />
+
+      {/* Join Requests Modal */}
+      <JoinRequestsModal
+        isOpen={showRequestsModal}
+        onClose={() => setShowRequestsModal(false)}
+        onSuccess={() => {
           onTransferCaptain(''); // Trigger refresh
         }}
         token={token}

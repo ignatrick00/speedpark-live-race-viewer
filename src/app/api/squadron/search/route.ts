@@ -67,9 +67,15 @@ export async function GET(req: NextRequest) {
     // Agregar metadata de espacios disponibles
     const squadronsWithMeta = squadrons.map((squadron: any) => ({
       ...squadron,
-      availableSpots: 4 - squadron.members.length,
-      isFull: squadron.members.length >= 4,
-      memberCount: squadron.members.length,
+      stats: {
+        memberCount: squadron.members.length,
+        availableSpots: 4 - squadron.members.length,
+        isFull: squadron.members.length >= 4,
+        winRate: squadron.totalRaces > 0
+          ? ((squadron.totalVictories / squadron.totalRaces) * 100).toFixed(1) + '%'
+          : '0%',
+        averageFairRacing: squadron.fairRacingAverage || 0,
+      }
     }));
 
     return NextResponse.json({
