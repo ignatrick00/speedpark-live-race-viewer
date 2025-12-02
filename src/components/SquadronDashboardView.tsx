@@ -171,7 +171,8 @@ export default function SquadronDashboardView({
 
       if (data.success) {
         setShowTransferModal(false);
-        onTransferCaptain(selectedMember);
+        // Reload page to refresh all data
+        window.location.reload();
       } else {
         setError(data.error || 'Error al transferir capitanía');
       }
@@ -380,17 +381,13 @@ export default function SquadronDashboardView({
         <div className="bg-gradient-to-br from-midnight via-gold/10 to-midnight border-2 border-gold/50 rounded-xl p-6">
           <h3 className="text-2xl font-racing text-gold mb-4">👑 PANEL DE CAPITÁN</h3>
 
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="flex justify-center">
             <button
               onClick={() => setShowTransferModal(true)}
               disabled={squadron.members.length < 2}
               className="px-6 py-3 bg-gold/20 border border-gold/50 text-gold font-racing rounded-lg hover:bg-gold/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               ↔️ TRANSFERIR CAPITANÍA
-            </button>
-
-            <button className="px-6 py-3 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue font-racing rounded-lg hover:bg-electric-blue/30 transition-all">
-              ✉️ INVITAR PILOTO
             </button>
           </div>
         </div>
@@ -439,31 +436,53 @@ export default function SquadronDashboardView({
                 .map((member) => (
                   <button
                     key={member._id}
-                    onClick={() => setSelectedMember(member._id)}
+                    onClick={() => {
+                      console.log('Selected member:', member._id);
+                      setSelectedMember(member._id);
+                    }}
                     className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
                       selectedMember === member._id
                         ? 'border-gold bg-gold/20'
                         : 'border-electric-blue/30 bg-midnight/50 hover:border-electric-blue/60'
                     }`}
                   >
-                    <p className="text-sky-blue font-digital">{getMemberDisplayName(member)}</p>
+                    <p className={`font-digital ${selectedMember === member._id ? 'text-gold' : 'text-sky-blue'}`}>
+                      {selectedMember === member._id ? '✓ ' : ''}{getMemberDisplayName(member)}
+                    </p>
                     <p className="text-sky-blue/50 text-xs">{member.email}</p>
                   </button>
                 ))}
             </div>
 
+            {selectedMember && (
+              <p className="text-gold/70 text-sm mb-4 text-center">
+                Has seleccionado a {getMemberDisplayName(squadron.members.find(m => m._id === selectedMember)!)}
+              </p>
+            )}
+
             <div className="flex gap-3">
               <button
-                onClick={() => setShowTransferModal(false)}
+                onClick={() => {
+                  setShowTransferModal(false);
+                  setSelectedMember(null);
+                }}
                 disabled={isTransferring}
                 className="flex-1 px-4 py-2 border border-electric-blue/50 text-electric-blue rounded-lg hover:bg-electric-blue/10 transition-all"
               >
                 CANCELAR
               </button>
               <button
-                onClick={handleTransferCaptain}
+                onClick={() => {
+                  console.log('CONFIRMAR clicked, selectedMember:', selectedMember);
+                  handleTransferCaptain();
+                }}
                 disabled={!selectedMember || isTransferring}
-                className="flex-1 px-4 py-2 bg-gold text-midnight font-racing rounded-lg hover:bg-gold/90 transition-all disabled:opacity-50"
+                style={{
+                  backgroundColor: selectedMember && !isTransferring ? '#FFD700' : '#1a1a2e',
+                  color: selectedMember && !isTransferring ? '#0a0a15' : '#666',
+                  border: selectedMember && !isTransferring ? 'none' : '2px solid #444',
+                }}
+                className="flex-1 px-4 py-2 font-racing rounded-lg transition-all"
               >
                 {isTransferring ? 'TRANSFIRIENDO...' : 'CONFIRMAR'}
               </button>

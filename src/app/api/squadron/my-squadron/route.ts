@@ -64,6 +64,37 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // FIX: Detectar y corregir el bug de múltiples capitanes
+    const captainCount = squadron.members.filter((m: any) => m.squadron?.role === 'captain').length;
+    if (captainCount > 1) {
+      console.log(`⚠️ [MY-SQUADRON] Detected ${captainCount} captains in squadron ${squadron._id}, fixing...`);
+
+      // Mantener solo al captainId oficial como captain, degradar a los demás
+      for (const member of squadron.members) {
+        const memberDoc = await WebUser.findById((member as any)._id);
+        if (memberDoc) {
+          if (memberDoc._id.toString() === squadron.captainId.toString()) {
+            memberDoc.squadron.role = 'captain';
+          } else if (memberDoc.squadron?.role === 'captain') {
+            memberDoc.squadron.role = 'member';
+          }
+          await memberDoc.save();
+        }
+      }
+
+      console.log(`✅ [MY-SQUADRON] Fixed multiple captains issue`);
+
+      // Re-fetch con los datos corregidos
+      const fixedSquadron = await Squadron.findById(user.squadron.squadronId)
+        .populate('captainId', 'email profile squadron')
+        .populate('members', 'email profile squadron')
+        .lean();
+
+      if (fixedSquadron) {
+        Object.assign(squadron, fixedSquadron);
+      }
+    }
+
     // Obtener Fair Racing Scores de todos los miembros
     const memberIds = squadron.members.map((m: any) => m._id);
     const fairRacingScores = await FairRacingScore.find({
