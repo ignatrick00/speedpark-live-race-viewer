@@ -1,48 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 
 export default function CoachPage() {
-  const { user, token } = useAuth();
+  const { user, token, isCoach, isLoading } = useAuth();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    const checkAuthorization = async () => {
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/auth/me', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.user?.role === 'coach') {
-            setIsAuthorized(true);
-          } else {
-            router.push('/');
-          }
-        } else {
-          router.push('/login');
-        }
-      } catch (error) {
-        console.error('Error checking authorization:', error);
-        router.push('/');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuthorization();
-  }, [token, router]);
+    if (!isLoading && !token) {
+      router.push('/login');
+    } else if (!isLoading && !isCoach) {
+      router.push('/');
+    }
+  }, [isLoading, token, isCoach, router]);
 
   if (isLoading) {
     return (
@@ -51,14 +24,14 @@ export default function CoachPage() {
         <div className="min-h-screen bg-gradient-to-br from-midnight via-racing-black to-midnight flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin text-6xl mb-4">🏁</div>
-            <p className="text-sky-blue/70">Verificando acceso...</p>
+            <p className="text-sky-blue/70">Cargando...</p>
           </div>
         </div>
       </>
     );
   }
 
-  if (!isAuthorized) {
+  if (!isCoach) {
     return null;
   }
 
