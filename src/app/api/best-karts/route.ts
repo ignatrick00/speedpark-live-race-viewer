@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import BestKartTime from '@/models/BestKartTimes';
+import LapRecord from '@/models/LapRecord';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🏎️ GET /api/best-karts - SUPER FAST VERSION - START');
+    console.log('🏎️ GET /api/best-karts - START');
 
     // Get filter and limit parameters
     const { searchParams } = new URL(request.url);
@@ -15,27 +16,93 @@ export async function GET(request: NextRequest) {
     await connectDB();
     console.log('✅ MongoDB connected');
 
-    console.log('⚡ Fetching pre-calculated best karts (INSTANT QUERY)...');
+    // Special handling for "day" - query lap_records for today's best karts
+    if (filter === 'day') {
+      console.log('📅 Fetching best karts of TODAY from lap_records...');
 
-    // Calculate date filter
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+
+      // Get all lap records from today
+      const todayRecords = await LapRecord.find({
+        timestamp: { $gte: startOfToday },
+        bestTime: { $gt: 0 },
+        kartNumber: { $exists: true, $ne: null }
+      }).lean();
+
+      console.log(`📊 Found ${todayRecords.length} lap records from today`);
+
+      // Group by kart and find their best time
+      const kartBestTimes = new Map();
+
+      todayRecords.forEach((record: any) => {
+        const existing = kartBestTimes.get(record.kartNumber);
+        if (!existing || record.bestTime < existing.bestTime) {
+          kartBestTimes.set(record.kartNumber, {
+            kartNumber: record.kartNumber,
+            driverName: record.driverName,
+            bestTime: record.bestTime,
+            sessionName: record.sessionName,
+            sessionTime: new Date(record.timestamp).toLocaleTimeString('es-CL', {
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+          });
+        }
+      });
+
+      // Sort by best time and take top limit
+      const records = Array.from(kartBestTimes.values())
+        .sort((a, b) => a.bestTime - b.bestTime)
+        .slice(0, limit);
+
+      console.log(`🏁 Top ${limit} karts of today: ${records.length} karts`);
+
+      // Format for response
+      const bestKarts = records.map((record, index) => ({
+        position: index + 1,
+        kartNumber: record.kartNumber,
+        driverName: record.driverName,
+        bestTime: record.bestTime,
+        sessionName: record.sessionName,
+        sessionDate: new Date(),
+        sessionTime: record.sessionTime
+      }));
+
+      const bestKartsOldFormat = records.map((record, index) => ({
+        kart: record.kartNumber,
+        time: `${Math.floor(record.bestTime / 60000)}:${Math.floor((record.bestTime % 60000) / 1000).toString().padStart(2, '0')}.${(record.bestTime % 1000).toString().padStart(3, '0')}`,
+        driver: record.driverName,
+        details: `${record.sessionTime} • Hoy`
+      }));
+
+      return NextResponse.json({
+        success: true,
+        bestKarts: bestKartsOldFormat,
+        bestKartsNew: bestKarts,
+        timestamp: new Date().toISOString(),
+        totalKarts: bestKarts.length,
+        queryMethod: 'lap_records_today'
+      });
+    }
+
+    // For week, month - use pre-calculated BestKartTime
+    console.log('⚡ Fetching pre-calculated best karts...');
+
     const now = new Date();
     let dateFilter: Date;
 
     switch (filter) {
-      case 'day':
-        dateFilter = new Date(now.setHours(0, 0, 0, 0)); // Start of today
-        break;
       case 'week':
-        dateFilter = new Date(now.setDate(now.getDate() - 7)); // 7 days ago
+        dateFilter = new Date(now.setDate(now.getDate() - 7));
         break;
       case 'month':
-        dateFilter = new Date(now.setMonth(now.getMonth() - 1)); // 1 month ago
+        dateFilter = new Date(now.setMonth(now.getMonth() - 1));
         break;
       default:
-        dateFilter = new Date(now.setDate(now.getDate() - 7)); // Default to week
+        dateFilter = new Date(now.setDate(now.getDate() - 7));
     }
 
-    // Query with date filter and limit
     const records = await BestKartTime.find({
       sessionDate: { $gte: dateFilter }
     }).sort({ bestTime: 1 }).limit(limit);
