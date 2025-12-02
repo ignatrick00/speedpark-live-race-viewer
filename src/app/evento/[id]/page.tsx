@@ -21,6 +21,7 @@ export default function EventoPage() {
   const [selectedKart, setSelectedKart] = useState<number | null>(null);
   const [occupiedKarts, setOccupiedKarts] = useState<number[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [unregistering, setUnregistering] = useState(false);
 
   useEffect(() => {
     if (token && params.id) {
@@ -178,6 +179,36 @@ export default function EventoPage() {
     }
   };
 
+  const handleUnregister = async () => {
+    if (!confirm('¿Estás seguro de desregistrarte del evento? Esto eliminará a toda tu escudería y sus invitaciones.')) {
+      return;
+    }
+
+    setUnregistering(true);
+    try {
+      const response = await fetch(`/api/squadron-events/${params.id}/unregister`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Te has desregistrado exitosamente del evento');
+        fetchEvent();
+      } else {
+        alert(data.error || 'Error al desregistrarse');
+      }
+    } catch (error) {
+      console.error('Error unregistering:', error);
+      alert('Error al desregistrarse del evento');
+    } finally {
+      setUnregistering(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white">
@@ -300,7 +331,16 @@ export default function EventoPage() {
         {/* My Team Section */}
         {myParticipation && (
           <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-6 mb-8">
-            <h3 className="text-2xl font-racing text-purple-400 mb-6">Mi Equipo</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-racing text-purple-400">Mi Equipo</h3>
+              <button
+                onClick={handleUnregister}
+                disabled={unregistering}
+                className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm font-bold"
+              >
+                {unregistering ? '⏳ DESREGISTRANDO...' : '❌ DESREGISTRARSE'}
+              </button>
+            </div>
 
             {/* Team Status */}
             <div className="bg-black/30 border border-purple-500/30 rounded-lg p-4 mb-6">
