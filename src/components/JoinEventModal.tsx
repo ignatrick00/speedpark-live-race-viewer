@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface JoinEventModalProps {
   event: any;
@@ -11,6 +12,7 @@ interface JoinEventModalProps {
 
 export default function JoinEventModal({ event, onClose, onSuccess }: JoinEventModalProps) {
   const { token, user } = useAuth();
+  const router = useRouter();
   const [isJoining, setIsJoining] = useState(false);
   const [squadron, setSquadron] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -76,8 +78,8 @@ export default function JoinEventModal({ event, onClose, onSuccess }: JoinEventM
       const data = await response.json();
 
       if (response.ok) {
-        alert('¡Registrado exitosamente! Ahora puedes invitar a tus compañeros.');
-        onSuccess();
+        alert('¡Registrado exitosamente! Redirigiendo a tu evento...');
+        router.push(`/evento/${event._id}`);
       } else {
         alert(data.error || 'Error al registrarse');
       }
