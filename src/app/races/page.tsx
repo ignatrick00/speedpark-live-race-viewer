@@ -76,12 +76,14 @@ export default function RacesPage() {
   const fetchInvitations = async () => {
     try {
       setInvitationsLoading(true);
-      const response = await fetch('/api/squadron-events/my-invitations', {
+      const response = await fetch('/api/invitations', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       const data = await response.json();
       if (data.success) {
-        setInvitations(data.invitations || []);
+        // Filter only event invitations (not squadron invitations)
+        const eventInvitations = (data.invitations || []).filter((inv: any) => inv.type === 'event');
+        setInvitations(eventInvitations);
       }
     } catch (error) {
       console.error('Error fetching invitations:', error);
@@ -90,7 +92,7 @@ export default function RacesPage() {
     }
   };
 
-  const handleInvitationResponse = async (invitationId: string, eventId: string, action: 'accept' | 'decline') => {
+  const handleInvitationResponse = async (eventId: string, accept: boolean) => {
     try {
       const response = await fetch(`/api/squadron-events/${eventId}/respond-invite`, {
         method: 'POST',
@@ -98,13 +100,14 @@ export default function RacesPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ invitationId, action }),
+        body: JSON.stringify({ accept }),
       });
 
       const data = await response.json();
       if (data.success) {
-        alert(action === 'accept' ? '¡Te has unido al evento!' : 'Invitación rechazada');
+        alert(accept ? '¡Te has unido al evento!' : 'Invitación rechazada');
         fetchInvitations(); // Refresh invitations
+        fetchRaces(); // Refresh races
       } else {
         alert(data.error || 'Error al procesar la invitación');
       }
@@ -221,13 +224,13 @@ export default function RacesPage() {
 
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleInvitationResponse(invitation.invitationId, invitation.eventId, 'accept')}
+                          onClick={() => handleInvitationResponse(invitation.eventId, true)}
                           className="px-4 py-2 bg-green-600/20 border border-green-500/50 text-green-400 rounded-lg hover:bg-green-600/30 transition-all font-racing"
                         >
                           ✓ ACEPTAR
                         </button>
                         <button
-                          onClick={() => handleInvitationResponse(invitation.invitationId, invitation.eventId, 'decline')}
+                          onClick={() => handleInvitationResponse(invitation.eventId, false)}
                           className="px-4 py-2 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
                         >
                           ✕ RECHAZAR
