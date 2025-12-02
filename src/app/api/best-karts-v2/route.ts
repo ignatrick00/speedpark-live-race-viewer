@@ -100,12 +100,23 @@ export async function GET(request: Request) {
 
     console.log(`🏆 Returning ${sortedKarts.length} best kart times for ${filterDescription}`);
 
-    // Format for old API compatibility
+    // Format time helper
+    const formatTime = (timeMs: number) => {
+      if (!timeMs || timeMs === 0) return '--:--';
+      const minutes = Math.floor(timeMs / 60000);
+      const seconds = ((timeMs % 60000) / 1000).toFixed(3);
+      return `${minutes}:${parseFloat(seconds).toFixed(3).padStart(6, '0')}`;
+    };
+
+    // Format for old API compatibility (what LiveRaceViewer expects)
     const bestKartsOldFormat = sortedKarts.map((entry, index) => ({
       _id: `kart_${entry.kartNumber}_${filter}`,
-      kartNumber: entry.kartNumber,
-      bestTime: entry.bestTime,
-      driverName: entry.driverName,
+      kart: entry.kartNumber,           // Old format field name
+      kartNumber: entry.kartNumber,      // Keep both for compatibility
+      driver: entry.driverName,          // Old format field name
+      driverName: entry.driverName,      // Keep both
+      time: formatTime(entry.bestTime),  // Old format: formatted string
+      bestTime: entry.bestTime,          // Keep raw ms value
       sessionName: entry.sessionName,
       position: index + 1,
       timestamp: new Date().toISOString()
