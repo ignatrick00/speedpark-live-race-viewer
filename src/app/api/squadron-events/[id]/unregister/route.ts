@@ -72,19 +72,41 @@ export async function POST(
     }
 
     // Find squadron participation
-    const participantIndex = event.participants.findIndex(
+    const participation = event.participants.find(
       (p: any) => p.squadronId.toString() === userSquadronId.toString()
     );
 
-    if (participantIndex === -1) {
+    if (!participation) {
       return NextResponse.json(
         { error: 'Tu escudería no está registrada en este evento' },
         { status: 400 }
       );
     }
 
-    // Remove squadron participation
-    event.participants.splice(participantIndex, 1);
+    // Check if user is in confirmed pilots
+    const pilotIndex = participation.confirmedPilots.findIndex(
+      (pilot: any) => pilot.pilotId.toString() === userId
+    );
+
+    if (pilotIndex === -1) {
+      return NextResponse.json(
+        { error: 'No estás registrado en este evento' },
+        { status: 400 }
+      );
+    }
+
+    // Remove only this user from confirmed pilots
+    participation.confirmedPilots.splice(pilotIndex, 1);
+
+    // If squadron has no more confirmed pilots and no pending invitations, remove the entire participation
+    if (participation.confirmedPilots.length === 0 &&
+        participation.pendingInvitations.filter((inv: any) => inv.status === 'pending').length === 0) {
+      const participantIndex = event.participants.findIndex(
+        (p: any) => p.squadronId.toString() === userSquadronId.toString()
+      );
+      event.participants.splice(participantIndex, 1);
+    }
+
     await event.save();
 
     return NextResponse.json({

@@ -190,7 +190,7 @@ const SquadronEventSchema: Schema = new Schema({
       },
       kartNumber: {
         type: Number,
-        required: true,
+        required: false, // Temporarily optional to handle old invitations without kartNumber
         min: 1,
         max: 20,
       },

@@ -1,16 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import LoginModal from '@/components/auth/LoginModal';
 import RegisterModal from '@/components/auth/RegisterModal';
 import Image from 'next/image';
 
 export default function Navbar() {
-  const { user, logout, isLoading, isOrganizer } = useAuth();
+  const { user, token, logout, isLoading, isOrganizer } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [invitationCount, setInvitationCount] = useState(0);
+
+  // Fetch invitation count
+  useEffect(() => {
+    if (token) {
+      fetchInvitationCount();
+      // Refresh every 30 seconds
+      const interval = setInterval(fetchInvitationCount, 30000);
+      return () => clearInterval(interval);
+    } else {
+      setInvitationCount(0);
+    }
+  }, [token]);
+
+  const fetchInvitationCount = async () => {
+    try {
+      const response = await fetch('/api/invitations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setInvitationCount(data.count || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching invitation count:', error);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -61,6 +90,16 @@ export default function Navbar() {
                 <a href="/races" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Carreras
                 </a>
+                {user && (
+                  <a href="/invitaciones" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm relative">
+                    Invitaciones
+                    {invitationCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                        {invitationCount}
+                      </span>
+                    )}
+                  </a>
+                )}
               </div>
 
               {/* Mobile Menu Button */}
@@ -175,6 +214,16 @@ export default function Navbar() {
                 <a href="/races" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Carreras
                 </a>
+                {user && (
+                  <a href="/invitaciones" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm flex items-center gap-2">
+                    Invitaciones
+                    {invitationCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                        {invitationCount}
+                      </span>
+                    )}
+                  </a>
+                )}
               </div>
             </div>
           )}

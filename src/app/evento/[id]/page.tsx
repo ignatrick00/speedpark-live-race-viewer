@@ -180,7 +180,7 @@ export default function EventoPage() {
   };
 
   const handleUnregister = async () => {
-    if (!confirm('¿Estás seguro de desregistrarte del evento? Esto eliminará a toda tu escudería y sus invitaciones.')) {
+    if (!confirm('¿Estás seguro de desregistrarte del evento? Solo tú serás eliminado, tus compañeros de escudería seguirán participando.')) {
       return;
     }
 

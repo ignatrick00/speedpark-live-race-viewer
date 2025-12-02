@@ -25,8 +25,8 @@ export async function POST(
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
 
     // Get action (accept or decline)
-    const { action } = await request.json();
-    if (!action || !['accept', 'decline'].includes(action)) {
+    const { accept } = await request.json();
+    if (typeof accept !== 'boolean') {
       return NextResponse.json(
         { error: 'Acción inválida' },
         { status: 400 }
@@ -43,8 +43,8 @@ export async function POST(
     }
 
     // Find user's squadron
-    const user = await WebUser.findById(decoded.userId).populate('currentSquadron');
-    if (!user || !user.currentSquadron) {
+    const user = await WebUser.findById(decoded.userId);
+    if (!user || !user.squadron || !user.squadron.squadronId) {
       return NextResponse.json(
         { error: 'Debes pertenecer a una escudería' },
         { status: 400 }
@@ -53,7 +53,7 @@ export async function POST(
 
     // Find squadron participation
     const participation = event.participants.find(
-      (p: any) => p.squadronId.toString() === user.currentSquadron._id.toString()
+      (p: any) => p.squadronId.toString() === user.squadron.squadronId.toString()
     );
 
     if (!participation) {
@@ -77,6 +77,13 @@ export async function POST(
 
     const invitation = participation.pendingInvitations[invitationIndex];
 
+    console.log('📨 Invitation found:', {
+      pilotId: invitation.pilotId,
+      kartNumber: invitation.kartNumber,
+      status: invitation.status,
+      expiresAt: invitation.expiresAt
+    });
+
     // Check if invitation has expired
     if (new Date() > new Date(invitation.expiresAt)) {
       invitation.status = 'expired';
@@ -87,9 +94,26 @@ export async function POST(
       );
     }
 
-    if (action === 'accept') {
-      // Add to confirmed pilots
-      participation.confirmedPilots.push(user._id);
+    if (accept) {
+      console.log('✅ Accepting invitation with kartNumber:', invitation.kartNumber);
+
+      // If invitation doesn't have kartNumber (old invitation), reject it
+      if (!invitation.kartNumber) {
+        return NextResponse.json({
+          error: 'Esta invitación es inválida (no tiene kart asignado). Pide a tu compañero que te invite nuevamente.',
+        }, { status: 400 });
+      }
+
+      // Add to confirmed pilots with the kart number from invitation
+      const newPilot = {
+        pilotId: user._id,
+        kartNumber: invitation.kartNumber,
+        confirmedAt: new Date(),
+      };
+
+      console.log('👤 Adding pilot:', newPilot);
+
+      participation.confirmedPilots.push(newPilot);
       invitation.status = 'accepted';
 
       await event.save();

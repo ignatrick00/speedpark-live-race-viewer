@@ -25,8 +25,8 @@ export async function POST(
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
 
     // Get current user with squadron
-    const user = await WebUser.findById(decoded.userId).populate('currentSquadron');
-    if (!user || !user.currentSquadron) {
+    const user = await WebUser.findById(decoded.userId);
+    if (!user || !user.squadron || !user.squadron.squadronId) {
       return NextResponse.json(
         { error: 'Debes pertenecer a una escudería' },
         { status: 400 }
@@ -35,6 +35,7 @@ export async function POST(
 
     // Get teammate email and kart number from request
     const { email, kartNumber } = await request.json();
+    console.log('🔍 Received invitation request:', { email, kartNumber, type: typeof kartNumber });
     if (!email) {
       return NextResponse.json(
         { error: 'Email es requerido' },
@@ -49,7 +50,7 @@ export async function POST(
     }
 
     // Find teammate
-    const teammate = await WebUser.findOne({ email: email.toLowerCase() }).populate('currentSquadron');
+    const teammate = await WebUser.findOne({ email: email.toLowerCase() });
     if (!teammate) {
       return NextResponse.json(
         { error: 'Usuario no encontrado' },
@@ -58,7 +59,8 @@ export async function POST(
     }
 
     // Check if teammate is in same squadron
-    if (!teammate.currentSquadron || teammate.currentSquadron._id.toString() !== user.currentSquadron._id.toString()) {
+    if (!teammate.squadron || !teammate.squadron.squadronId ||
+        teammate.squadron.squadronId.toString() !== user.squadron.squadronId.toString()) {
       return NextResponse.json(
         { error: 'El usuario no pertenece a tu escudería' },
         { status: 400 }
@@ -76,7 +78,7 @@ export async function POST(
 
     // Find squadron participation
     const participation = event.participants.find(
-      (p: any) => p.squadronId.toString() === user.currentSquadron._id.toString()
+      (p: any) => p.squadronId.toString() === user.squadron.squadronId.toString()
     );
 
     if (!participation) {
@@ -141,15 +143,35 @@ export async function POST(
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 2);
 
-    participation.pendingInvitations.push({
+    const newInvitation = {
       pilotId: teammate._id,
-      kartNumber: kartNumber,
+      kartNumber: Number(kartNumber),
       invitedAt: new Date(),
       expiresAt,
       status: 'pending',
-    });
+    };
+    console.log('📝 Creating invitation object:', newInvitation);
 
-    await event.save();
+    // Use MongoDB's $push operator directly to ensure proper saving
+    const updateResult = await SquadronEvent.updateOne(
+      {
+        _id: params.id,
+        'participants.squadronId': user.squadron.squadronId
+      },
+      {
+        $push: {
+          'participants.$.pendingInvitations': newInvitation
+        }
+      }
+    );
+    console.log('✅ Update result:', updateResult);
+
+    // Verify after save
+    const savedEvent = await SquadronEvent.findById(params.id);
+    const savedParticipation = savedEvent?.participants.find(
+      (p: any) => p.squadronId.toString() === user.squadron.squadronId.toString()
+    );
+    console.log('🔍 After save verification:', JSON.stringify(savedParticipation?.pendingInvitations.slice(-1), null, 2));
 
     return NextResponse.json({
       success: true,
