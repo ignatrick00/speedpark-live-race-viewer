@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import { EventCategoryConfig } from '@/types/squadron-events';
+import { useRouter } from 'next/navigation';
 
 type ViewMode = 'selection' | 'championships' | 'friendly-join' | 'friendly-create';
 
@@ -269,7 +271,28 @@ function ChampionshipsView({
   isLoading: boolean;
   onRefresh: () => void;
 }) {
-  if (isLoading) {
+  const [squadronEvents, setSquadronEvents] = useState<any[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchSquadronEvents();
+  }, []);
+
+  const fetchSquadronEvents = async () => {
+    try {
+      const response = await fetch('/api/squadron-events');
+      if (response.ok) {
+        const data = await response.json();
+        setSquadronEvents(data.events || []);
+      }
+    } catch (error) {
+      console.error('Error fetching squadron events:', error);
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  if (eventsLoading) {
     return (
       <div className="text-center py-20">
         <div className="animate-spin text-6xl mb-4">🏁</div>
@@ -278,7 +301,7 @@ function ChampionshipsView({
     );
   }
 
-  if (races.length === 0) {
+  if (squadronEvents.length === 0) {
     return (
       <div className="bg-gradient-to-br from-midnight via-cyan-500/10 to-midnight border-2 border-cyan-400/50 rounded-xl p-12 text-center">
         <div className="text-6xl mb-4">🏆</div>
@@ -296,9 +319,9 @@ function ChampionshipsView({
   }
 
   return (
-    <div className="space-y-4">
-      {races.map((race) => (
-        <RaceCard key={race._id} race={race} />
+    <div className="space-y-6">
+      {squadronEvents.map((event) => (
+        <SquadronEventCard key={event._id} event={event} />
       ))}
     </div>
   );
@@ -1130,6 +1153,77 @@ function RaceCard({
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Component for displaying squadron events
+function SquadronEventCard({ event }: { event: any }) {
+  const categoryConfig = EventCategoryConfig[event.category as EventCategory];
+  const router = useRouter();
+
+  const handleClick = () => {
+    router.push(`/organizador/evento/${event._id}`);
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      className="bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-sm border-2 border-slate-700/50 rounded-xl p-6 hover:border-electric-blue/50 transition-all cursor-pointer hover:scale-[1.02] shadow-lg hover:shadow-electric-blue/20"
+    >
+      {/* Category Badge */}
+      <div className={`inline-block px-4 py-1 rounded-full bg-gradient-to-r ${categoryConfig.color} text-white font-racing text-sm mb-4`}>
+        {categoryConfig.name}
+      </div>
+
+      {/* Event Name */}
+      <h3 className="text-2xl font-racing text-white mb-2">{event.name}</h3>
+
+      {/* Description */}
+      {event.description && (
+        <p className="text-slate-400 mb-4">{event.description}</p>
+      )}
+
+      {/* Event Details Grid */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <p className="text-slate-500 text-sm">Fecha del Evento</p>
+          <p className="text-white font-racing">
+            {new Date(event.eventDate).toLocaleDateString('es-CL', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            })}
+          </p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-sm">Ubicación</p>
+          <p className="text-white font-racing">{event.location}</p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-sm">Escuderías Máximas</p>
+          <p className="text-white font-racing">{event.maxSquadrons}</p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-sm">Puntos al Ganador</p>
+          <p className="text-electric-blue font-racing">{event.pointsForWinner}</p>
+        </div>
+      </div>
+
+      {/* Status Badge */}
+      <div className="flex items-center gap-2">
+        <span className={`px-3 py-1 rounded-full text-xs font-racing ${
+          event.status === 'published' ? 'bg-green-600/20 text-green-400 border border-green-500/50' :
+          event.status === 'registration_open' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/50' :
+          event.status === 'completed' ? 'bg-slate-600/20 text-slate-400 border border-slate-500/50' :
+          'bg-yellow-600/20 text-yellow-400 border border-yellow-500/50'
+        }`}>
+          {event.status === 'published' ? 'Publicado' :
+           event.status === 'registration_open' ? 'Inscripciones Abiertas' :
+           event.status === 'completed' ? 'Completado' :
+           'Borrador'}
+        </span>
       </div>
     </div>
   );

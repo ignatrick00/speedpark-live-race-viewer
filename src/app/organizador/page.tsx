@@ -32,6 +32,15 @@ export default function OrganizerPage() {
     }
   }, [token]);
 
+  // Refresh when page becomes visible
+  useEffect(() => {
+    const handleFocus = () => {
+      if (token) fetchEvents();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [token]);
+
   const fetchEvents = async () => {
     try {
       const headers: HeadersInit = {

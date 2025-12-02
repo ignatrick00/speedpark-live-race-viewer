@@ -1,5 +1,6 @@
 // Categorías de eventos
 export enum EventCategory {
+  LE_MANS = 'le_mans',
   GRAND_PRIX_ELITE = 'grand_prix_elite',
   RACING_MASTERS = 'racing_masters',
   PRO_CHAMPIONSHIP = 'pro_championship',
@@ -8,6 +9,15 @@ export enum EventCategory {
 
 // Configuración de categorías
 export const EventCategoryConfig = {
+  [EventCategory.LE_MANS]: {
+    name: 'Le Mans',
+    description: 'Carrera de Resistencia - 2 horas',
+    points: 5000,
+    requiredRank: 10, // Top 10 escuderías
+    frequencyPerYear: 2,
+    mandatoryForTop: 5, // Obligatorio para Top 5
+    color: 'from-red-600 to-orange-600',
+  },
   [EventCategory.GRAND_PRIX_ELITE]: {
     name: 'Grand Prix Élite',
     description: 'División Máxima',

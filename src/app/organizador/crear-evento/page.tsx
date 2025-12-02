@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import OrganizerGuard from '@/components/OrganizerGuard';
 import Navbar from '@/components/Navbar';
+import DateTimePicker from '@/components/DateTimePicker';
 import { EventCategory, EventCategoryConfig } from '@/types/squadron-events';
 
 export default function CrearEventoPage() {
@@ -56,7 +57,9 @@ export default function CrearEventoPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Redirigir y forzar refresh
         router.push('/organizador');
+        router.refresh();
       } else {
         setError(data.error || 'Error al crear evento');
       }
@@ -218,27 +221,20 @@ export default function CrearEventoPage() {
               <h3 className="text-purple-400 font-bold mb-4">Fechas</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-400 mb-2">Fecha del Evento *</label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={formData.eventDate}
-                    onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
-                    className="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg focus:border-purple-400 focus:outline-none text-white"
-                  />
-                </div>
+                <DateTimePicker
+                  label="Fecha del Evento"
+                  value={formData.eventDate}
+                  onChange={(value) => setFormData({ ...formData, eventDate: value })}
+                  required
+                />
 
-                <div>
-                  <label className="block text-gray-400 mb-2">Cierre de Inscripciones *</label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={formData.registrationDeadline}
-                    onChange={(e) => setFormData({ ...formData, registrationDeadline: e.target.value })}
-                    className="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg focus:border-purple-400 focus:outline-none text-white"
-                  />
-                </div>
+                <DateTimePicker
+                  label="Cierre de Inscripciones"
+                  value={formData.registrationDeadline}
+                  onChange={(value) => setFormData({ ...formData, registrationDeadline: value })}
+                  required
+                  minDate={formData.eventDate}
+                />
               </div>
             </div>
 
