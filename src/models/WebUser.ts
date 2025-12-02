@@ -45,7 +45,7 @@ export interface IWebUser extends Document {
   }>;
 
   // Role system
-  role: 'user' | 'organizer' | 'admin';
+  role: 'user' | 'organizer' | 'admin' | 'coach';
 
   // Organizer permissions (only if role is 'organizer' or 'admin')
   organizerProfile?: {
@@ -196,7 +196,7 @@ const WebUserSchema: Schema = new Schema({
   // Role system
   role: {
     type: String,
-    enum: ['user', 'organizer', 'admin'],
+    enum: ['user', 'organizer', 'admin', 'coach'],
     default: 'user',
   },
 
