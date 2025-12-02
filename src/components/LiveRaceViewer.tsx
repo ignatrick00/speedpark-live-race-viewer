@@ -11,6 +11,7 @@ import TopDriversWeek from '@/components/TopDriversWeek'
 import TopDriversMonth from '@/components/TopDriversMonth'
 import TopDriversAllTime from '@/components/TopDriversAllTime'
 import KartRecordsSelector from '@/components/KartRecordsSelector'
+import RaceBrowser from '@/components/RaceBrowser'
 
 interface Driver {
   pos: number
@@ -744,6 +745,11 @@ export default function LiveRaceViewer() {
         {/* Kart Records Section */}
         <section className="mt-12">
           <KartRecordsSelector />
+        </section>
+
+        {/* Race Browser Section */}
+        <section className="mt-12">
+          <RaceBrowser />
         </section>
       </div>
 
