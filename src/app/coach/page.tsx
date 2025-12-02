@@ -1,21 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 
 export default function CoachPage() {
-  const { user, token, isCoach, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && !token) {
-      router.push('/login');
-    } else if (!isLoading && !isCoach) {
-      router.push('/');
-    }
-  }, [isLoading, token, isCoach, router]);
+  const { user, isCoach, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -32,7 +21,26 @@ export default function CoachPage() {
   }
 
   if (!isCoach) {
-    return null;
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-gradient-to-br from-midnight via-racing-black to-midnight flex items-center justify-center">
+          <div className="max-w-md mx-auto text-center p-8">
+            <div className="text-6xl mb-4">🔒</div>
+            <h1 className="text-3xl font-racing text-gold mb-4">ACCESO RESTRINGIDO</h1>
+            <p className="text-sky-blue/70 mb-6">
+              Esta página es solo para usuarios con rol de Coach.
+            </p>
+            <a
+              href="/"
+              className="inline-block px-6 py-3 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded-lg hover:bg-electric-blue/30 transition-all font-racing"
+            >
+              VOLVER AL INICIO
+            </a>
+          </div>
+        </div>
+      </>
+    );
   }
 
   return (
