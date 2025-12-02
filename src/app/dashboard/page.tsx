@@ -11,8 +11,10 @@ import LapProgressionChart from '@/components/LapProgressionChart';
 import LinkDriverModal from '@/components/LinkDriverModal';
 import LeaderboardCard from '@/components/LeaderboardCard';
 import TrackRecordsCard from '@/components/TrackRecordsCard';
-import BestTimesCard from '@/components/BestTimesCard';
-import AllKartsRankingCard from '@/components/AllKartsRankingCard';
+import TopDriversDay from '@/components/TopDriversDay';
+import TopDriversWeek from '@/components/TopDriversWeek';
+import TopDriversMonth from '@/components/TopDriversMonth';
+import TopDriversAllTime from '@/components/TopDriversAllTime';
 import DashboardHeader from '@/components/DashboardHeader';
 
 export interface PersonalStats {
@@ -745,11 +747,13 @@ export default function DashboardPage() {
                 {/* Track Records - Full Width */}
                 <TrackRecordsCard />
 
-                {/* Best Driver Times with Filters */}
-                <BestTimesCard />
-
-                {/* All Karts Ranking with Filters */}
-                <AllKartsRankingCard />
+                {/* Top Drivers Rankings - Grid Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <TopDriversDay />
+                  <TopDriversWeek />
+                  <TopDriversMonth />
+                  <TopDriversAllTime />
+                </div>
               </div>
 
               {/* Right Column - Additional Stats */}

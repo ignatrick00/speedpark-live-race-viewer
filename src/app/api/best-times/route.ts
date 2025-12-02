@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🏆 GET /api/best-times - SUPER FAST VERSION - START');
 
-    // Get filter parameter (day, week, month)
+    // Get filter parameter (day, week, month, alltime)
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get('filter') || 'week';
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate date filter
     const now = new Date();
-    let dateFilter: Date;
+    let dateFilter: Date | null = null;
 
     switch (filter) {
       case 'day':
@@ -30,14 +30,16 @@ export async function GET(request: NextRequest) {
       case 'month':
         dateFilter = new Date(now.setMonth(now.getMonth() - 1)); // 1 month ago
         break;
+      case 'alltime':
+        dateFilter = null; // No filter - all time
+        break;
       default:
         dateFilter = new Date(now.setDate(now.getDate() - 7)); // Default to week
     }
 
-    // Query with date filter
-    const records = await BestDriverTime.find({
-      sessionDate: { $gte: dateFilter }
-    }).sort({ bestTime: 1 }).limit(10);
+    // Query with date filter (if applicable)
+    const query = dateFilter ? { sessionDate: { $gte: dateFilter } } : {};
+    const records = await BestDriverTime.find(query).sort({ bestTime: 1 }).limit(10);
     
     // New format (for new components)
     const bestTimes = records.map((record, index) => ({
