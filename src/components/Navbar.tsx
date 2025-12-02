@@ -59,7 +59,7 @@ export default function Navbar() {
                 <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Rankings
                 </a>
-                <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                <a href="/races" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Carreras
                 </a>
               </div>
@@ -165,7 +165,7 @@ export default function Navbar() {
                 <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Rankings
                 </a>
-                <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                <a href="/races" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Carreras
                 </a>
               </div>
