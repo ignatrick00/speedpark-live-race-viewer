@@ -221,14 +221,14 @@ export default function ClasesPage() {
   }
 
   const getSlotStatus = (bloque: ClaseBloque) => {
-    if (bloque.individualBooking?.isBooked) {
+    if (bloque.individualBooking?.isBooked && bloque.individualBooking?.studentName) {
       return {
         type: 'individual' as const,
         status: 'occupied',
         message: `Reservado por ${bloque.individualBooking.studentName}`,
         color: 'text-red-400'
       }
-    } else if (bloque.groupBookings.length > 0) {
+    } else if (bloque.groupBookings && bloque.groupBookings.length > 0) {
       return {
         type: 'group' as const,
         status: 'partial',
