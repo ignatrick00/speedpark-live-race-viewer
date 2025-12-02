@@ -17,6 +17,8 @@ export default function CrearEventoPage() {
     description: '',
     category: EventCategory.OPEN_SERIES,
     eventDate: '',
+    eventTime: '19:00',
+    duration: 90,
     registrationDeadline: '',
     location: 'SpeedPark',
     maxSquadrons: 20,
@@ -218,7 +220,7 @@ export default function CrearEventoPage() {
 
             {/* Dates */}
             <div className="bg-purple-500/5 border border-purple-500/20 rounded-2xl p-6 space-y-4">
-              <h3 className="text-purple-400 font-bold mb-4">Fechas</h3>
+              <h3 className="text-purple-400 font-bold mb-4">Fechas y Horarios</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DateTimePicker
@@ -235,6 +237,37 @@ export default function CrearEventoPage() {
                   required
                   minDate={formData.eventDate}
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-gray-400 mb-2">Hora del Evento *</label>
+                  <input
+                    type="time"
+                    required
+                    value={formData.eventTime}
+                    onChange={(e) => setFormData({ ...formData, eventTime: e.target.value })}
+                    className="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg focus:border-purple-400 focus:outline-none text-white"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Hora de inicio del evento</p>
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 mb-2">Duración (minutos) *</label>
+                  <input
+                    type="number"
+                    required
+                    min="30"
+                    max="300"
+                    step="15"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                    className="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg focus:border-purple-400 focus:outline-none text-white"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Duración estimada: {Math.floor(formData.duration / 60)}h {formData.duration % 60}min
+                  </p>
+                </div>
               </div>
             </div>
 

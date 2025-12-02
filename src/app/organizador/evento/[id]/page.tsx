@@ -101,7 +101,7 @@ export default function EventoDetallePage() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
                 <div className="bg-black/30 p-4 rounded-lg">
                   <p className="text-xs text-gray-500 mb-1">Puntos Ganador</p>
                   <p className="text-2xl font-bold text-purple-400">{config.points}</p>
@@ -111,11 +111,19 @@ export default function EventoDetallePage() {
                   <p className="text-lg font-bold">{new Date(event.eventDate).toLocaleDateString('es-CL')}</p>
                 </div>
                 <div className="bg-black/30 p-4 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">🕐 Hora</p>
+                  <p className="text-2xl font-bold text-electric-blue">{event.eventTime || '19:00'}</p>
+                </div>
+                <div className="bg-black/30 p-4 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">⏱️ Duración</p>
+                  <p className="text-lg font-bold">{event.duration ? `${Math.floor(event.duration / 60)}h ${event.duration % 60}min` : '90min'}</p>
+                </div>
+                <div className="bg-black/30 p-4 rounded-lg">
                   <p className="text-xs text-gray-500 mb-1">Ubicación</p>
                   <p className="text-lg font-bold">{event.location}</p>
                 </div>
                 <div className="bg-black/30 p-4 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Participantes</p>
+                  <p className="text-xs text-gray-500 mb-1">Escuderías</p>
                   <p className="text-lg font-bold">{event.participants?.length || 0}/{event.maxSquadrons}</p>
                 </div>
               </div>

@@ -12,6 +12,11 @@ interface User {
     alias?: string;
     fullName?: string;
   };
+  squadron?: {
+    squadronId: string;
+    role: 'captain' | 'member';
+    joinedAt: Date;
+  };
   kartingLink: {
     personId?: string;
     linkedAt?: Date;

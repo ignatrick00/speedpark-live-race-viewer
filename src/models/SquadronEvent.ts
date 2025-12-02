@@ -15,6 +15,8 @@ export interface ISquadronEvent extends Document {
 
   // Fecha y ubicación
   eventDate: Date;
+  eventTime: string; // Hora del evento (formato HH:mm)
+  duration: number; // Duración en minutos
   registrationDeadline: Date;
   location: string;
 
@@ -34,7 +36,19 @@ export interface ISquadronEvent extends Document {
   participants: Array<{
     squadronId: mongoose.Types.ObjectId;
     registeredAt: Date;
-    confirmedPilots: mongoose.Types.ObjectId[]; // IDs de WebUsers
+    registeredBy: mongoose.Types.ObjectId; // Quien inició el registro
+    confirmedPilots: Array<{
+      pilotId: mongoose.Types.ObjectId;
+      kartNumber: number;
+      confirmedAt: Date;
+    }>; // Pilotos confirmados con sus karts
+    pendingInvitations: Array<{
+      pilotId: mongoose.Types.ObjectId;
+      kartNumber: number;
+      invitedAt: Date;
+      expiresAt: Date;
+      status: 'pending' | 'accepted' | 'expired' | 'declined';
+    }>;
     status: 'pending' | 'confirmed' | 'cancelled';
     notes?: string;
   }>;
@@ -88,6 +102,16 @@ const SquadronEventSchema: Schema = new Schema({
     type: Date,
     required: true,
   },
+  eventTime: {
+    type: String,
+    required: true,
+    default: '19:00',
+  },
+  duration: {
+    type: Number,
+    required: true,
+    default: 90, // 90 minutos por defecto
+  },
   registrationDeadline: {
     type: Date,
     required: true,
@@ -136,9 +160,52 @@ const SquadronEventSchema: Schema = new Schema({
       type: Date,
       default: Date.now,
     },
-    confirmedPilots: [{
+    registeredBy: {
       type: Schema.Types.ObjectId,
       ref: 'WebUser',
+      required: true,
+    },
+    confirmedPilots: [{
+      pilotId: {
+        type: Schema.Types.ObjectId,
+        ref: 'WebUser',
+        required: true,
+      },
+      kartNumber: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 20,
+      },
+      confirmedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
+    pendingInvitations: [{
+      pilotId: {
+        type: Schema.Types.ObjectId,
+        ref: 'WebUser',
+        required: true,
+      kartNumber: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 20,
+      },      },
+      invitedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      expiresAt: {
+        type: Date,
+        required: true,
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'accepted', 'expired', 'declined'],
+        default: 'pending',
+      },
     }],
     status: {
       type: String,

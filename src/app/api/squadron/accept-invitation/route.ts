@@ -133,6 +133,7 @@ export async function POST(req: NextRequest) {
     user.squadron.squadronId = squadron._id;
     user.squadron.role = 'member';
     user.squadron.joinedAt = new Date();
+    user.currentSquadron = squadron._id; // IMPORTANTE: Actualizar currentSquadron también
 
     // Marcar invitación como aceptada
     invitation.status = 'accepted';

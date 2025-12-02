@@ -54,6 +54,8 @@ export default function SquadronDashboard() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [invitationsCount, setInvitationsCount] = useState(0);
   const [showInvitations, setShowInvitations] = useState(false);
+  const [eventInvitations, setEventInvitations] = useState<any[]>([]);
+  const [eventInvitationsLoading, setEventInvitationsLoading] = useState(true);
 
   useEffect(() => {
     if (authLoading) return;
@@ -63,6 +65,7 @@ export default function SquadronDashboard() {
     }
     fetchMySquadron();
     fetchInvitationsCount();
+    fetchEventInvitations();
   }, [user, token, authLoading]);
 
   const fetchInvitationsCount = async () => {
@@ -97,6 +100,48 @@ export default function SquadronDashboard() {
       console.error('Error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchEventInvitations = async () => {
+    if (!token) return;
+    try {
+      setEventInvitationsLoading(true);
+      const response = await fetch('/api/squadron-events/my-invitations', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setEventInvitations(data.invitations || []);
+      }
+    } catch (error) {
+      console.error('Error fetching event invitations:', error);
+    } finally {
+      setEventInvitationsLoading(false);
+    }
+  };
+
+  const handleEventInvitationResponse = async (invitationId: string, eventId: string, action: 'accept' | 'decline') => {
+    try {
+      const response = await fetch(`/api/squadron-events/${eventId}/respond-invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ invitationId, action }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert(action === 'accept' ? '¡Te has unido al evento!' : 'Invitación rechazada');
+        fetchEventInvitations(); // Refresh event invitations
+      } else {
+        alert(data.error || 'Error al procesar la invitación');
+      }
+    } catch (error) {
+      console.error('Error responding to invitation:', error);
+      alert('Error al procesar la invitación');
     }
   };
 
@@ -215,13 +260,118 @@ export default function SquadronDashboard() {
               </div>
             </div>
           ) : squadron ? (
-            <SquadronDashboardView
-              squadron={squadron}
-              isCaptain={isCaptain}
-              onLeave={() => fetchMySquadron()}
-              onTransferCaptain={() => fetchMySquadron()}
-              token={token || ''}
-            />
+            <>
+              {/* Event Invitations Section */}
+              {!eventInvitationsLoading && eventInvitations.length > 0 && (
+                <div className="bg-gradient-to-br from-purple-900/40 via-purple-800/30 to-purple-900/40 border-2 border-purple-500/50 rounded-xl p-6 mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-3xl">🏆</span>
+                    <h2 className="text-2xl font-racing text-purple-400">
+                      INVITACIONES A EVENTOS DE CAMPEONATO
+                    </h2>
+                    <span className="px-3 py-1 bg-purple-500/30 border border-purple-400/50 text-purple-300 rounded-full text-sm font-racing">
+                      {eventInvitations.length}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {eventInvitations.map((invitation) => (
+                      <div
+                        key={invitation.invitationId}
+                        className="bg-midnight/50 border border-purple-500/30 rounded-lg p-4 hover:border-purple-400/50 transition-all"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-lg font-racing text-white">
+                                {invitation.eventName}
+                              </h3>
+                              <span className="px-2 py-0.5 bg-gold/20 border border-gold/50 text-gold rounded text-xs font-racing">
+                                KART #{invitation.kartNumber}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <p className="text-sky-blue/50">📍 Ubicación:</p>
+                                <p className="text-sky-blue font-medium">
+                                  {invitation.location || 'SpeedPark'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sky-blue/50">🏁 Escudería:</p>
+                                <p className="text-sky-blue font-medium">
+                                  {invitation.squadron?.name || 'N/A'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sky-blue/50">📅 Fecha:</p>
+                                <p className="text-sky-blue font-digital">
+                                  {new Date(invitation.eventDate).toLocaleDateString('es-CL', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                  })}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sky-blue/50">🕐 Hora:</p>
+                                <p className="text-sky-blue font-digital text-lg font-bold">
+                                  {invitation.eventTime || '19:00'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sky-blue/50">⏱️ Duración:</p>
+                                <p className="text-sky-blue font-digital">
+                                  {invitation.duration ? `${Math.floor(invitation.duration / 60)}h ${invitation.duration % 60}min` : '90min'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sky-blue/50">👤 Invitado por:</p>
+                                <p className="text-sky-blue">
+                                  {invitation.invitedBy?.profile?.alias ||
+                                   `${invitation.invitedBy?.profile?.firstName} ${invitation.invitedBy?.profile?.lastName}` ||
+                                   invitation.invitedBy?.email}
+                                </p>
+                              </div>
+                              <div className="col-span-2">
+                                <p className="text-sky-blue/50">⏰ Expira en:</p>
+                                <p className="text-red-400 font-digital text-lg font-bold">
+                                  {Math.max(0, Math.floor((new Date(invitation.expiresAt).getTime() - Date.now()) / (1000 * 60)))} minutos
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEventInvitationResponse(invitation.invitationId, invitation.eventId, 'accept')}
+                              className="px-4 py-2 bg-green-600/20 border border-green-500/50 text-green-400 rounded-lg hover:bg-green-600/30 transition-all font-racing"
+                            >
+                              ✓ ACEPTAR
+                            </button>
+                            <button
+                              onClick={() => handleEventInvitationResponse(invitation.invitationId, invitation.eventId, 'decline')}
+                              className="px-4 py-2 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
+                            >
+                              ✕ RECHAZAR
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <SquadronDashboardView
+                squadron={squadron}
+                isCaptain={isCaptain}
+                onLeave={() => fetchMySquadron()}
+                onTransferCaptain={() => fetchMySquadron()}
+                token={token || ''}
+              />
+            </>
           ) : null}
         </div>
       </div>

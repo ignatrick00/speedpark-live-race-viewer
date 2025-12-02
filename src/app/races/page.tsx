@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { EventCategoryConfig } from '@/types/squadron-events';
 import { useRouter } from 'next/navigation';
+import JoinEventModal from '@/components/JoinEventModal';
 
 type ViewMode = 'selection' | 'championships' | 'friendly-join' | 'friendly-create';
 
@@ -35,6 +36,8 @@ export default function RacesPage() {
   const [championshipRaces, setChampionshipRaces] = useState<Race[]>([]);
   const [friendlyRaces, setFriendlyRaces] = useState<Race[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [invitations, setInvitations] = useState<any[]>([]);
+  const [invitationsLoading, setInvitationsLoading] = useState(true);
 
   useEffect(() => {
     console.log('🔄 ViewMode changed to:', viewMode);
@@ -43,6 +46,7 @@ export default function RacesPage() {
   useEffect(() => {
     if (token) {
       fetchRaces();
+      fetchInvitations();
     }
   }, [token]);
 
@@ -69,6 +73,47 @@ export default function RacesPage() {
     }
   };
 
+  const fetchInvitations = async () => {
+    try {
+      setInvitationsLoading(true);
+      const response = await fetch('/api/squadron-events/my-invitations', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setInvitations(data.invitations || []);
+      }
+    } catch (error) {
+      console.error('Error fetching invitations:', error);
+    } finally {
+      setInvitationsLoading(false);
+    }
+  };
+
+  const handleInvitationResponse = async (invitationId: string, eventId: string, action: 'accept' | 'decline') => {
+    try {
+      const response = await fetch(`/api/squadron-events/${eventId}/respond-invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ invitationId, action }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert(action === 'accept' ? '¡Te has unido al evento!' : 'Invitación rechazada');
+        fetchInvitations(); // Refresh invitations
+      } else {
+        alert(data.error || 'Error al procesar la invitación');
+      }
+    } catch (error) {
+      console.error('Error responding to invitation:', error);
+      alert('Error al procesar la invitación');
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -91,6 +136,109 @@ export default function RacesPage() {
               ← VOLVER
             </button>
           </div>
+
+          {/* Invitations Section */}
+          {!invitationsLoading && invitations.length > 0 && (
+            <div className="bg-gradient-to-br from-purple-900/40 via-purple-800/30 to-purple-900/40 border-2 border-purple-500/50 rounded-xl p-6 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-3xl">📨</span>
+                <h2 className="text-2xl font-racing text-purple-400">
+                  INVITACIONES PENDIENTES
+                </h2>
+                <span className="px-3 py-1 bg-purple-500/30 border border-purple-400/50 text-purple-300 rounded-full text-sm font-racing">
+                  {invitations.length}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {invitations.map((invitation) => (
+                  <div
+                    key={invitation.invitationId}
+                    className="bg-midnight/50 border border-purple-500/30 rounded-lg p-4 hover:border-purple-400/50 transition-all"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-racing text-white">
+                            {invitation.eventName}
+                          </h3>
+                          <span className="px-2 py-0.5 bg-gold/20 border border-gold/50 text-gold rounded text-xs font-racing">
+                            KART #{invitation.kartNumber}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-sky-blue/50">📍 Ubicación:</p>
+                            <p className="text-sky-blue font-medium">
+                              {invitation.location || 'SpeedPark'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sky-blue/50">🏁 Escudería:</p>
+                            <p className="text-sky-blue font-medium">
+                              {invitation.squadron?.name || 'N/A'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sky-blue/50">📅 Fecha:</p>
+                            <p className="text-sky-blue font-digital">
+                              {new Date(invitation.eventDate).toLocaleDateString('es-CL', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sky-blue/50">🕐 Hora:</p>
+                            <p className="text-sky-blue font-digital text-lg font-bold">
+                              {invitation.eventTime || '19:00'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sky-blue/50">⏱️ Duración:</p>
+                            <p className="text-sky-blue font-digital">
+                              {invitation.duration ? `${Math.floor(invitation.duration / 60)}h ${invitation.duration % 60}min` : '90min'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sky-blue/50">👤 Invitado por:</p>
+                            <p className="text-sky-blue">
+                              {invitation.invitedBy?.profile?.alias ||
+                               `${invitation.invitedBy?.profile?.firstName} ${invitation.invitedBy?.profile?.lastName}` ||
+                               invitation.invitedBy?.email}
+                            </p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-sky-blue/50">⏰ Expira en:</p>
+                            <p className="text-red-400 font-digital text-lg font-bold">
+                              {Math.max(0, Math.floor((new Date(invitation.expiresAt).getTime() - Date.now()) / (1000 * 60)))} minutos
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleInvitationResponse(invitation.invitationId, invitation.eventId, 'accept')}
+                          className="px-4 py-2 bg-green-600/20 border border-green-500/50 text-green-400 rounded-lg hover:bg-green-600/30 transition-all font-racing"
+                        >
+                          ✓ ACEPTAR
+                        </button>
+                        <button
+                          onClick={() => handleInvitationResponse(invitation.invitationId, invitation.eventId, 'decline')}
+                          className="px-4 py-2 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
+                        >
+                          ✕ RECHAZAR
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
       {/* Content */}
@@ -1162,16 +1310,36 @@ function RaceCard({
 function SquadronEventCard({ event }: { event: any }) {
   const categoryConfig = EventCategoryConfig[event.category as EventCategory];
   const router = useRouter();
+  const { user } = useAuth();
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
-  const handleClick = () => {
-    router.push(`/organizador/evento/${event._id}`);
+  const isOrganizer = user?.email === 'icabreraquezada@gmail.com';
+  const userSquadronId = (user as any)?.squadron?.squadronId;
+  const isRegistered = userSquadronId && event.participants?.some(
+    (p: any) => p.squadronId?._id?.toString() === userSquadronId?.toString() || p.squadronId?.toString() === userSquadronId?.toString()
+  );
+
+  const handleCardClick = () => {
+    if (isOrganizer) {
+      router.push(`/organizador/evento/${event._id}`);
+    } else if (isRegistered) {
+      router.push(`/evento/${event._id}`);
+    }
+  };
+
+  const handleJoinClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowJoinModal(true);
   };
 
   return (
-    <div
-      onClick={handleClick}
-      className="bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-sm border-2 border-slate-700/50 rounded-xl p-6 hover:border-electric-blue/50 transition-all cursor-pointer hover:scale-[1.02] shadow-lg hover:shadow-electric-blue/20"
-    >
+    <>
+      <div
+        onClick={handleCardClick}
+        className={`bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-sm border-2 border-slate-700/50 rounded-xl p-6 hover:border-electric-blue/50 transition-all shadow-lg hover:shadow-electric-blue/20 ${
+          (isOrganizer || isRegistered) ? 'cursor-pointer hover:scale-[1.02]' : ''
+        }`}
+      >
       {/* Category Badge */}
       <div className={`inline-block px-4 py-1 rounded-full bg-gradient-to-r ${categoryConfig.color} text-white font-racing text-sm mb-4`}>
         {categoryConfig.name}
@@ -1188,7 +1356,7 @@ function SquadronEventCard({ event }: { event: any }) {
       {/* Event Details Grid */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
-          <p className="text-slate-500 text-sm">Fecha del Evento</p>
+          <p className="text-slate-500 text-sm">📅 Fecha</p>
           <p className="text-white font-racing">
             {new Date(event.eventDate).toLocaleDateString('es-CL', {
               day: '2-digit',
@@ -1198,21 +1366,31 @@ function SquadronEventCard({ event }: { event: any }) {
           </p>
         </div>
         <div>
-          <p className="text-slate-500 text-sm">Ubicación</p>
+          <p className="text-slate-500 text-sm">🕐 Hora</p>
+          <p className="text-electric-blue font-racing text-2xl">{event.eventTime || '19:00'}</p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-sm">⏱️ Duración</p>
+          <p className="text-white font-racing">
+            {event.duration ? `${Math.floor(event.duration / 60)}h ${event.duration % 60}min` : '90min'}
+          </p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-sm">📍 Ubicación</p>
           <p className="text-white font-racing">{event.location}</p>
         </div>
         <div>
-          <p className="text-slate-500 text-sm">Escuderías Máximas</p>
-          <p className="text-white font-racing">{event.maxSquadrons}</p>
+          <p className="text-slate-500 text-sm">🏁 Escuderías</p>
+          <p className="text-white font-racing">{event.participants?.length || 0}/{event.maxSquadrons}</p>
         </div>
         <div>
-          <p className="text-slate-500 text-sm">Puntos al Ganador</p>
+          <p className="text-slate-500 text-sm">🏆 Puntos Ganador</p>
           <p className="text-electric-blue font-racing">{event.pointsForWinner}</p>
         </div>
       </div>
 
-      {/* Status Badge */}
-      <div className="flex items-center gap-2">
+      {/* Status and Join Button */}
+      <div className="flex items-center justify-between gap-2">
         <span className={`px-3 py-1 rounded-full text-xs font-racing ${
           event.status === 'published' ? 'bg-green-600/20 text-green-400 border border-green-500/50' :
           event.status === 'registration_open' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/50' :
@@ -1224,7 +1402,35 @@ function SquadronEventCard({ event }: { event: any }) {
            event.status === 'completed' ? 'Completado' :
            'Borrador'}
         </span>
+
+        {/* Join/Registered Button - Only for non-organizers */}
+        {!isOrganizer && (event.status === 'published' || event.status === 'registration_open') && (
+          <button
+            onClick={handleJoinClick}
+            disabled={isRegistered}
+            className={`px-4 py-2 rounded-lg font-racing transition-all ${
+              isRegistered
+                ? 'bg-green-600/20 border border-green-500/50 text-green-400 cursor-default'
+                : 'bg-purple-500/20 border border-purple-500/50 text-purple-400 hover:bg-purple-500/30'
+            }`}
+          >
+            {isRegistered ? '✓ REGISTRADO' : '🏆 UNIRSE'}
+          </button>
+        )}
       </div>
     </div>
+
+    {/* Join Modal */}
+    {showJoinModal && (
+      <JoinEventModal
+        event={event}
+        onClose={() => setShowJoinModal(false)}
+        onSuccess={() => {
+          setShowJoinModal(false);
+          window.location.reload(); // Refresh to show updated registration
+        }}
+      />
+    )}
+    </>
   );
 }

@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
       description,
       category,
       eventDate,
+      eventTime,
+      duration,
       registrationDeadline,
       location,
       maxSquadrons,
@@ -110,9 +112,9 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!name || !category || !eventDate || !registrationDeadline) {
+    if (!name || !category || !eventDate || !eventTime || !duration || !registrationDeadline) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos' },
+        { error: 'Faltan campos requeridos (nombre, categoría, fecha, hora, duración, cierre inscripciones)' },
         { status: 400 }
       );
     }
@@ -123,6 +125,8 @@ export async function POST(request: NextRequest) {
       description,
       category,
       eventDate: new Date(eventDate),
+      eventTime: eventTime || '19:00',
+      duration: duration || 90,
       registrationDeadline: new Date(registrationDeadline),
       location: location || 'SpeedPark',
       maxSquadrons: maxSquadrons || 20,
