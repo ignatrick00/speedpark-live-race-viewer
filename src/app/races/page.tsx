@@ -1320,10 +1320,13 @@ function SquadronEventCard({ event }: { event: any }) {
   );
 
   const handleCardClick = () => {
-    if (isOrganizer) {
-      router.push(`/organizador/evento/${event._id}`);
-    } else if (isRegistered) {
+    // If registered, go to event page
+    if (isRegistered) {
       router.push(`/evento/${event._id}`);
+    }
+    // If organizer but not registered, don't navigate (let them click join button)
+    else if (isOrganizer) {
+      router.push(`/organizador/evento/${event._id}`);
     }
   };
 
@@ -1403,8 +1406,8 @@ function SquadronEventCard({ event }: { event: any }) {
            'Borrador'}
         </span>
 
-        {/* Join/Registered Button - Only for non-organizers */}
-        {!isOrganizer && (event.status === 'published' || event.status === 'registration_open') && (
+        {/* Join/Registered Button - Available for everyone including organizers */}
+        {(event.status === 'published' || event.status === 'registration_open') && (
           <button
             onClick={handleJoinClick}
             disabled={isRegistered}

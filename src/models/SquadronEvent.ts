@@ -187,12 +187,13 @@ const SquadronEventSchema: Schema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'WebUser',
         required: true,
+      },
       kartNumber: {
         type: Number,
         required: true,
         min: 1,
         max: 20,
-      },      },
+      },
       invitedAt: {
         type: Date,
         default: Date.now,

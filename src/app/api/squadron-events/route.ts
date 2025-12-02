@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import SquadronEvent from '@/models/SquadronEvent';
 import WebUser from '@/models/WebUser';
+import '@/models/Squadron'; // Import to register the Squadron model with Mongoose
 
 // GET - List all events (public can see published events, organizers can see all their events)
 export async function GET(request: NextRequest) {
@@ -51,10 +52,12 @@ export async function GET(request: NextRequest) {
       events,
     });
 
-  } catch (error) {
-    console.error('Error fetching events:', error);
+  } catch (error: any) {
+    console.error('❌ Error fetching events:', error);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
     return NextResponse.json(
-      { error: 'Error al obtener eventos' },
+      { error: 'Error al obtener eventos', details: error.message },
       { status: 500 }
     );
   }
@@ -115,6 +118,17 @@ export async function POST(request: NextRequest) {
     if (!name || !category || !eventDate || !eventTime || !duration || !registrationDeadline) {
       return NextResponse.json(
         { error: 'Faltan campos requeridos (nombre, categoría, fecha, hora, duración, cierre inscripciones)' },
+        { status: 400 }
+      );
+    }
+
+    // Validate that registration deadline is before event date
+    const eventDateObj = new Date(eventDate);
+    const registrationDeadlineObj = new Date(registrationDeadline);
+
+    if (registrationDeadlineObj >= eventDateObj) {
+      return NextResponse.json(
+        { error: 'El cierre de inscripciones debe ser ANTES de la fecha del evento' },
         { status: 400 }
       );
     }

@@ -20,12 +20,47 @@ export default function EventoPage() {
   const [showKartModal, setShowKartModal] = useState(false);
   const [selectedKart, setSelectedKart] = useState<number | null>(null);
   const [occupiedKarts, setOccupiedKarts] = useState<number[]>([]);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   useEffect(() => {
     if (token && params.id) {
       fetchEvent();
     }
   }, [token, params.id]);
+
+  // Countdown timer for registration deadline
+  useEffect(() => {
+    if (!event?.registrationDeadline) return;
+
+    const calculateTimeRemaining = () => {
+      const now = new Date().getTime();
+      const deadline = new Date(event.registrationDeadline).getTime();
+      const distance = deadline - now;
+
+      if (distance < 0) {
+        setTimeRemaining('Inscripciones cerradas');
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h ${minutes}m`);
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
+      } else {
+        setTimeRemaining(`${minutes}m ${seconds}s`);
+      }
+    };
+
+    calculateTimeRemaining();
+    const interval = setInterval(calculateTimeRemaining, 1000);
+
+    return () => clearInterval(interval);
+  }, [event]);
 
   const fetchEvent = async () => {
     try {
@@ -207,6 +242,27 @@ export default function EventoPage() {
                 {myParticipation ? '✓ REGISTRADO' : event.status}
               </span>
             </div>
+
+            {/* Registration Deadline Timer */}
+            {!myParticipation && timeRemaining && (
+              <div className={`mt-6 p-4 rounded-xl border-2 ${
+                timeRemaining === 'Inscripciones cerradas'
+                  ? 'bg-red-900/20 border-red-500'
+                  : 'bg-yellow-900/20 border-yellow-500 animate-pulse'
+              }`}>
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-3xl">⏰</span>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase">Cierre de Inscripciones</p>
+                    <p className={`text-2xl font-racing font-bold ${
+                      timeRemaining === 'Inscripciones cerradas' ? 'text-red-400' : 'text-yellow-400'
+                    }`}>
+                      {timeRemaining}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
               <div className="bg-black/30 p-4 rounded-lg">

@@ -17,7 +17,6 @@ export default function CrearEventoPage() {
     description: '',
     category: EventCategory.OPEN_SERIES,
     eventDate: '',
-    eventTime: '19:00',
     duration: 90,
     registrationDeadline: '',
     location: 'SpeedPark',
@@ -35,6 +34,19 @@ export default function CrearEventoPage() {
     setError(null);
 
     try {
+      // Validar que el cierre de inscripciones sea antes de la fecha del evento
+      const eventDate = new Date(formData.eventDate);
+      const registrationDeadline = new Date(formData.registrationDeadline);
+
+      if (registrationDeadline >= eventDate) {
+        setError('El cierre de inscripciones debe ser ANTES de la fecha del evento');
+        setLoading(false);
+        return;
+      }
+
+      // Extraer la hora del eventDate
+      const eventTime = `${String(eventDate.getHours()).padStart(2, '0')}:${String(eventDate.getMinutes()).padStart(2, '0')}`;
+
       const config = EventCategoryConfig[formData.category as EventCategory];
 
       // Generar distribución de puntos automáticamente
@@ -51,6 +63,7 @@ export default function CrearEventoPage() {
         },
         body: JSON.stringify({
           ...formData,
+          eventTime, // Extraído del eventDate
           pointsForWinner: config.points,
           pointsDistribution,
         }),
@@ -235,23 +248,11 @@ export default function CrearEventoPage() {
                   value={formData.registrationDeadline}
                   onChange={(value) => setFormData({ ...formData, registrationDeadline: value })}
                   required
-                  minDate={formData.eventDate}
+                  maxDate={formData.eventDate}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-gray-400 mb-2">Hora del Evento *</label>
-                  <input
-                    type="time"
-                    required
-                    value={formData.eventTime}
-                    onChange={(e) => setFormData({ ...formData, eventTime: e.target.value })}
-                    className="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg focus:border-purple-400 focus:outline-none text-white"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Hora de inicio del evento</p>
-                </div>
-
+              <div className="grid grid-cols-1 gap-4 mt-4">
                 <div>
                   <label className="block text-gray-400 mb-2">Duración (minutos) *</label>
                   <input
