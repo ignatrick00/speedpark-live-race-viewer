@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 interface User {
   id: string;
   email: string;
+  role?: 'user' | 'organizer' | 'admin';
   profile: {
     firstName: string;
     lastName: string;
@@ -61,6 +62,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isOrganizer: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   register: (email: string, password: string, firstName: string, lastName: string, alias?: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   logout: () => void;
@@ -267,6 +269,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isLoading,
     isAuthenticated: !!user && !!token,
     isAdmin: !!user && user.email === 'icabreraquezada@gmail.com',
+    isOrganizer: !!user && (user.role === 'organizer' || user.role === 'admin' || user.email === 'icabreraquezada@gmail.com'),
     login,
     register,
     logout,

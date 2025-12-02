@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       user: {
         id: user._id,
         email: user.email,
+        role: user.role,
         profile: user.profile,
         kartingLink: user.kartingLink,
         accountStatus: user.accountStatus,
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
       },
       stats: stats || null,
       status: user.kartingLink.status,
-      message: user.kartingLink.status === 'pending_first_race' 
+      message: user.kartingLink.status === 'pending_first_race'
         ? 'Go racing to activate your statistics!'
         : user.kartingLink.status === 'linked'
         ? 'Statistics active and synced!'

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description: 'Sistema completo de karting con rankings, inscripciones y seguimiento en vivo',
   keywords: ['karting', 'racing', 'competition', 'chile', 'speedpark'],
   icons: {
-    icon: '/images/Friendly-races/ka.jpg',
+    icon: '/images/Friendly-races/faviiconkart.jpeg',
   },
 }
 

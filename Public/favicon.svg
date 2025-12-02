@@ -1,0 +1,29 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0066CC;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="64" height="64" rx="14" fill="url(#grad)"/>
+
+  <!-- Bold K letter centered -->
+  <text x="32" y="44" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="900" fill="#FFFFFF" text-anchor="middle">K</text>
+
+  <!-- Small racing flag in corner -->
+  <g opacity="0.8" transform="translate(45, 6)">
+    <rect x="0" y="0" width="2.5" height="2.5" fill="#FFFFFF"/>
+    <rect x="2.5" y="0" width="2.5" height="2.5" fill="#000000"/>
+    <rect x="0" y="2.5" width="2.5" height="2.5" fill="#000000"/>
+    <rect x="2.5" y="2.5" width="2.5" height="2.5" fill="#FFFFFF"/>
+    <rect x="5" y="0" width="2.5" height="2.5" fill="#FFFFFF"/>
+    <rect x="7.5" y="0" width="2.5" height="2.5" fill="#000000"/>
+    <rect x="5" y="2.5" width="2.5" height="2.5" fill="#000000"/>
+    <rect x="7.5" y="2.5" width="2.5" height="2.5" fill="#FFFFFF"/>
+    <rect x="0" y="5" width="2.5" height="2.5" fill="#FFFFFF"/>
+    <rect x="2.5" y="5" width="2.5" height="2.5" fill="#000000"/>
+  </g>
+</svg>

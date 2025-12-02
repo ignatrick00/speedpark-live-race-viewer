@@ -135,11 +135,15 @@ export class DriverRaceDataService {
       driverRecord.recalculateStats();
       
       // Save the updated driver record
+      console.log(`💾 Attempting to save ${driverName}...`);
       await driverRecord.save();
-      
-      
+      console.log(`✅ Successfully saved ${driverName} with ${driverRecord.sessions?.length || 0} sessions`);
+
+
     } catch (error) {
-      console.error(`Error processing ${driverName}:`, error);
+      console.error(`❌❌❌ CRITICAL ERROR processing ${driverName}:`, error);
+      console.error(`❌ Error message:`, error instanceof Error ? error.message : String(error));
+      console.error(`❌ Error stack:`, error instanceof Error ? error.stack : 'No stack');
     }
   }
   

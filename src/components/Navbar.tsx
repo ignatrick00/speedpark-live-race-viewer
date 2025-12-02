@@ -7,7 +7,7 @@ import RegisterModal from '@/components/auth/RegisterModal';
 import Image from 'next/image';
 
 export default function Navbar() {
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout, isLoading, isOrganizer } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -104,6 +104,17 @@ export default function Navbar() {
                     <span className="sm:hidden">🏆</span>
                     <span className="hidden sm:inline">🏆 Dashboard</span>
                   </a>
+
+                  {/* Organizer button */}
+                  {isOrganizer && (
+                    <a
+                      href="/organizador"
+                      className="px-2 sm:px-4 py-1.5 sm:py-2 text-purple-400 hover:text-white transition-all border border-purple-400/30 rounded-lg hover:bg-purple-400/10 hover:shadow-lg hover:shadow-purple-400/20 font-medium text-xs sm:text-sm"
+                    >
+                      <span className="sm:hidden">🎯</span>
+                      <span className="hidden sm:inline">🎯 Organizador</span>
+                    </a>
+                  )}
 
                   {/* Admin button */}
                   {user.email === 'icabreraquezada@gmail.com' && (
