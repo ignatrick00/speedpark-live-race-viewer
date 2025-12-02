@@ -35,6 +35,15 @@ export interface IWebUser extends Document {
     joinedAt?: Date;
   };
 
+  // Squadron invitations
+  invitations: Array<{
+    squadronId: mongoose.Types.ObjectId;
+    invitedBy: mongoose.Types.ObjectId;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: Date;
+    respondedAt?: Date;
+  }>;
+
   // Role system
   role: 'user' | 'organizer' | 'admin';
 
@@ -156,6 +165,33 @@ const WebUserSchema: Schema = new Schema({
       default: null,
     },
   },
+
+  // Squadron invitations
+  invitations: [{
+    squadronId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Squadron',
+      required: true,
+    },
+    invitedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'WebUser',
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected'],
+      default: 'pending',
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+    respondedAt: {
+      type: Date,
+      default: null,
+    },
+  }],
 
   // Role system
   role: {
