@@ -5,6 +5,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/hooks/useAuth'
 import LoginModal from '@/components/auth/LoginModal'
 import RegisterModal from '@/components/auth/RegisterModal'
+import TopDriversDaySidebar from '@/components/TopDriversDaySidebar'
 import TopDriversDay from '@/components/TopDriversDay'
 import TopDriversWeek from '@/components/TopDriversWeek'
 import TopDriversMonth from '@/components/TopDriversMonth'
@@ -577,57 +578,17 @@ export default function LiveRaceViewer() {
 
           {/* Sidebar with both sections */}
           <div className="space-y-6">
-            {/* Daily Best Times Sidebar */}
-            <section className="bg-black/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 h-fit">
-              <h3 className="font-racing text-2xl text-white mb-6 tracking-wider">
-                🥇 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white">Mejores de la Semana</span>
-              </h3>
-              
-              <div className="space-y-3">
-                {dailyBest.length > 0 ? dailyBest.map((record) => (
-                  <div 
-                    key={`${record.pos}-${record.name}`}
-                    className={`flex items-center justify-between p-3 bg-black/30 rounded-xl border-l-3 transition-all duration-300 hover:bg-blue-900/10 hover:transform hover:translate-x-1 ${
-                      record.pos === 1 ? 'border-l-yellow-400 bg-gradient-to-r from-yellow-400/10 to-black/30' :
-                      record.pos === 2 ? 'border-l-gray-300 bg-gradient-to-r from-gray-300/10 to-black/30' :
-                      record.pos === 3 ? 'border-l-orange-600 bg-gradient-to-r from-orange-600/10 to-black/30' :
-                      'border-l-blue-400'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
-                        record.pos === 1 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-black shadow-lg shadow-yellow-400/60' :
-                        record.pos === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-black shadow-lg shadow-gray-400/60' :
-                        record.pos === 3 ? 'bg-gradient-to-br from-orange-600 to-orange-800 text-white shadow-lg shadow-orange-600/60' :
-                        'bg-blue-900/30 text-white border border-cyan-400'
-                      }`}>
-                        {record.pos}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-racing text-white font-semibold uppercase tracking-wide text-sm">{record.name}</div>
-                        <div className="text-sky-400 text-xs">{record.details}</div>
-                      </div>
-                    </div>
-                    <div className="font-digital text-cyan-400 text-lg font-bold">{record.time}</div>
-                  </div>
-                )) : (
-                  <div className="text-center text-blue-300 py-4">
-                    {bestTimesError ? 'Error cargando datos' : 
-                     bestTimesLoading ? 'Cargando mejores tiempos...' : 
-                     'No hay datos disponibles'}
-                  </div>
-                )}
-              </div>
-            </section>
+            {/* Top 10 Drivers of the Day - Sidebar Version */}
+            <TopDriversDaySidebar />
 
             {/* Kart Ranking Sidebar */}
             <section className="bg-black/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 h-fit">
               <h3 className="font-racing text-2xl text-white mb-6 tracking-wider">
                 🏎️ <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white">Mejores Karts del Día</span>
               </h3>
-              
+
               <div className="space-y-3">
-                {kartRanking.length > 0 ? kartRanking.slice(0, 6).map((kart, index) => (
+                {kartRanking.length > 0 ? kartRanking.slice(0, 10).map((kart, index) => (
                   <div 
                     key={`kart-${kart.kart}`}
                     className={`flex items-center justify-between p-3 bg-black/30 rounded-xl border-l-3 transition-all duration-300 hover:bg-blue-900/10 hover:transform hover:translate-x-1 ${
