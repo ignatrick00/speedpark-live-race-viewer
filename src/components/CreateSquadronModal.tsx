@@ -57,6 +57,8 @@ export default function CreateSquadronModal({ isOpen, onClose, onSuccess, token 
     setIsLoading(true);
     setError('');
 
+    console.log('🏁 Creating squadron:', { name, description, colors: { primary: primaryColor, secondary: secondaryColor }, recruitmentMode });
+
     try {
       const response = await fetch('/api/squadron/create', {
         method: 'POST',
@@ -75,9 +77,12 @@ export default function CreateSquadronModal({ isOpen, onClose, onSuccess, token 
         }),
       });
 
+      console.log('📡 Response status:', response.status);
       const data = await response.json();
+      console.log('📦 Response data:', data);
 
       if (response.ok && data.success) {
+        console.log('✅ Squadron created successfully');
         // Resetear form
         setName('');
         setDescription('');
@@ -87,10 +92,12 @@ export default function CreateSquadronModal({ isOpen, onClose, onSuccess, token 
         onSuccess();
         onClose();
       } else {
+        console.error('❌ Error creating squadron:', data.error);
         setError(data.error || 'Error al crear la escudería');
       }
     } catch (error) {
-      setError('Error de conexión');
+      console.error('❌ Connection error:', error);
+      setError('Error de conexión: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsLoading(false);
     }

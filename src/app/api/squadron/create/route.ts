@@ -149,9 +149,17 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error('Error creating squadron:', error);
+    console.error('❌❌❌ [CREATE SQUADRON] CRITICAL ERROR:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
     return NextResponse.json(
-      { error: 'Error al crear la escudería', details: error.message },
+      {
+        success: false,
+        error: 'Error al crear la escudería',
+        details: error.message,
+        errorType: error.name
+      },
       { status: 500 }
     );
   }
