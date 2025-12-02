@@ -15,7 +15,9 @@ export async function GET(
 
     const event = await SquadronEvent.findById(params.id)
       .populate('createdBy', 'email profile')
-      .populate('participants.squadronId', 'name tag');
+      .populate('participants.squadronId', 'name tag')
+      .populate('participants.confirmedPilots.pilotId', 'email profile')
+      .populate('participants.pendingInvitations.pilotId', 'email profile');
 
     if (!event) {
       return NextResponse.json(

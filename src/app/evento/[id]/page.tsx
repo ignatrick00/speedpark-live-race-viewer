@@ -28,6 +28,24 @@ export default function EventoPage() {
     }
   }, [token, params.id]);
 
+  // Filter available teammates when myParticipation or squadron changes
+  useEffect(() => {
+    if (myParticipation && squadron) {
+      const confirmedIds = myParticipation.confirmedPilots.map((p: any) =>
+        p.pilotId?._id?.toString() || p.pilotId?.toString()
+      );
+      const invitedIds = myParticipation.pendingInvitations
+        .filter((inv: any) => inv.status === 'pending')
+        .map((inv: any) => inv.pilotId?._id?.toString() || inv.pilotId?.toString());
+
+      const available = squadron.members.filter((member: any) => {
+        const memberId = member._id?.toString();
+        return !confirmedIds.includes(memberId) && !invitedIds.includes(memberId);
+      });
+      setAvailableTeammates(available);
+    }
+  }, [myParticipation, squadron]);
+
   // Countdown timer for registration deadline
   useEffect(() => {
     if (!event?.registrationDeadline) return;
@@ -99,20 +117,6 @@ export default function EventoPage() {
         const squadronData = await squadronResponse.json();
         if (squadronData.squadron) {
           setSquadron(squadronData.squadron);
-
-          // Filter available teammates (not already confirmed or invited)
-          if (myParticipation) {
-            const confirmedIds = myParticipation.confirmedPilots.map((p: any) => p.pilotId?._id?.toString() || p.pilotId?.toString());
-            const invitedIds = myParticipation.pendingInvitations
-              .filter((inv: any) => inv.status === 'pending')
-              .map((inv: any) => inv.pilotId?._id?.toString() || inv.pilotId?.toString());
-
-            const available = squadronData.squadron.members.filter((member: any) => {
-              const memberId = member._id?.toString();
-              return !confirmedIds.includes(memberId) && !invitedIds.includes(memberId);
-            });
-            setAvailableTeammates(available);
-          }
         }
       }
     } catch (error) {
@@ -327,8 +331,8 @@ export default function EventoPage() {
                         <span className="text-lg">✓</span>
                       </div>
                       <div>
-                        <p className="text-white font-racing">{pilot.profile?.alias || `${pilot.profile?.firstName} ${pilot.profile?.lastName}`}</p>
-                        <p className="text-sm text-gray-400">{pilot.email}</p>
+                        <p className="text-white font-racing">{pilot.pilotId?.profile?.alias || `${pilot.pilotId?.profile?.firstName} ${pilot.pilotId?.profile?.lastName}`}</p>
+                        <p className="text-sm text-gray-400">{pilot.pilotId?.email}</p>
                       </div>
                     </div>
                   </div>
