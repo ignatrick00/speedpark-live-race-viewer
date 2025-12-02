@@ -141,8 +141,20 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Verificar si la escudería estaba vacía ANTES de agregar al nuevo miembro
+    const wasInactive = !squadron.isActive || squadron.members.length === 0;
+
     // Agregar piloto a la escudería
     squadron.members.push(pilot._id);
+
+    // Si la escudería estaba inactiva (sin miembros), reactivarla y hacer capitán al primer miembro
+    if (wasInactive) {
+      squadron.isActive = true;
+      squadron.captainId = pilot._id;
+      pilot.squadron.role = 'captain';
+    } else {
+      pilot.squadron.role = 'member';
+    }
 
     // Recalcular promedio de fair racing
     const allMembersFairRacing = await FairRacingScore.find({
@@ -159,7 +171,6 @@ export async function POST(req: NextRequest) {
 
     // Actualizar piloto
     pilot.squadron.squadronId = squadron._id;
-    pilot.squadron.role = 'member';
     pilot.squadron.joinedAt = new Date();
     await pilot.save();
 

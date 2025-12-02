@@ -17,9 +17,8 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
 
     // Construir filtros
-    const filters: any = {
-      isActive: true, // Solo escuderías activas
-    };
+    // Mostrar todas las escuaderías (activas e inactivas) para permitir reactivación
+    const filters: any = {};
 
     // Búsqueda por nombre
     if (query) {

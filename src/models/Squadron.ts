@@ -130,10 +130,13 @@ SquadronSchema.index({ ranking: 1, division: 1 });
 SquadronSchema.index({ totalPoints: -1 });
 SquadronSchema.index({ isActive: 1, division: 1 });
 
-// Validación: máximo 4 miembros (mínimo 1 para permitir creación)
+// Validación: máximo 4 miembros (permite 0 si está inactiva)
 SquadronSchema.pre('save', function (next) {
-  if (this.members.length < 1 || this.members.length > 4) {
-    next(new Error('Una escudería debe tener entre 1 y 4 miembros'));
+  // Permitir 0 miembros solo si está inactiva
+  if (this.members.length === 0 && !this.isActive) {
+    next();
+  } else if (this.members.length < 1 || this.members.length > 4) {
+    next(new Error('Una escudería activa debe tener entre 1 y 4 miembros'));
   } else {
     next();
   }

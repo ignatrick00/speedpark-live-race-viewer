@@ -73,20 +73,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Si es el único miembro (y capitán), eliminar la escudería
+    // Si es el único miembro (y capitán), marcar escudería como inactiva
     if (squadron.members.length === 1) {
-      await Squadron.findByIdAndDelete(squadron._id);
+      // Remover miembro
+      squadron.members = [];
+      squadron.isActive = false;
+      squadron.fairRacingAverage = 0;
+      await squadron.save();
 
-      // Actualizar usuario
-      user.squadron.squadronId = undefined;
-      user.squadron.role = 'none';
-      user.squadron.joinedAt = undefined;
-      await user.save();
+      // Actualizar usuario usando $unset
+      await WebUser.findByIdAndUpdate(userId, {
+        $unset: {
+          'squadron.squadronId': '',
+          'squadron.role': '',
+          'squadron.joinedAt': '',
+        },
+      });
 
       return NextResponse.json({
         success: true,
-        message: 'Has salido de la escudería. La escudería fue eliminada por falta de miembros.',
-        squadronDeleted: true,
+        message: 'Has salido de la escudería. Podrás volver a unirte cuando quieras.',
+        squadronDeleted: false,
       });
     }
 
@@ -106,18 +113,21 @@ export async function POST(req: NextRequest) {
     );
     squadron.fairRacingAverage = Math.round(totalFairRacing / squadron.members.length);
 
-    // Si quedan menos de 2 miembros, marcar como inactiva
-    if (squadron.members.length < 2) {
+    // Solo marcar como inactiva si queda sin miembros (0)
+    if (squadron.members.length === 0) {
       squadron.isActive = false;
     }
 
     await squadron.save();
 
-    // Actualizar usuario
-    user.squadron.squadronId = undefined;
-    user.squadron.role = 'none';
-    user.squadron.joinedAt = undefined;
-    await user.save();
+    // Actualizar usuario usando $unset
+    await WebUser.findByIdAndUpdate(userId, {
+      $unset: {
+        'squadron.squadronId': '',
+        'squadron.role': '',
+        'squadron.joinedAt': '',
+      },
+    });
 
     return NextResponse.json({
       success: true,

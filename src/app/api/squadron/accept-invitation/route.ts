@@ -7,8 +7,8 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-interface JoinSquadronRequest {
-  squadronId: string;
+interface AcceptInvitationBody {
+  invitationId: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -37,17 +37,17 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const body: JoinSquadronRequest = await req.json();
-    const { squadronId } = body;
+    const body: AcceptInvitationBody = await req.json();
+    const { invitationId } = body;
 
-    if (!squadronId) {
+    if (!invitationId) {
       return NextResponse.json(
-        { error: 'squadronId es requerido' },
+        { error: 'invitationId es requerido' },
         { status: 400 }
       );
     }
 
-    // Verificar que el usuario existe
+    // Obtener usuario
     const user = await WebUser.findById(userId);
     if (!user) {
       return NextResponse.json(
@@ -56,16 +56,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verificar que el usuario NO está en una escudería
+    // Verificar que no está en una escudería
     if (user.squadron.squadronId) {
       return NextResponse.json(
-        { error: 'Ya perteneces a una escudería. Debes salir primero.' },
+        { error: 'Ya perteneces a una escudería' },
+        { status: 400 }
+      );
+    }
+
+    // Buscar la invitación
+    const invitation = user.invitations.find((inv: any) => inv._id.toString() === invitationId);
+    if (!invitation) {
+      return NextResponse.json(
+        { error: 'Invitación no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    if (invitation.status !== 'pending') {
+      return NextResponse.json(
+        { error: 'Esta invitación ya fue procesada' },
         { status: 400 }
       );
     }
 
     // Buscar la escudería
-    const squadron = await Squadron.findById(squadronId);
+    const squadron = await Squadron.findById(invitation.squadronId);
     if (!squadron) {
       return NextResponse.json(
         { error: 'Escudería no encontrada' },
@@ -73,29 +89,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verificar que la escudería tiene espacio (máx 4 miembros)
-    // Si está inactiva (0 miembros), se puede reactivar
-    if (squadron.members.length >= 4) {
+    if (!squadron.isActive) {
       return NextResponse.json(
-        { error: 'Esta escudería está llena (máximo 4 miembros)' },
+        { error: 'Esta escudería no está activa' },
         { status: 400 }
       );
     }
 
-    // Verificar modo de reclutamiento
-    if (squadron.recruitmentMode === 'invite-only') {
-      // TODO: Verificar que existe una invitación pendiente
-      // Por ahora rechazamos si es invite-only
+    if (squadron.members.length >= 4) {
       return NextResponse.json(
-        { error: 'Esta escudería solo acepta miembros por invitación' },
-        { status: 403 }
+        { error: 'Esta escudería está llena' },
+        { status: 400 }
       );
     }
 
-    // Obtener Fair Racing Score del usuario
+    // Obtener Fair Racing Score
     let fairRacingScore = await FairRacingScore.findOne({ pilotId: userId });
-
-    // Si no existe, crear uno nuevo (todos empiezan en 85)
     if (!fairRacingScore) {
       fairRacingScore = await FairRacingScore.create({
         pilotId: userId,
@@ -104,20 +113,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Verificar si la escudería estaba vacía ANTES de agregar al nuevo miembro
-    const wasInactive = !squadron.isActive || squadron.members.length === 0;
-
     // Agregar usuario a la escudería
     squadron.members.push(user._id);
-
-    // Si la escudería estaba inactiva (sin miembros), reactivarla y hacer capitán al primer miembro
-    if (wasInactive) {
-      squadron.isActive = true;
-      squadron.captainId = user._id;
-      user.squadron.role = 'captain';
-    } else {
-      user.squadron.role = 'member';
-    }
 
     // Recalcular promedio de fair racing
     const allMembersFairRacing = await FairRacingScore.find({
@@ -134,24 +131,24 @@ export async function POST(req: NextRequest) {
 
     // Actualizar usuario
     user.squadron.squadronId = squadron._id;
+    user.squadron.role = 'member';
     user.squadron.joinedAt = new Date();
-    await user.save();
 
-    // Populate para devolver datos completos
-    const populatedSquadron = await Squadron.findById(squadron._id)
-      .populate('captainId', 'email profile')
-      .populate('members', 'email profile');
+    // Marcar invitación como aceptada
+    invitation.status = 'accepted';
+    invitation.respondedAt = new Date();
+
+    await user.save();
 
     return NextResponse.json({
       success: true,
       message: `Te has unido a ${squadron.name}`,
-      squadron: populatedSquadron,
     });
 
   } catch (error: any) {
-    console.error('Error joining squadron:', error);
+    console.error('Error accepting invitation:', error);
     return NextResponse.json(
-      { error: 'Error al unirse a la escudería', details: error.message },
+      { error: 'Error al aceptar invitación', details: error.message },
       { status: 500 }
     );
   }

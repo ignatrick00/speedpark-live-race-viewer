@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import InvitePilotModal from './InvitePilotModal';
 import JoinRequestsModal from './JoinRequestsModal';
+import EditSquadronModal from './EditSquadronModal';
+import SentInvitationsCard from './SentInvitationsCard';
 
 interface Member {
   _id: string;
@@ -59,9 +61,12 @@ export default function SquadronDashboardView({
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showRequestsModal, setShowRequestsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [isLeaving, setIsLeaving] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
 
   const handleLeave = async () => {
@@ -80,7 +85,8 @@ export default function SquadronDashboardView({
       const data = await response.json();
 
       if (data.success) {
-        onLeave();
+        // Reload page to clear all cached data
+        window.location.reload();
       } else {
         setError(data.error || 'Error al abandonar la escudería');
       }
@@ -88,6 +94,62 @@ export default function SquadronDashboardView({
       setError('Error de conexión');
     } finally {
       setIsLeaving(false);
+    }
+  };
+
+  const handleDeleteSquadron = async () => {
+    if (!confirm(`¿Estás seguro de que quieres ELIMINAR PERMANENTEMENTE la escudería "${squadron.name}"?\n\nEsta acción NO SE PUEDE DESHACER y todos los miembros serán expulsados.`)) return;
+
+    setIsDeleting(true);
+    setError('');
+    try {
+      const response = await fetch('/api/squadron/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        // Reload page to clear all cached data
+        window.location.reload();
+      } else {
+        setError(data.error || 'Error al eliminar la escudería');
+      }
+    } catch (err) {
+      setError('Error de conexión');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string, memberName: string) => {
+    if (!confirm(`¿Expulsar a ${memberName} de la escudería?`)) return;
+
+    setIsRemoving(true);
+    setError('');
+    try {
+      const response = await fetch('/api/squadron/remove-member', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ memberId }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        onTransferCaptain(''); // Trigger refresh
+      } else {
+        setError(data.error || 'Error al expulsar miembro');
+      }
+    } catch (err) {
+      setError('Error de conexión');
+    } finally {
+      setIsRemoving(false);
     }
   };
 
@@ -151,6 +213,9 @@ export default function SquadronDashboardView({
         </div>
       )}
 
+      {/* Sent Invitations Card */}
+      <SentInvitationsCard token={token} isCaptain={isCaptain} />
+
       {/* Header Card */}
       <div className="bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl p-6 relative overflow-hidden">
         <div
@@ -189,11 +254,21 @@ export default function SquadronDashboardView({
               </div>
             </div>
 
-            {isCaptain && (
-              <span className="px-3 py-1 bg-gold/20 text-gold border border-gold/50 rounded-lg text-sm font-racing">
-                👑 CAPITÁN
-              </span>
-            )}
+            <div className="flex gap-3">
+              {isCaptain && (
+                <>
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="px-3 py-1 bg-electric-blue/20 text-electric-blue border border-electric-blue/50 rounded-lg text-sm font-racing hover:bg-electric-blue/30 transition-all"
+                  >
+                    ✏️ EDITAR
+                  </button>
+                  <span className="px-3 py-1 bg-gold/20 text-gold border border-gold/50 rounded-lg text-sm font-racing">
+                    👑 CAPITÁN
+                  </span>
+                </>
+              )}
+            </div>
           </div>
 
           <p className="text-sky-blue/80 mb-6">{squadron.description}</p>
@@ -285,6 +360,15 @@ export default function SquadronDashboardView({
                     {member.totalRacesClean}
                   </p>
                 </div>
+                {isCaptain && member.role !== 'captain' && (
+                  <button
+                    onClick={() => handleRemoveMember(member._id, getMemberDisplayName(member))}
+                    disabled={isRemoving}
+                    className="px-3 py-2 bg-red-500/20 border border-red-500/50 text-red-300 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm"
+                  >
+                    🚫 Expulsar
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -314,19 +398,30 @@ export default function SquadronDashboardView({
 
       {/* Leave Squadron */}
       <div className="bg-gradient-to-br from-midnight via-red-900/10 to-midnight border-2 border-red-500/30 rounded-xl p-6">
-        <h3 className="text-xl font-racing text-red-400 mb-2">ABANDONAR ESCUDERÍA</h3>
+        <h3 className="text-xl font-racing text-red-400 mb-2">ZONA PELIGROSA</h3>
         <p className="text-sky-blue/70 text-sm mb-4">
           {isCaptain
-            ? 'Como capitán, debes transferir la capitanía antes de abandonar la escudería.'
+            ? 'Como capitán, puedes abandonar la escudería (si eres el único) o eliminarla permanentemente.'
             : 'Si abandonas, deberás unirte a otra escudería o crear una nueva.'}
         </p>
-        <button
-          onClick={handleLeave}
-          disabled={isLeaving || (isCaptain && squadron.members.length > 1)}
-          className="px-6 py-3 bg-red-500/20 border border-red-500 text-red-300 font-racing rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLeaving ? 'ABANDONANDO...' : '🚪 ABANDONAR'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleLeave}
+            disabled={isLeaving || isDeleting || (isCaptain && squadron.members.length > 1)}
+            className="px-6 py-3 bg-red-500/20 border border-red-500 text-red-300 font-racing rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLeaving ? 'ABANDONANDO...' : '🚪 ABANDONAR'}
+          </button>
+          {isCaptain && (
+            <button
+              onClick={handleDeleteSquadron}
+              disabled={isDeleting || isLeaving}
+              className="px-6 py-3 bg-red-700/30 border-2 border-red-600 text-red-200 font-racing rounded-lg hover:bg-red-700/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeleting ? 'ELIMINANDO...' : '💀 ELIMINAR ESCUDERÍA'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Transfer Captain Modal */}
@@ -396,6 +491,21 @@ export default function SquadronDashboardView({
           onTransferCaptain(''); // Trigger refresh
         }}
         token={token}
+      />
+
+      {/* Edit Squadron Modal */}
+      <EditSquadronModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={() => {
+          setShowEditModal(false);
+          onTransferCaptain(''); // Trigger refresh
+        }}
+        token={token}
+        currentName={squadron.name}
+        currentDescription={squadron.description}
+        currentColors={squadron.colors}
+        currentRecruitmentMode={squadron.recruitmentMode}
       />
     </div>
   );

@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import CreateSquadronModal from '@/components/CreateSquadronModal';
 import SquadronSearchModal from '@/components/SquadronSearchModal';
 import SquadronDashboardView from '@/components/SquadronDashboardView';
+import MyInvitationsCard from '@/components/MyInvitationsCard';
 
 interface Squadron {
   _id: string;
@@ -51,6 +52,8 @@ export default function SquadronDashboard() {
   const [isCaptain, setIsCaptain] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [invitationsCount, setInvitationsCount] = useState(0);
+  const [showInvitations, setShowInvitations] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -59,7 +62,23 @@ export default function SquadronDashboard() {
       return;
     }
     fetchMySquadron();
+    fetchInvitationsCount();
   }, [user, token, authLoading]);
+
+  const fetchInvitationsCount = async () => {
+    if (!token) return;
+    try {
+      const response = await fetch('/api/squadron/my-invitations', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setInvitationsCount(data.invitations?.length || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching invitations:', error);
+    }
+  };
 
   const fetchMySquadron = async () => {
     if (!token) return;
@@ -119,13 +138,41 @@ export default function SquadronDashboard() {
       <div className="relative z-10">
         <div className="border-b border-electric-blue/30 bg-gradient-to-r from-midnight via-rb-blue/10 to-midnight">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <h1 className="text-4xl font-racing text-electric-blue tracking-wider">SQUADRON COMMAND</h1>
-            <p className="text-sky-blue/80 mt-2">Sistema de Escuderías</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-racing text-electric-blue tracking-wider">SQUADRON COMMAND</h1>
+                <p className="text-sky-blue/80 mt-2">Sistema de Escuderías</p>
+              </div>
+              {!hasSquadron && (
+                <button
+                  onClick={() => setShowInvitations(!showInvitations)}
+                  className={`px-6 py-3 border-2 font-racing rounded-lg transition-all ${
+                    invitationsCount > 0
+                      ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 hover:bg-purple-500/30 animate-pulse'
+                      : 'bg-midnight/50 border-electric-blue/30 text-sky-blue/70 hover:border-electric-blue/50'
+                  }`}
+                >
+                  📨 INVITACIONES RECIBIDAS ({invitationsCount})
+                </button>
+              )}
+            </div>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {!hasSquadron ? (
             <div className="space-y-6">
+              {/* Invitations Card */}
+              {showInvitations && (
+                <MyInvitationsCard
+                  token={token || ''}
+                  onAccept={() => {
+                    fetchMySquadron();
+                    fetchInvitationsCount();
+                    setShowInvitations(false);
+                  }}
+                />
+              )}
+
               <div className="bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl p-8 text-center">
                 <div className="mb-6">
                   <h2 className="text-3xl font-racing text-electric-blue mb-2">SIN ESCUDERÍA</h2>

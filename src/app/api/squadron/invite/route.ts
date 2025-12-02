@@ -106,27 +106,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`✅ [INVITE] Adding ${pilot.email} to squadron ${squadron.name}`);
+    // Verificar si ya existe una invitación pendiente
+    const existingInvitation = pilot.invitations?.find(
+      (inv: any) =>
+        inv.squadronId?.toString() === squadron._id.toString() &&
+        inv.status === 'pending'
+    );
 
-    // Agregar piloto a la escudería
-    squadron.members.push(pilot._id);
-    await squadron.save();
+    if (existingInvitation) {
+      return NextResponse.json(
+        { error: 'Este piloto ya tiene una invitación pendiente de tu escudería' },
+        { status: 400 }
+      );
+    }
 
-    // Actualizar usuario
-    pilot.squadron.squadronId = squadron._id;
-    pilot.squadron.role = 'member';
-    pilot.squadron.joinedAt = new Date();
+    console.log(`✅ [INVITE] Sending invitation to ${pilot.email} for squadron ${squadron.name}`);
+
+    // Crear invitación en el perfil del piloto
+    if (!pilot.invitations) {
+      pilot.invitations = [];
+    }
+
+    pilot.invitations.push({
+      squadronId: squadron._id,
+      invitedBy: captain._id,
+      status: 'pending',
+      createdAt: new Date(),
+    });
+
     await pilot.save();
-
-    // Populate para devolver datos completos
-    const updatedSquadron = await Squadron.findById(squadron._id)
-      .populate('captainId', 'email profile')
-      .populate('members', 'email profile');
 
     return NextResponse.json({
       success: true,
-      message: `${pilot.profile?.alias || pilot.email} ha sido invitado exitosamente`,
-      squadron: updatedSquadron
+      message: `Invitación enviada a ${pilot.profile?.alias || pilot.profile?.firstName || pilot.email}`,
     });
 
   } catch (error: any) {
