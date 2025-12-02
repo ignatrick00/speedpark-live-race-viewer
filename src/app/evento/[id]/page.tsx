@@ -95,10 +95,20 @@ export default function EventoPage() {
 
         // Find user's squadron participation
         const userSquadronId = (user as any)?.squadron?.squadronId;
+        const userId = (user as any)?._id;
         const participation = data.event.participants?.find(
           (p: any) => p.squadronId?._id?.toString() === userSquadronId?.toString() || p.squadronId?.toString() === userSquadronId?.toString()
         );
-        setMyParticipation(participation);
+
+        // Only set participation if user is actually in the confirmed pilots
+        if (participation) {
+          const isUserConfirmed = participation.confirmedPilots?.some(
+            (pilot: any) => (pilot.pilotId?._id?.toString() || pilot.pilotId?.toString()) === userId?.toString()
+          );
+          setMyParticipation(isUserConfirmed ? participation : null);
+        } else {
+          setMyParticipation(null);
+        }
       }
 
       // Fetch occupied karts
