@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Instructor {
   id: string
@@ -27,96 +27,9 @@ interface ClaseBloque {
     bookedAt: Date
   }>
   maxGroupCapacity: number
+  individualPrice: number
+  groupPricePerPerson: number
 }
-
-const mockInstructors: Instructor[] = [
-  {
-    id: '1',
-    name: 'Luis Abarca',
-    specialties: ['Principiantes', 'Técnica de Frenado', 'Racing Line'],
-    rating: 4.9,
-    experience: '7 años'
-  },
-  {
-    id: '2',
-    name: 'Gori Gori',
-    specialties: ['Principiantes', 'Técnica de Frenado'],
-    rating: 4.8,
-    experience: '5 años'
-  },
-  {
-    id: '3', 
-    name: 'Break Pitt',
-    specialties: ['Avanzado', 'Racing Line'],
-    rating: 4.9,
-    experience: '8 años'
-  },
-  {
-    id: '4',
-    name: 'JP',
-    specialties: ['Niños', 'Seguridad'],
-    rating: 4.7,
-    experience: '3 años'
-  }
-]
-
-// Generar horarios automáticamente - Lunes a Domingo 14:00 a 22:00
-const generateSchedule = () => {
-  const bloques: ClaseBloque[] = []
-  const today = new Date()
-  
-  // Generar para los próximos 7 días
-  for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-    const currentDate = new Date(today)
-    currentDate.setDate(today.getDate() + dayOffset)
-    // Fix timezone offset issue by using local date formatting
-    const year = currentDate.getFullYear()
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0')
-    const day = String(currentDate.getDate()).padStart(2, '0')
-    const dateString = `${year}-${month}-${day}`
-    
-    // Horarios de 14:00 a 22:00 (cada hora)
-    const hours = [14, 15, 16, 17, 18, 19, 20, 21]
-    
-    hours.forEach(hour => {
-      const startTime = `${hour.toString().padStart(2, '0')}:00`
-      const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`
-      
-      // Para cada instructor - UN SOLO BLOQUE por hora que puede ser individual O grupal
-      mockInstructors.forEach(instructor => {
-        // Simular algunas reservas aleatorias
-        const hasIndividualBooking = Math.random() > 0.8 // 20% probabilidad
-        const groupBookingsCount = Math.floor(Math.random() * 3) // 0-2 reservas grupales
-        
-        const groupBookings = Array.from({length: groupBookingsCount}, (_, i) => ({
-          studentName: `Estudiante ${i + 1}`,
-          bookedAt: new Date()
-        }))
-        
-        bloques.push({
-          id: `${instructor.id}-${dateString}-${hour}`,
-          instructorId: instructor.id,
-          instructor: instructor.name,
-          date: dateString,
-          startTime,
-          endTime,
-          individualBooking: hasIndividualBooking ? {
-            isBooked: true,
-            studentName: 'Juan Pérez'
-          } : {
-            isBooked: false
-          },
-          groupBookings,
-          maxGroupCapacity: 4
-        })
-      })
-    })
-  }
-  
-  return bloques
-}
-
-const mockBloques = generateSchedule()
 
 export default function ClasesPage() {
   const [searchMode, setSearchMode] = useState<'instructor' | 'day'>('instructor')
@@ -125,13 +38,78 @@ export default function ClasesPage() {
   const [selectedBloque, setSelectedBloque] = useState<ClaseBloque | null>(null)
   const [reservationMode, setReservationMode] = useState<'individual' | 'group'>('individual')
   const [bloqueReservationModes, setBloqueReservationModes] = useState<Record<string, 'individual' | 'group'>>({})
-  
+
   // Mobile menu state
   const [showMobileMenu, setShowMobileMenu] = useState(false)
-  
+
   // Calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null)
+
+  // Real data from API
+  const [instructors, setInstructors] = useState<Instructor[]>([])
+  const [bloques, setBloques] = useState<ClaseBloque[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Fetch training classes from API
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/training-classes')
+        if (response.ok) {
+          const data = await response.json()
+
+          // Transform API data to match existing format
+          const transformedBloques: ClaseBloque[] = data.classes.map((clase: any) => ({
+            id: clase._id,
+            instructorId: clase.coachId,
+            instructor: clase.coachName,
+            date: new Date(clase.date).toISOString().split('T')[0],
+            startTime: clase.startTime,
+            endTime: clase.endTime,
+            individualBooking: clase.individualBooking ? {
+              isBooked: true,
+              studentName: clase.individualBooking.studentName
+            } : {
+              isBooked: false
+            },
+            groupBookings: clase.groupBookings.map((booking: any) => ({
+              studentName: booking.studentName,
+              bookedAt: new Date(booking.bookedAt)
+            })),
+            maxGroupCapacity: clase.maxGroupCapacity,
+            individualPrice: clase.individualPrice,
+            groupPricePerPerson: clase.groupPricePerPerson
+          }))
+
+          setBloques(transformedBloques)
+
+          // Extract unique instructors from classes
+          const uniqueInstructors = new Map<string, Instructor>()
+          data.classes.forEach((clase: any) => {
+            if (!uniqueInstructors.has(clase.coachId)) {
+              uniqueInstructors.set(clase.coachId, {
+                id: clase.coachId,
+                name: clase.coachName,
+                specialties: clase.specialties || [],
+                rating: 4.9, // Default rating
+                experience: 'Coach certificado'
+              })
+            }
+          })
+
+          setInstructors(Array.from(uniqueInstructors.values()))
+        }
+      } catch (error) {
+        console.error('Error fetching classes:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchClasses()
+  }, [])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CL', {
@@ -203,11 +181,11 @@ export default function ClasesPage() {
   }
 
   const getBloquesByInstructor = (instructorId: string) => {
-    return mockBloques.filter(bloque => bloque.instructorId === instructorId)
+    return bloques.filter(bloque => bloque.instructorId === instructorId)
   }
 
   const getBloquesByDate = (date: string) => {
-    return mockBloques.filter(bloque => bloque.date === date)
+    return bloques.filter(bloque => bloque.date === date)
   }
 
   const isSlotAvailable = (bloque: ClaseBloque, mode: 'individual' | 'group') => {
@@ -220,8 +198,8 @@ export default function ClasesPage() {
     }
   }
 
-  const getPrice = (mode: 'individual' | 'group') => {
-    return mode === 'individual' ? 45000 : 25000
+  const getPrice = (bloque: ClaseBloque, mode: 'individual' | 'group') => {
+    return mode === 'individual' ? bloque.individualPrice : bloque.groupPricePerPerson
   }
 
   const getBloqueReservationMode = (bloqueId: string) => {
@@ -404,12 +382,24 @@ export default function ClasesPage() {
 
 
         {/* Content based on search mode */}
-        {searchMode === 'instructor' ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin text-6xl mb-4">🏁</div>
+            <p className="text-cyan-400 text-xl font-racing">CARGANDO CLASES...</p>
+          </div>
+        ) : searchMode === 'instructor' ? (
           <div className="space-y-8">
             {/* Instructor Selection */}
             {!selectedInstructor ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {mockInstructors.map((instructor) => (
+              instructors.length === 0 ? (
+                <div className="text-center py-20">
+                  <div className="text-6xl mb-4">📭</div>
+                  <p className="text-cyan-400 text-xl font-racing mb-2">NO HAY CLASES DISPONIBLES</p>
+                  <p className="text-blue-300">Los coaches aún no han creado clases</p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {instructors.map((instructor) => (
                   <div
                     key={instructor.id}
                     className="bg-blue-900/20 border border-blue-400/20 rounded-xl p-6 hover:bg-blue-800/30 transition-all cursor-pointer hover:border-cyan-400/40"
@@ -443,8 +433,9 @@ export default function ClasesPage() {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             ) : (
               /* Instructor Schedule */
               <div className="space-y-6">
@@ -554,7 +545,7 @@ export default function ClasesPage() {
                 
                 <div className="bg-blue-900/20 border border-blue-400/20 rounded-xl p-6">
                   <h2 className="text-2xl font-bold text-cyan-400 mb-4">
-                    Clases de {mockInstructors.find(i => i.id === selectedInstructor)?.name} - {selectedCalendarDate?.toLocaleDateString('es-CL') || new Date().toLocaleDateString('es-CL')}
+                    Clases de {instructors.find(i => i.id === selectedInstructor)?.name} - {selectedCalendarDate?.toLocaleDateString('es-CL') || new Date().toLocaleDateString('es-CL')}
                   </h2>
                   
                   <div className="grid lg:grid-cols-2 gap-4">
@@ -626,7 +617,7 @@ export default function ClasesPage() {
                                   
                                   {/* Price */}
                                   <div className="text-xl font-bold text-cyan-400 mb-2">
-                                    {formatPrice(getPrice(getBloqueReservationMode(bloque.id)))}
+                                    {formatPrice(getPrice(bloque, getBloqueReservationMode(bloque.id)))}
                                   </div>
                                   
                                   {/* Additional info */}
@@ -837,7 +828,7 @@ export default function ClasesPage() {
                               
                               {/* Price */}
                               <div className="text-xl font-bold text-cyan-400 mb-2">
-                                {formatPrice(getPrice(getBloqueReservationMode(bloque.id)))}
+                                {formatPrice(getPrice(bloque, getBloqueReservationMode(bloque.id)))}
                               </div>
                               
                               {/* Additional info */}
