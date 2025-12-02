@@ -1315,16 +1315,50 @@ function SquadronEventCard({ event }: { event: any }) {
 
   const isOrganizer = user?.email === 'icabreraquezada@gmail.com';
   const userSquadronId = (user as any)?.squadron?.squadronId;
-  const isRegistered = userSquadronId && event.participants?.some(
+  const userId = (user as any)?.id; // Use 'id' not '_id'
+
+  // Find squadron participation
+  const squadronParticipation = event.participants?.find(
     (p: any) => p.squadronId?._id?.toString() === userSquadronId?.toString() || p.squadronId?.toString() === userSquadronId?.toString()
   );
 
+  // Check if THIS user is confirmed or invited
+  const isUserConfirmed = squadronParticipation?.confirmedPilots?.some(
+    (pilot: any) => {
+      const pilotIdStr = pilot.pilotId?._id?.toString() || pilot.pilotId?.toString();
+      const userIdStr = userId?.toString();
+      console.log(`🔍 Checking pilot: ${pilotIdStr} vs user: ${userIdStr} = ${pilotIdStr === userIdStr}`);
+      return pilotIdStr === userIdStr;
+    }
+  );
+
+  const isUserInvited = squadronParticipation?.pendingInvitations?.some(
+    (inv: any) => {
+      const invPilotIdStr = inv.pilotId?._id?.toString() || inv.pilotId?.toString();
+      const userIdStr = userId?.toString();
+      console.log(`🔍 Checking invitation: ${invPilotIdStr} vs user: ${userIdStr} = ${invPilotIdStr === userIdStr}`);
+      return invPilotIdStr === userIdStr && inv.status === 'pending';
+    }
+  );
+
+  const isUserRegistered = isUserConfirmed || isUserInvited;
+  const squadronRegisteredButNotUser = squadronParticipation && !isUserRegistered;
+
+  console.log(`📊 Event: ${event.name}`);
+  console.log(`   User ID: ${userId}`);
+  console.log(`   Squadron ID: ${userSquadronId}`);
+  console.log(`   Squadron Participation:`, squadronParticipation ? 'YES' : 'NO');
+  console.log(`   Is User Confirmed: ${isUserConfirmed}`);
+  console.log(`   Is User Invited: ${isUserInvited}`);
+  console.log(`   Is User Registered: ${isUserRegistered}`);
+  console.log(`   Squadron registered but not user: ${squadronRegisteredButNotUser}`);
+
   const handleCardClick = () => {
-    // If registered, go to event page
-    if (isRegistered) {
+    // If user is registered, go to event page
+    if (isUserRegistered) {
       router.push(`/evento/${event._id}`);
     }
-    // If organizer but not registered, don't navigate (let them click join button)
+    // If organizer, go to organizer view
     else if (isOrganizer) {
       router.push(`/organizador/evento/${event._id}`);
     }
@@ -1340,7 +1374,7 @@ function SquadronEventCard({ event }: { event: any }) {
       <div
         onClick={handleCardClick}
         className={`bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-sm border-2 border-slate-700/50 rounded-xl p-6 hover:border-electric-blue/50 transition-all shadow-lg hover:shadow-electric-blue/20 ${
-          (isOrganizer || isRegistered) ? 'cursor-pointer hover:scale-[1.02]' : ''
+          (isOrganizer || isUserRegistered) ? 'cursor-pointer hover:scale-[1.02]' : ''
         }`}
       >
       {/* Category Badge */}
@@ -1410,14 +1444,14 @@ function SquadronEventCard({ event }: { event: any }) {
         {(event.status === 'published' || event.status === 'registration_open') && (
           <button
             onClick={handleJoinClick}
-            disabled={isRegistered}
+            disabled={isUserRegistered}
             className={`px-4 py-2 rounded-lg font-racing transition-all ${
-              isRegistered
+              isUserRegistered
                 ? 'bg-green-600/20 border border-green-500/50 text-green-400 cursor-default'
                 : 'bg-purple-500/20 border border-purple-500/50 text-purple-400 hover:bg-purple-500/30'
             }`}
           >
-            {isRegistered ? '✓ REGISTRADO' : '🏆 UNIRSE'}
+            {isUserRegistered ? '✓ REGISTRADO' : '🏆 UNIRSE'}
           </button>
         )}
       </div>

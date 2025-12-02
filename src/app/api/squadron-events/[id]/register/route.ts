@@ -81,10 +81,67 @@ export async function POST(
     );
 
     if (existingParticipant) {
-      return NextResponse.json(
-        { error: 'Tu escudería ya está registrada en este evento' },
-        { status: 400 }
+      // Squadron already registered - check if THIS user is already confirmed or invited
+      const userAlreadyConfirmed = existingParticipant.confirmedPilots.some(
+        (pilot: any) => pilot.pilotId.toString() === decoded.userId
       );
+
+      if (userAlreadyConfirmed) {
+        return NextResponse.json(
+          { error: 'Ya estás registrado en este evento' },
+          { status: 400 }
+        );
+      }
+
+      const userAlreadyInvited = existingParticipant.pendingInvitations.some(
+        (inv: any) => inv.pilotId.toString() === decoded.userId && inv.status === 'pending'
+      );
+
+      if (userAlreadyInvited) {
+        return NextResponse.json(
+          { error: 'Ya tienes una invitación pendiente para este evento' },
+          { status: 400 }
+        );
+      }
+
+      // Check if kart is already occupied
+      const isKartOccupied = event.participants.some((p: any) =>
+        p.confirmedPilots.some((pilot: any) => pilot.kartNumber === kartNumber)
+      );
+
+      if (isKartOccupied) {
+        return NextResponse.json(
+          { error: 'Este kart ya está ocupado' },
+          { status: 400 }
+        );
+      }
+
+      // Check if squadron still has available slots
+      const maxPilots = event.maxPilotsPerSquadron;
+      const currentPilots = existingParticipant.confirmedPilots.length +
+        existingParticipant.pendingInvitations.filter((inv: any) => inv.status === 'pending').length;
+
+      if (currentPilots >= maxPilots) {
+        return NextResponse.json(
+          { error: 'Tu escudería ya completó todos los cupos disponibles' },
+          { status: 400 }
+        );
+      }
+
+      // Add user as confirmed pilot to existing squadron participation
+      existingParticipant.confirmedPilots.push({
+        pilotId: user._id,
+        kartNumber: kartNumber,
+        confirmedAt: new Date(),
+      });
+
+      await event.save();
+
+      return NextResponse.json({
+        success: true,
+        message: 'Te has unido exitosamente al evento con tu escudería',
+        participant: existingParticipant,
+      });
     }
 
     // Check if event is full
