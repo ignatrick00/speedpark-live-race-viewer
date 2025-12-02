@@ -121,12 +121,12 @@ export default function LiveRaceViewer() {
       }
       setKartsError(null)
 
-      const response = await fetch('/api/best-karts')
+      const response = await fetch('/api/best-karts-v2?filter=day')
       const data = await response.json()
 
       if (data.success) {
         setKartRanking(data.bestKarts)
-        console.log(`🏎️ Loaded ${data.bestKarts.length} best karts from MongoDB`)
+        console.log(`🏎️ [V2] Loaded ${data.bestKarts.length} best karts from driver_race_data`)
       } else {
         setKartsError(data.error || 'Error loading best karts')
         console.error('❌ Error fetching best karts:', data.error)

@@ -15,6 +15,7 @@ interface BestTime {
 export default function TopDriversDay() {
   const [bestTimes, setBestTimes] = useState<BestTime[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   useEffect(() => {
     fetchBestTimes();
@@ -24,8 +25,10 @@ export default function TopDriversDay() {
 
   const fetchBestTimes = async () => {
     try {
-      setLoading(true);
-      const response = await fetch('/api/best-times?filter=day');
+      if (isFirstLoad) {
+        setLoading(true);
+      }
+      const response = await fetch('/api/best-times-v2?filter=day');
       const data = await response.json();
 
       if (data.success) {
@@ -34,7 +37,10 @@ export default function TopDriversDay() {
     } catch (error) {
       console.error('Error fetching best times:', error);
     } finally {
-      setLoading(false);
+      if (isFirstLoad) {
+        setLoading(false);
+        setIsFirstLoad(false);
+      }
     }
   };
 

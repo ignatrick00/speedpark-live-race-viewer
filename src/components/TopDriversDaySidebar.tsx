@@ -27,13 +27,17 @@ export default function TopDriversDaySidebar() {
     try {
       // Only show loading on first load, not on refreshes
       if (isFirstLoad) {
+        console.log('🔵 TopDriversDaySidebar: FIRST LOAD - showing loading');
         setLoading(true);
+      } else {
+        console.log('🟢 TopDriversDaySidebar: REFRESH - keeping data visible');
       }
 
-      const response = await fetch('/api/best-times?filter=day');
+      const response = await fetch('/api/best-times-v2?filter=day');
       const data = await response.json();
 
       if (data.success) {
+        console.log(`📊 TopDriversDaySidebar [V2]: Updated with ${data.bestTimesNew?.length || 0} drivers from driver_race_data`);
         setBestTimes(data.bestTimesNew || []);
       }
     } catch (error) {
@@ -42,6 +46,7 @@ export default function TopDriversDaySidebar() {
       if (isFirstLoad) {
         setLoading(false);
         setIsFirstLoad(false);
+        console.log('✅ TopDriversDaySidebar: First load complete, future refreshes will be smooth');
       }
     }
   };
@@ -67,15 +72,18 @@ export default function TopDriversDaySidebar() {
       </h3>
 
       <div className="space-y-3">
-        {loading && (
+        {/* Show loading ONLY on first load when no data yet */}
+        {loading && bestTimes.length === 0 && (
           <div className="text-center text-blue-300 py-4">Cargando mejores del día...</div>
         )}
 
+        {/* Show "no data" only when not loading and confirmed no data */}
         {!loading && bestTimes.length === 0 && (
           <div className="text-center text-blue-300 py-4">No hay datos del día</div>
         )}
 
-        {!loading && bestTimes.length > 0 && bestTimes.map((entry) => (
+        {/* ALWAYS show data when available, even during background refresh */}
+        {bestTimes.length > 0 && bestTimes.map((entry) => (
           <div
             key={entry.position}
             className={`flex items-center justify-between p-3 bg-black/30 rounded-xl border-l-3 transition-all duration-300 hover:bg-blue-900/10 hover:transform hover:translate-x-1 ${
