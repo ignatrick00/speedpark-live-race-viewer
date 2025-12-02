@@ -29,12 +29,12 @@ export default function Navbar() {
   return (
     <>
       <nav className="relative z-20 border-b border-blue-800/30 bg-black/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto px-2 sm:px-2 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink-0">
               <Image
-                src="/images/Friendly-races/iconokarteando.jpg"
+                src="/images/Friendly-races/logo karteando.png"
                 alt="Karteando.cl"
                 width={250}
                 height={140}
