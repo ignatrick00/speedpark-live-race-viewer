@@ -296,6 +296,15 @@ function FriendlyJoinView({
   isLoading: boolean;
   onRefresh: () => void;
 }) {
+  const { token } = useAuth();
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [selectedRace, setSelectedRace] = useState<Race | null>(null);
+
+  const handleJoinClick = (race: Race) => {
+    setSelectedRace(race);
+    setShowJoinModal(true);
+  };
+
   if (isLoading) {
     return (
       <div className="text-center py-20">
@@ -320,11 +329,30 @@ function FriendlyJoinView({
   }
 
   return (
-    <div className="space-y-4">
-      {races.map((race) => (
-        <RaceCard key={race._id} race={race} />
-      ))}
-    </div>
+    <>
+      <div className="space-y-4">
+        {races.map((race) => (
+          <RaceCard key={race._id} race={race} onJoinClick={() => handleJoinClick(race)} />
+        ))}
+      </div>
+
+      {/* Join Modal */}
+      {showJoinModal && selectedRace && (
+        <JoinRaceModal
+          race={selectedRace}
+          token={token}
+          onClose={() => {
+            setShowJoinModal(false);
+            setSelectedRace(null);
+          }}
+          onSuccess={() => {
+            setShowJoinModal(false);
+            setSelectedRace(null);
+            onRefresh();
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -544,8 +572,195 @@ function FriendlyCreateView({
   );
 }
 
+// Join Race Modal Component
+function JoinRaceModal({
+  race,
+  token,
+  onClose,
+  onSuccess,
+}: {
+  race: Race;
+  token: string | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [selectedKart, setSelectedKart] = useState<number | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+  const [occupiedKarts, setOccupiedKarts] = useState<number[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchOccupiedKarts();
+  }, []);
+
+  const fetchOccupiedKarts = async () => {
+    try {
+      const response = await fetch(`/api/races/friendly/${race._id}/participants`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        const karts = data.participants.map((p: any) => p.kartNumber).filter(Boolean);
+        setOccupiedKarts(karts);
+      }
+    } catch (error) {
+      console.error('Error fetching occupied karts:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleJoin = async () => {
+    if (!selectedKart) {
+      alert('Por favor selecciona un kart');
+      return;
+    }
+
+    if (!token) {
+      alert('No estás autenticado');
+      return;
+    }
+
+    setIsJoining(true);
+    try {
+      const response = await fetch(`/api/races/friendly/${race._id}/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ kartNumber: selectedKart }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('¡Te has unido a la carrera exitosamente!');
+        onSuccess();
+      } else {
+        alert(data.error || 'Error al unirse a la carrera');
+      }
+    } catch (error) {
+      console.error('Error joining race:', error);
+      alert('Error al unirse a la carrera');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const karts = Array.from({ length: 20 }, (_, i) => i + 1);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-4xl bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl p-8">
+        <h3 className="text-3xl font-racing text-electric-blue mb-2 text-center">
+          🏎️ SELECCIONA TU KART
+        </h3>
+        <p className="text-sky-blue/70 text-center mb-6">
+          {race.name}
+        </p>
+
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin text-4xl mb-2">⚙️</div>
+            <p className="text-sky-blue/70">Cargando karts...</p>
+          </div>
+        ) : (
+          <>
+            {/* Kart Grid */}
+            <div className="grid grid-cols-5 gap-3 mb-6">
+              {karts.map((kartNumber) => {
+                const isOccupied = occupiedKarts.includes(kartNumber);
+                const isSelected = selectedKart === kartNumber;
+
+                return (
+                  <button
+                    key={kartNumber}
+                    onClick={() => !isOccupied && setSelectedKart(kartNumber)}
+                    disabled={isOccupied}
+                    style={{
+                      backgroundImage: isOccupied
+                        ? 'linear-gradient(135deg, rgba(127, 29, 29, 0.3), rgba(153, 27, 27, 0.2))'
+                        : isSelected
+                        ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 215, 0, 0.2)), url(/images/karts/kart-bg.png)'
+                        : 'linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(14, 165, 233, 0.1)), url(/images/karts/kart-bg.png)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                    className={`p-4 rounded-lg border-2 transition-all relative overflow-hidden ${
+                      isOccupied
+                        ? 'border-red-500/50 text-red-400/50 cursor-not-allowed'
+                        : isSelected
+                        ? 'border-gold shadow-lg shadow-gold/50 scale-105'
+                        : 'border-electric-blue/30 hover:border-electric-blue hover:scale-105'
+                    }`}
+                  >
+                    {/* Número del kart con mejor contraste */}
+                    <div className="text-center relative z-10">
+                      <p className="text-xs text-sky-blue/70 mb-1 font-bold">KART</p>
+                      <p className={`text-4xl font-bold font-digital drop-shadow-lg ${
+                        isOccupied ? 'text-red-400/60' : isSelected ? 'text-gold' : 'text-electric-blue'
+                      }`}
+                      style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}
+                      >
+                        {kartNumber}
+                      </p>
+                      {isOccupied && (
+                        <p className="text-xs text-red-400/80 mt-1 font-bold">❌ OCUPADO</p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Legend */}
+            <div className="flex justify-center gap-6 mb-6 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-electric-blue/30 border border-electric-blue rounded"></div>
+                <span className="text-sky-blue/70">Disponible</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-gold/30 border border-gold rounded"></div>
+                <span className="text-sky-blue/70">Seleccionado</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-red-900/20 border border-red-500/50 rounded"></div>
+                <span className="text-sky-blue/70">Ocupado</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={onClose}
+                disabled={isJoining}
+                className="flex-1 px-6 py-3 border-2 border-sky-blue/50 text-sky-blue rounded-lg hover:bg-sky-blue/10 transition-all disabled:opacity-50"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={handleJoin}
+                disabled={!selectedKart || isJoining}
+                style={{
+                  backgroundColor: selectedKart && !isJoining ? '#FFD700' : '#333',
+                  color: selectedKart && !isJoining ? '#0a0a15' : '#666',
+                  cursor: !selectedKart || isJoining ? 'not-allowed' : 'pointer',
+                }}
+                className="flex-1 px-6 py-3 font-racing rounded-lg transition-all shadow-lg"
+              >
+                {isJoining ? 'UNIÉNDOTE...' : 'CONFIRMAR'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Race Card Component
-function RaceCard({ race }: { race: Race }) {
+function RaceCard({ race, onJoinClick }: { race: Race; onJoinClick?: () => void }) {
   const isChampionship = race.type === 'championship';
 
   return (
@@ -604,15 +819,24 @@ function RaceCard({ race }: { race: Race }) {
           👥 {race.participants}
           {race.maxParticipants && `/${race.maxParticipants}`} participantes
         </div>
-        <button
-          className={`px-4 py-2 rounded-lg font-racing transition-all ${
-            isChampionship
-              ? 'bg-cyan-400/20 border border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/30'
-              : 'bg-electric-blue/20 border border-electric-blue/50 text-electric-blue hover:bg-electric-blue/30'
-          }`}
-        >
-          VER DETALLES
-        </button>
+        {onJoinClick ? (
+          <button
+            onClick={onJoinClick}
+            className="px-4 py-2 rounded-lg font-racing transition-all bg-electric-blue/20 border border-electric-blue/50 text-electric-blue hover:bg-electric-blue/30"
+          >
+            UNIRME
+          </button>
+        ) : (
+          <button
+            className={`px-4 py-2 rounded-lg font-racing transition-all ${
+              isChampionship
+                ? 'bg-cyan-400/20 border border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/30'
+                : 'bg-electric-blue/20 border border-electric-blue/50 text-electric-blue hover:bg-electric-blue/30'
+            }`}
+          >
+            VER DETALLES
+          </button>
+        )}
       </div>
     </div>
   );
