@@ -6,6 +6,48 @@ import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import { EventCategoryConfig, EventCategory } from '@/types/squadron-events';
 
+// Countdown timer component
+function CountdownTimer({ expiresAt }: { expiresAt: string }) {
+  const [timeLeft, setTimeLeft] = useState<string>('');
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const expiry = new Date(expiresAt).getTime();
+      const diff = expiry - now;
+
+      if (diff <= 0) {
+        setIsExpired(true);
+        setTimeLeft('Expirada');
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      if (hours > 0) {
+        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+      } else if (minutes > 0) {
+        setTimeLeft(`${minutes}m ${seconds}s`);
+      } else {
+        setTimeLeft(`${seconds}s`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  return (
+    <span className={isExpired ? 'text-red-500 font-bold' : 'text-yellow-400 font-bold'}>
+      {timeLeft}
+    </span>
+  );
+}
+
 export default function InvitacionesPage() {
   const router = useRouter();
   const { token, user } = useAuth();
@@ -181,10 +223,8 @@ export default function InvitacionesPage() {
                             <span className="text-white capitalize">{invitation.role}</span>
                           </p>
                           <p>
-                            <span className="text-gray-500">Expira:</span>{' '}
-                            <span className="text-yellow-400">
-                              {new Date(invitation.expiresAt).toLocaleString('es-CL')}
-                            </span>
+                            <span className="text-gray-500">Expira en:</span>{' '}
+                            <CountdownTimer expiresAt={invitation.expiresAt} />
                           </p>
                         </div>
                       </div>
@@ -232,7 +272,8 @@ export default function InvitacionesPage() {
                           <div>
                             <p className="text-gray-500">Escudería</p>
                             <p className="text-white font-bold">
-                              {invitation.squadron.name} [{invitation.squadron.tag}]
+                              {invitation.squadron.name}
+                              {invitation.squadron.tag && ` [${invitation.squadron.tag}]`}
                             </p>
                           </div>
                           <div>
@@ -252,10 +293,8 @@ export default function InvitacionesPage() {
                         </div>
 
                         <div className="mt-3 text-sm">
-                          <span className="text-gray-500">Expira:</span>{' '}
-                          <span className="text-yellow-400">
-                            {new Date(invitation.expiresAt).toLocaleString('es-CL')}
-                          </span>
+                          <span className="text-gray-500">Expira en:</span>{' '}
+                          <CountdownTimer expiresAt={invitation.expiresAt} />
                         </div>
                       </div>
 
