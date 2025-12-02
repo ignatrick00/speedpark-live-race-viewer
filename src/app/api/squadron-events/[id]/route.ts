@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import SquadronEvent from '@/models/SquadronEvent';
+import WebUser from '@/models/WebUser';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function GET(
   request: NextRequest,
@@ -30,6 +33,77 @@ export async function GET(
     console.error('Error fetching event:', error);
     return NextResponse.json(
       { error: 'Error al obtener evento' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await connectDB();
+
+    // Verify authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    let userId: string;
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      userId = decoded.userId;
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Token inválido' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user is organizer
+    const user = await WebUser.findById(userId);
+    if (!user || user.email !== 'icabreraquezada@gmail.com') {
+      return NextResponse.json(
+        { error: 'No tienes permisos de organizador' },
+        { status: 403 }
+      );
+    }
+
+    // Find and verify event ownership
+    const event = await SquadronEvent.findById(params.id);
+    if (!event) {
+      return NextResponse.json(
+        { error: 'Evento no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    if (event.createdBy.toString() !== userId) {
+      return NextResponse.json(
+        { error: 'No tienes permisos para eliminar este evento' },
+        { status: 403 }
+      );
+    }
+
+    // Delete event
+    await SquadronEvent.findByIdAndDelete(params.id);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Evento eliminado exitosamente',
+    });
+
+  } catch (error: any) {
+    console.error('Error deleting event:', error);
+    return NextResponse.json(
+      { error: 'Error al eliminar evento', details: error.message },
       { status: 500 }
     );
   }
