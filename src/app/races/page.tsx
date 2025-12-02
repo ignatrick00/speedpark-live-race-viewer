@@ -993,12 +993,16 @@ function RaceCard({
 }) {
   const isChampionship = race.type === 'championship';
   const isCreator = currentUserId && race.organizerId === currentUserId;
+  const isParticipant = currentUserId && race.participantsList?.some(
+    (participant) => participant.userId === currentUserId
+  );
 
   console.log('🔍 RaceCard Debug:', {
     raceName: race.name,
     organizerId: race.organizerId,
     currentUserId,
     isCreator,
+    isParticipant,
   });
 
   return (
@@ -1111,13 +1115,18 @@ function RaceCard({
             </>
           )}
 
-          {/* Botón de unirse (solo si NO es el creador) */}
+          {/* Botón de unirse/unido (solo si NO es el creador) */}
           {!isCreator && onJoinClick && (
             <button
-              onClick={onJoinClick}
-              className="px-4 py-2 rounded-lg font-racing transition-all bg-electric-blue/20 border border-electric-blue/50 text-electric-blue hover:bg-electric-blue/30"
+              onClick={isParticipant ? undefined : onJoinClick}
+              disabled={isParticipant}
+              className={`px-4 py-2 rounded-lg font-racing transition-all ${
+                isParticipant
+                  ? 'bg-green-600/20 border border-green-500/50 text-green-400 cursor-not-allowed'
+                  : 'bg-electric-blue/20 border border-electric-blue/50 text-electric-blue hover:bg-electric-blue/30'
+              }`}
             >
-              UNIRME
+              {isParticipant ? '✓ UNIDO' : 'UNIRME'}
             </button>
           )}
         </div>
