@@ -407,7 +407,7 @@ function FriendlyJoinView({
           <RaceCard
             key={race._id}
             race={race}
-            currentUserId={user?._id}
+            currentUserId={user?.id}
             onJoinClick={() => handleJoinClick(race)}
             onDeleteClick={() => handleDeleteRace(race._id)}
             onConfirmClick={() => handleConfirmRace(race._id)}
@@ -994,6 +994,13 @@ function RaceCard({
   const isChampionship = race.type === 'championship';
   const isCreator = currentUserId && race.organizerId === currentUserId;
 
+  console.log('🔍 RaceCard Debug:', {
+    raceName: race.name,
+    organizerId: race.organizerId,
+    currentUserId,
+    isCreator,
+  });
+
   return (
     <div
       className={`bg-gradient-to-br from-midnight to-midnight border-2 rounded-xl p-6 hover:scale-[1.02] transition-all ${
@@ -1071,7 +1078,7 @@ function RaceCard({
           {race.maxParticipants && `/${race.maxParticipants}`} participantes
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {/* Botones del creador */}
           {isCreator && (
             <>
@@ -1087,6 +1094,20 @@ function RaceCard({
               >
                 🗑️ ELIMINAR
               </button>
+              <a
+                href={`https://api.whatsapp.com/send?phone=56940052596&text=${encodeURIComponent(
+                  `Hola! Quiero hacer una reserva para la carrera "${race.name}" el día ${new Date(race.date).toLocaleDateString('es-CL', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })} a las ${race.time}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-lg font-racing transition-all bg-blue-600/20 border border-blue-500/50 text-blue-400 hover:bg-blue-600/30 text-sm whitespace-nowrap"
+              >
+                📱 AVISAR A SPEEDPARK
+              </a>
             </>
           )}
 
