@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
-type TabType = 'championships' | 'friendly';
+type ViewMode = 'selection' | 'championships' | 'friendly-join' | 'friendly-create';
 
 interface Race {
   _id: string;
@@ -20,7 +20,7 @@ interface Race {
 
 export default function RacesPage() {
   const { user, token } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('championships');
+  const [viewMode, setViewMode] = useState<ViewMode>('selection');
   const [championshipRaces, setChampionshipRaces] = useState<Race[]>([]);
   const [friendlyRaces, setFriendlyRaces] = useState<Race[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,12 +35,6 @@ export default function RacesPage() {
     try {
       setIsLoading(true);
       // TODO: Implementar endpoints reales
-      // const response = await fetch('/api/races/list', {
-      //   headers: { 'Authorization': `Bearer ${token}` },
-      // });
-      // const data = await response.json();
-
-      // Mock data por ahora
       setChampionshipRaces([]);
       setFriendlyRaces([]);
     } catch (error) {
@@ -63,62 +57,161 @@ export default function RacesPage() {
               Campeonatos y carreras amistosas
             </p>
           </div>
-          <Link
-            href="/dashboard"
+          <button
+            onClick={() => setViewMode('selection')}
             className="px-4 py-2 border border-electric-blue/50 text-electric-blue rounded-lg hover:bg-electric-blue/10 transition-all"
           >
             ← VOLVER
-          </Link>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-4 border-b border-electric-blue/30">
-          <button
-            onClick={() => setActiveTab('championships')}
-            className={`px-6 py-3 font-racing transition-all ${
-              activeTab === 'championships'
-                ? 'text-gold border-b-2 border-gold'
-                : 'text-sky-blue/50 hover:text-sky-blue'
-            }`}
-          >
-            🏆 CAMPEONATOS
-          </button>
-          <button
-            onClick={() => setActiveTab('friendly')}
-            className={`px-6 py-3 font-racing transition-all ${
-              activeTab === 'friendly'
-                ? 'text-gold border-b-2 border-gold'
-                : 'text-sky-blue/50 hover:text-sky-blue'
-            }`}
-          >
-            🤝 AMISTOSAS
           </button>
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-6xl mx-auto">
-        {activeTab === 'championships' ? (
-          <ChampionshipsTab
+        {viewMode === 'selection' && (
+          <SelectionView onSelectChampionships={() => setViewMode('championships')} />
+        )}
+
+        {viewMode === 'championships' && (
+          <ChampionshipsView
             races={championshipRaces}
             isLoading={isLoading}
             onRefresh={fetchRaces}
           />
-        ) : (
-          <FriendlyRacesTab
+        )}
+
+        {viewMode === 'friendly-join' && (
+          <FriendlyJoinView
             races={friendlyRaces}
             isLoading={isLoading}
             onRefresh={fetchRaces}
-            token={token}
           />
+        )}
+
+        {viewMode === 'friendly-create' && (
+          <FriendlyCreateView token={token} onBack={() => setViewMode('selection')} />
         )}
       </div>
     </div>
   );
 }
 
-// Championships Tab Component
-function ChampionshipsTab({
+// Selection View - Two big cards
+function SelectionView({
+  onSelectChampionships,
+}: {
+  onSelectChampionships: () => void;
+}) {
+  const [showFriendlyOptions, setShowFriendlyOptions] = useState(false);
+
+  return (
+    <div className="grid md:grid-cols-2 gap-8">
+      {/* Championships Card */}
+      <button
+        onClick={onSelectChampionships}
+        className="group relative bg-gradient-to-br from-midnight via-cyan-500/20 to-midnight border-2 border-cyan-400 rounded-2xl p-12 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-400/50"
+      >
+        <div className="text-center">
+          <div className="text-8xl mb-6 group-hover:scale-110 transition-transform">
+            🏆
+          </div>
+          <h2 className="text-4xl font-racing text-cyan-400 mb-4">
+            CAMPEONATOS
+          </h2>
+          <p className="text-sky-blue/70 text-lg mb-6">
+            Competencias oficiales organizadas
+          </p>
+          <div className="inline-block px-6 py-3 bg-cyan-400/20 border border-cyan-400/50 text-cyan-300 rounded-lg font-racing">
+            VER CAMPEONATOS
+          </div>
+        </div>
+      </button>
+
+      {/* Friendly Races Card */}
+      <div className="relative">
+        {!showFriendlyOptions ? (
+          <button
+            onClick={() => setShowFriendlyOptions(true)}
+            className="group w-full h-full bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue rounded-2xl p-12 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-electric-blue/50"
+          >
+            <div className="text-center">
+              <div className="text-8xl mb-6 group-hover:scale-110 transition-transform">
+                🤝
+              </div>
+              <h2 className="text-4xl font-racing text-electric-blue mb-4">
+                CARRERAS AMISTOSAS
+              </h2>
+              <p className="text-sky-blue/70 text-lg mb-6">
+                Crea o únete a carreras casuales
+              </p>
+              <div className="inline-block px-6 py-3 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded-lg font-racing">
+                SELECCIONAR
+              </div>
+            </div>
+          </button>
+        ) : (
+          <div className="bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue rounded-2xl p-8">
+            <div className="text-center mb-8">
+              <div className="text-6xl mb-4">🤝</div>
+              <h2 className="text-3xl font-racing text-electric-blue mb-2">
+                CARRERAS AMISTOSAS
+              </h2>
+              <p className="text-sky-blue/70">¿Qué deseas hacer?</p>
+            </div>
+
+            <div className="space-y-4">
+              <Link href="/races?mode=friendly-join">
+                <button className="w-full group bg-gradient-to-r from-electric-blue/30 to-electric-blue/10 border-2 border-electric-blue/50 rounded-xl p-6 hover:bg-electric-blue/20 transition-all hover:scale-105 hover:shadow-lg hover:shadow-electric-blue/30">
+                  <div className="flex items-center justify-between">
+                    <div className="text-left">
+                      <h3 className="text-2xl font-racing text-electric-blue mb-1">
+                        UNIRTE A CARRERA
+                      </h3>
+                      <p className="text-sky-blue/60 text-sm">
+                        Ve carreras disponibles y únete
+                      </p>
+                    </div>
+                    <div className="text-4xl group-hover:scale-110 transition-transform">
+                      🏁
+                    </div>
+                  </div>
+                </button>
+              </Link>
+
+              <Link href="/races?mode=friendly-create">
+                <button className="w-full group bg-gradient-to-r from-gold/30 to-gold/10 border-2 border-gold/50 rounded-xl p-6 hover:bg-gold/20 transition-all hover:scale-105 hover:shadow-lg hover:shadow-gold/30">
+                  <div className="flex items-center justify-between">
+                    <div className="text-left">
+                      <h3 className="text-2xl font-racing text-gold mb-1">
+                        CREAR CARRERA
+                      </h3>
+                      <p className="text-sky-blue/60 text-sm">
+                        Organiza tu propia carrera amistosa
+                      </p>
+                    </div>
+                    <div className="text-4xl group-hover:scale-110 transition-transform">
+                      ➕
+                    </div>
+                  </div>
+                </button>
+              </Link>
+
+              <button
+                onClick={() => setShowFriendlyOptions(false)}
+                className="w-full px-4 py-3 border border-sky-blue/30 text-sky-blue/70 rounded-lg hover:bg-sky-blue/10 transition-all"
+              >
+                CANCELAR
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Championships View
+function ChampionshipsView({
   races,
   isLoading,
   onRefresh,
@@ -138,9 +231,9 @@ function ChampionshipsTab({
 
   if (races.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-midnight via-gold/5 to-midnight border-2 border-gold/30 rounded-xl p-12 text-center">
+      <div className="bg-gradient-to-br from-midnight via-cyan-500/10 to-midnight border-2 border-cyan-400/50 rounded-xl p-12 text-center">
         <div className="text-6xl mb-4">🏆</div>
-        <h3 className="text-2xl font-racing text-gold mb-2">
+        <h3 className="text-2xl font-racing text-cyan-400 mb-2">
           NO HAY CAMPEONATOS ACTIVOS
         </h3>
         <p className="text-sky-blue/70 mb-6">
@@ -162,20 +255,16 @@ function ChampionshipsTab({
   );
 }
 
-// Friendly Races Tab Component
-function FriendlyRacesTab({
+// Friendly Join View
+function FriendlyJoinView({
   races,
   isLoading,
   onRefresh,
-  token,
 }: {
   races: Race[];
   isLoading: boolean;
   onRefresh: () => void;
-  token: string | null;
 }) {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-
   if (isLoading) {
     return (
       <div className="text-center py-20">
@@ -185,62 +274,51 @@ function FriendlyRacesTab({
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Create Button */}
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-6 py-3 bg-gold text-midnight font-racing rounded-lg hover:bg-gold/90 transition-all shadow-lg shadow-gold/30"
-        >
-          + CREAR CARRERA AMISTOSA
-        </button>
+  if (races.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-midnight via-electric-blue/10 to-midnight border-2 border-electric-blue/50 rounded-xl p-12 text-center">
+        <div className="text-6xl mb-4">🤝</div>
+        <h3 className="text-2xl font-racing text-electric-blue mb-2">
+          NO HAY CARRERAS AMISTOSAS DISPONIBLES
+        </h3>
+        <p className="text-sky-blue/70 mb-6">
+          Sé el primero en crear una carrera amistosa
+        </p>
       </div>
+    );
+  }
 
-      {/* Races List */}
-      {races.length === 0 ? (
-        <div className="bg-gradient-to-br from-midnight via-electric-blue/5 to-midnight border-2 border-electric-blue/30 rounded-xl p-12 text-center">
-          <div className="text-6xl mb-4">🤝</div>
-          <h3 className="text-2xl font-racing text-electric-blue mb-2">
-            NO HAY CARRERAS AMISTOSAS
-          </h3>
-          <p className="text-sky-blue/70 mb-6">
-            Sé el primero en crear una carrera amistosa
+  return (
+    <div className="space-y-4">
+      {races.map((race) => (
+        <RaceCard key={race._id} race={race} />
+      ))}
+    </div>
+  );
+}
+
+// Friendly Create View
+function FriendlyCreateView({
+  token,
+  onBack,
+}: {
+  token: string | null;
+  onBack: () => void;
+}) {
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-gradient-to-br from-midnight via-gold/20 to-midnight border-2 border-gold/50 rounded-xl p-8">
+        <h3 className="text-3xl font-racing text-gold mb-6 text-center">
+          ✨ CREAR CARRERA AMISTOSA
+        </h3>
+        <div className="text-center text-sky-blue/70 py-12">
+          <div className="text-6xl mb-4">🚧</div>
+          <p className="text-xl mb-2">Funcionalidad en desarrollo</p>
+          <p className="text-sm text-sky-blue/50">
+            Pronto podrás crear tus propias carreras amistosas
           </p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue font-racing rounded-lg hover:bg-electric-blue/30 transition-all"
-          >
-            CREAR AHORA
-          </button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {races.map((race) => (
-            <RaceCard key={race._id} race={race} />
-          ))}
-        </div>
-      )}
-
-      {/* Create Modal - TODO: Implementar */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-gold/20 to-midnight border-2 border-gold/50 rounded-xl p-6">
-            <h3 className="text-2xl font-racing text-gold mb-4">
-              CREAR CARRERA AMISTOSA
-            </h3>
-            <p className="text-sky-blue/70 mb-6">
-              Funcionalidad en desarrollo...
-            </p>
-            <button
-              onClick={() => setShowCreateModal(false)}
-              className="w-full px-4 py-2 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded-lg hover:bg-electric-blue/30 transition-all"
-            >
-              CERRAR
-            </button>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -253,15 +331,15 @@ function RaceCard({ race }: { race: Race }) {
     <div
       className={`bg-gradient-to-br from-midnight to-midnight border-2 rounded-xl p-6 hover:scale-[1.02] transition-all ${
         isChampionship
-          ? 'via-gold/10 border-gold/50'
-          : 'via-electric-blue/10 border-electric-blue/50'
+          ? 'via-cyan-400/10 border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/30'
+          : 'via-electric-blue/10 border-electric-blue/50 hover:shadow-lg hover:shadow-electric-blue/30'
       }`}
     >
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3
             className={`text-xl font-racing mb-1 ${
-              isChampionship ? 'text-gold' : 'text-electric-blue'
+              isChampionship ? 'text-cyan-400' : 'text-electric-blue'
             }`}
           >
             {race.name}
@@ -275,7 +353,7 @@ function RaceCard({ race }: { race: Race }) {
         <div
           className={`px-3 py-1 rounded-lg text-xs font-racing ${
             isChampionship
-              ? 'bg-gold/20 text-gold'
+              ? 'bg-cyan-400/20 text-cyan-400'
               : 'bg-electric-blue/20 text-electric-blue'
           }`}
         >
@@ -308,7 +386,7 @@ function RaceCard({ race }: { race: Race }) {
         <button
           className={`px-4 py-2 rounded-lg font-racing transition-all ${
             isChampionship
-              ? 'bg-gold/20 border border-gold/50 text-gold hover:bg-gold/30'
+              ? 'bg-cyan-400/20 border border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/30'
               : 'bg-electric-blue/20 border border-electric-blue/50 text-electric-blue hover:bg-electric-blue/30'
           }`}
         >
