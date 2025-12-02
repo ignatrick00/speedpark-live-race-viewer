@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import WebUser from '@/models/WebUser';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,11 @@ const FriendlyRaceSchema = new mongoose.Schema({
   time: String,
   participants: [{
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'WebUser' },
+    kartNumber: {
+      type: Number,
+      min: 1,
+      max: 20,
+    },
     joinedAt: Date,
   }],
   maxParticipants: Number,
@@ -51,26 +57,66 @@ export async function GET(req: NextRequest) {
     // Get all friendly races that are open or in the future
     const races = await FriendlyRace.find({
       date: { $gte: new Date() },
-      status: { $in: ['open', 'full'] },
+      $or: [
+        { status: { $in: ['open', 'full'] } },
+        { status: { $exists: false } }, // Include races without status field (old races)
+      ],
     })
-      .populate('createdBy', 'email profile')
-      .populate('participants.userId', 'email profile')
       .sort({ date: 1, time: 1 })
       .lean();
 
-    // Format races
-    const formattedRaces = races.map((race: any) => ({
-      _id: race._id,
-      name: race.name,
-      date: race.date,
-      time: race.time,
-      type: 'friendly',
-      participants: race.participants.length,
-      maxParticipants: race.maxParticipants,
-      status: race.status,
-      organizerName: race.createdBy?.profile?.alias ||
-                     `${race.createdBy?.profile?.firstName} ${race.createdBy?.profile?.lastName}`,
-      organizerId: race.createdBy?._id,
+    console.log(`📊 [FRIENDLY-RACES] Found ${races.length} races in database`);
+
+    // Manually populate users to avoid schema issues
+    const formattedRaces = await Promise.all(races.map(async (race: any) => {
+      let organizerName = 'Organizador';
+      const organizerId = race.createdBy?.toString();
+
+      try {
+        const creator = await WebUser.findById(race.createdBy);
+        if (creator) {
+          organizerName = creator.profile?.alias ||
+                         `${creator.profile?.firstName || ''} ${creator.profile?.lastName || ''}`.trim() ||
+                         creator.email;
+        }
+      } catch (err) {
+        console.error('Error loading creator:', err);
+      }
+
+      const participantsList = await Promise.all(race.participants.map(async (p: any) => {
+        let userName = 'Piloto';
+        try {
+          const user = await WebUser.findById(p.userId);
+          if (user) {
+            userName = user.profile?.alias ||
+                      `${user.profile?.firstName || ''} ${user.profile?.lastName || ''}`.trim() ||
+                      user.email;
+          }
+        } catch (err) {
+          console.error('Error loading participant:', err);
+        }
+
+        return {
+          userId: p.userId?.toString(),
+          kartNumber: p.kartNumber,
+          name: userName,
+          joinedAt: p.joinedAt,
+        };
+      }));
+
+      return {
+        _id: race._id.toString(),
+        name: race.name,
+        date: race.date,
+        time: race.time,
+        type: 'friendly',
+        participants: race.participants.length,
+        maxParticipants: race.maxParticipants,
+        status: race.status,
+        organizerName,
+        organizerId,
+        participantsList,
+      };
     }));
 
     console.log(`✅ [FRIENDLY-RACES] Returning ${formattedRaces.length} races`);

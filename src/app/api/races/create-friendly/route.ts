@@ -35,6 +35,11 @@ const FriendlyRaceSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'WebUser',
     },
+    kartNumber: {
+      type: Number,
+      min: 1,
+      max: 20,
+    },
     joinedAt: {
       type: Date,
       default: Date.now,
@@ -58,6 +63,7 @@ const FriendlyRaceSchema = new mongoose.Schema({
 const FriendlyRace = mongoose.models.FriendlyRace || mongoose.model('FriendlyRace', FriendlyRaceSchema);
 
 export async function POST(req: NextRequest) {
+  console.log('🚀🚀🚀 [CREATE-FRIENDLY] POST REQUEST RECEIVED');
   try {
     await connectDB();
 
@@ -98,12 +104,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse request body
-    const { name, date, time } = await req.json();
+    const { name, date, time, kartNumber } = await req.json();
+    console.log('📝 [CREATE-FRIENDLY] Received data:', { name, date, time, kartNumber });
 
     // Validate input
-    if (!name || !date || !time) {
+    if (!name || !date || !time || !kartNumber) {
       return NextResponse.json(
         { success: false, error: 'Datos incompletos' },
+        { status: 400 }
+      );
+    }
+
+    // Validate kart number
+    if (kartNumber < 1 || kartNumber > 20) {
+      return NextResponse.json(
+        { success: false, error: 'Número de kart inválido (1-20)' },
         { status: 400 }
       );
     }
@@ -124,7 +139,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create race
+    // Create race with creator's selected kart
     const race = await FriendlyRace.create({
       name: name.trim(),
       createdBy: userId,
@@ -132,29 +147,24 @@ export async function POST(req: NextRequest) {
       time,
       participants: [{
         userId,
+        kartNumber,
         joinedAt: new Date(),
       }],
     });
 
-    console.log(`✅ [CREATE-FRIENDLY-RACE] Race created: ${race._id} by user ${userId}`);
-
-    // Populate creator info
-    const populatedRace = await FriendlyRace.findById(race._id)
-      .populate('createdBy', 'email profile')
-      .populate('participants.userId', 'email profile')
-      .lean();
+    console.log(`✅ [CREATE-FRIENDLY-RACE] Race created: ${race._id} by user ${userId} with kart #${kartNumber}`);
 
     return NextResponse.json({
       success: true,
       race: {
-        _id: populatedRace._id,
-        name: populatedRace.name,
-        date: populatedRace.date,
-        time: populatedRace.time,
-        participants: populatedRace.participants.length,
-        maxParticipants: populatedRace.maxParticipants,
-        status: populatedRace.status,
-        createdBy: populatedRace.createdBy,
+        _id: race._id,
+        name: race.name,
+        date: race.date,
+        time: race.time,
+        participants: race.participants.length,
+        maxParticipants: race.maxParticipants,
+        status: race.status,
+        kartNumber, // Include the selected kart number
       },
       message: 'Carrera creada exitosamente',
     });
