@@ -66,11 +66,13 @@ export default function LiveRaceViewer() {
   const [dailyBest, setDailyBest] = useState<DailyBestTime[]>([])
   const [bestTimesLoading, setBestTimesLoading] = useState(true)
   const [bestTimesError, setBestTimesError] = useState<string | null>(null)
-  
+  const [bestTimesFirstLoad, setBestTimesFirstLoad] = useState(true)
+
   // 🆕 Estado para mejores karts desde MongoDB
   const [kartRanking, setKartRanking] = useState<Array<{kart: number, time: string, driver: string}>>([])
   const [kartsLoading, setKartsLoading] = useState(true)
   const [kartsError, setKartsError] = useState<string | null>(null)
+  const [kartsFirstLoad, setKartsFirstLoad] = useState(true)
   
   // Estados derivados de WebSocket (mantener para datos en tiempo real)
   const isLive = isConnected && !!raceData
@@ -83,12 +85,15 @@ export default function LiveRaceViewer() {
   // 🆕 Función para obtener mejores tiempos desde MongoDB
   const fetchBestTimes = async () => {
     try {
-      setBestTimesLoading(true)
+      // Only show loading on first load, not on refreshes
+      if (bestTimesFirstLoad) {
+        setBestTimesLoading(true)
+      }
       setBestTimesError(null)
-      
+
       const response = await fetch('/api/best-times')
       const data = await response.json()
-      
+
       if (data.success) {
         setDailyBest(data.bestTimes)
         console.log(`🏆 Loaded ${data.bestTimes.length} best times from MongoDB`)
@@ -100,19 +105,25 @@ export default function LiveRaceViewer() {
       setBestTimesError('Connection error')
       console.error('❌ Fetch error:', error)
     } finally {
-      setBestTimesLoading(false)
+      if (bestTimesFirstLoad) {
+        setBestTimesLoading(false)
+        setBestTimesFirstLoad(false)
+      }
     }
   }
 
   // 🆕 Función para obtener mejores karts desde MongoDB
   const fetchBestKarts = async () => {
     try {
-      setKartsLoading(true)
+      // Only show loading on first load, not on refreshes
+      if (kartsFirstLoad) {
+        setKartsLoading(true)
+      }
       setKartsError(null)
-      
+
       const response = await fetch('/api/best-karts')
       const data = await response.json()
-      
+
       if (data.success) {
         setKartRanking(data.bestKarts)
         console.log(`🏎️ Loaded ${data.bestKarts.length} best karts from MongoDB`)
@@ -124,7 +135,10 @@ export default function LiveRaceViewer() {
       setKartsError('Connection error')
       console.error('❌ Fetch error:', error)
     } finally {
-      setKartsLoading(false)
+      if (kartsFirstLoad) {
+        setKartsLoading(false)
+        setKartsFirstLoad(false)
+      }
     }
   }
 
