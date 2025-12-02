@@ -552,11 +552,17 @@ export default function ClasesPage() {
                 
                 <div className="bg-blue-900/20 border border-blue-400/20 rounded-xl p-6">
                   <h2 className="text-2xl font-bold text-cyan-400 mb-4">
-                    Clases de {instructors.find(i => i.id === selectedInstructor)?.name} - {selectedCalendarDate?.toLocaleDateString('es-CL') || new Date().toLocaleDateString('es-CL')}
+                    Todas las clases de {instructors.find(i => i.id === selectedInstructor)?.name}
                   </h2>
-                  
-                  <div className="grid lg:grid-cols-2 gap-4">
-                    {getBloquesByInstructor(selectedInstructor).filter(bloque => bloque.date === selectedDate).map((bloque) => {
+
+                  {getBloquesByInstructor(selectedInstructor).length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-6xl mb-4">📭</div>
+                      <p className="text-blue-300 text-lg">Este instructor no tiene clases programadas</p>
+                    </div>
+                  ) : (
+                    <div className="grid lg:grid-cols-2 gap-4">
+                      {getBloquesByInstructor(selectedInstructor).map((bloque) => {
                       const slotStatus = getSlotStatus(bloque)
                       
                       return (
@@ -655,7 +661,8 @@ export default function ClasesPage() {
                         </div>
                       )
                     })}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -760,14 +767,20 @@ export default function ClasesPage() {
               </div>
             </div>
 
-            {/* Classes for selected date */}
+            {/* All Available Classes */}
             <div className="bg-blue-900/20 border border-blue-400/20 rounded-xl p-6">
               <h2 className="text-2xl font-bold text-cyan-400 mb-6">
-                Clases disponibles - {selectedCalendarDate?.toLocaleDateString('es-CL') || new Date().toLocaleDateString('es-CL')}
+                Todas las clases disponibles
               </h2>
-              
-              <div className="grid lg:grid-cols-2 gap-4">
-                {getBloquesByDate(selectedDate).map((bloque) => {
+
+              {bloques.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📭</div>
+                  <p className="text-blue-300 text-lg">No hay clases programadas</p>
+                </div>
+              ) : (
+                <div className="grid lg:grid-cols-2 gap-4">
+                  {bloques.map((bloque) => {
                   const slotStatus = getSlotStatus(bloque)
                   
                   return (
@@ -866,7 +879,8 @@ export default function ClasesPage() {
                     </div>
                   )
                 })}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         )}
