@@ -10,6 +10,7 @@ interface BestTime {
   sessionName: string;
   sessionDate: string;
   sessionTime: string;
+  sessionDateTime?: string;
 }
 
 export default function TopDriversWeek() {
@@ -68,20 +69,20 @@ export default function TopDriversWeek() {
         <p className="text-xs text-sky-blue/50 mt-1">Últimos 7 días</p>
       </div>
 
-      {/* Loading State */}
-      {loading && (
+      {/* Loading State - ONLY on first load when no data yet */}
+      {loading && bestTimes.length === 0 && (
         <div className="text-center text-gray-400 py-8">Cargando...</div>
       )}
 
-      {/* No Data State */}
+      {/* No Data State - only when not loading and confirmed no data */}
       {!loading && bestTimes.length === 0 && (
         <div className="text-center text-gray-400 py-8">
           No hay datos para este período
         </div>
       )}
 
-      {/* Best Times List */}
-      {!loading && bestTimes.length > 0 && (
+      {/* Best Times List - ALWAYS show when data available */}
+      {bestTimes.length > 0 && (
         <div className="space-y-3">
           {bestTimes.map((entry) => (
             <div
@@ -102,7 +103,7 @@ export default function TopDriversWeek() {
                       {entry.driverName}
                     </div>
                     <div className="text-xs text-sky-blue/60">
-                      Kart #{entry.kartNumber} • {entry.sessionTime}
+                      Kart #{entry.kartNumber} • {entry.sessionDateTime || entry.sessionTime}
                     </div>
                   </div>
                 </div>

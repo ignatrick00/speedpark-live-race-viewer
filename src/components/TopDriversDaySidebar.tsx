@@ -10,6 +10,7 @@ interface BestTime {
   sessionName: string;
   sessionDate: string;
   sessionTime: string;
+  sessionDateTime?: string;
 }
 
 export default function TopDriversDaySidebar() {
@@ -104,7 +105,7 @@ export default function TopDriversDaySidebar() {
               </div>
               <div className="flex-1">
                 <div className="font-racing text-white font-semibold uppercase tracking-wide text-sm">{entry.driverName}</div>
-                <div className="text-sky-400 text-xs">Kart #{entry.kartNumber} • {entry.sessionTime}</div>
+                <div className="text-sky-400 text-xs">Kart #{entry.kartNumber} • {entry.sessionDateTime || entry.sessionTime}</div>
               </div>
             </div>
             <div className="font-digital text-cyan-400 text-lg font-bold">{formatTime(entry.bestTime)}</div>

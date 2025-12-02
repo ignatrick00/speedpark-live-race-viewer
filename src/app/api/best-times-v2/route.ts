@@ -83,12 +83,25 @@ export async function GET(request: Request) {
       });
 
       if (bestSession && driverBestTime !== Infinity) {
+        const sessionDate = new Date(bestSession.sessionDate);
         bestTimes.push({
           driverName: driver.driverName,
           bestTime: driverBestTime,
           kartNumber: bestSession.kartNumber || 0,
           sessionName: bestSession.sessionName,
-          sessionTime: new Date(bestSession.sessionDate).toLocaleTimeString('es-CL', {
+          sessionTime: sessionDate.toLocaleTimeString('es-CL', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          sessionDate: sessionDate.toLocaleDateString('es-CL', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          }),
+          sessionDateTime: sessionDate.toLocaleString('es-CL', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
           })
