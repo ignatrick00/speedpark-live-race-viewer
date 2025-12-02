@@ -332,7 +332,14 @@ export default function CoachPage() {
                                 👤 Clase Individual: {clase.individualBooking.studentName}
                               </p>
                               <p className="text-xs text-slate-500 mt-1">
-                                Reservado: {new Date(clase.individualBooking.bookedAt).toLocaleString('es-CL')}
+                                Reservado: {clase.individualBooking.bookedAt ?
+                                  new Date(clase.individualBooking.bookedAt).toLocaleString('es-CL', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  }) : 'Fecha no disponible'}
                               </p>
                             </div>
                           ) : clase.groupBookings.length > 0 ? (
@@ -347,7 +354,14 @@ export default function CoachPage() {
                                 >
                                   <p className="text-green-400 font-medium">{booking.studentName}</p>
                                   <p className="text-xs text-slate-500">
-                                    Reservado: {new Date(booking.bookedAt).toLocaleString('es-CL')}
+                                    Reservado: {booking.bookedAt ?
+                                      new Date(booking.bookedAt).toLocaleString('es-CL', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      }) : 'Fecha no disponible'}
                                   </p>
                                 </div>
                               ))}
