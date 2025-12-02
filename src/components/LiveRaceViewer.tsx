@@ -5,6 +5,10 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/hooks/useAuth'
 import LoginModal from '@/components/auth/LoginModal'
 import RegisterModal from '@/components/auth/RegisterModal'
+import TopDriversDay from '@/components/TopDriversDay'
+import TopDriversWeek from '@/components/TopDriversWeek'
+import TopDriversMonth from '@/components/TopDriversMonth'
+import TopDriversAllTime from '@/components/TopDriversAllTime'
 
 interface Driver {
   pos: number
@@ -743,6 +747,21 @@ export default function LiveRaceViewer() {
                 <span className="font-digital text-white font-bold">{totalLaps}</span>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Top 10 Driver Rankings - 4 Categories */}
+        <section className="mt-12">
+          <h2 className="font-racing text-3xl text-white mb-8 text-center tracking-wider">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white">
+              🏆 Rankings de Pilotos
+            </span>
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <TopDriversDay />
+            <TopDriversWeek />
+            <TopDriversMonth />
+            <TopDriversAllTime />
           </div>
         </section>
       </div>
