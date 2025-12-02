@@ -56,9 +56,13 @@ export default function ClasesPage() {
     const fetchClasses = async () => {
       try {
         setLoading(true)
+        console.log('🔍 Fetching training classes from API...')
         const response = await fetch('/api/training-classes')
+        console.log('📡 Response status:', response.status)
         if (response.ok) {
           const data = await response.json()
+          console.log('✅ Classes received:', data.classes.length, 'classes')
+          console.log('📋 Classes data:', data.classes)
 
           // Transform API data to match existing format
           const transformedBloques: ClaseBloque[] = data.classes.map((clase: any) => ({
@@ -84,6 +88,7 @@ export default function ClasesPage() {
           }))
 
           setBloques(transformedBloques)
+          console.log('🎯 Transformed bloques:', transformedBloques)
 
           // Extract unique instructors from classes
           const uniqueInstructors = new Map<string, Instructor>()
@@ -100,11 +105,13 @@ export default function ClasesPage() {
           })
 
           setInstructors(Array.from(uniqueInstructors.values()))
+          console.log('👥 Instructors:', Array.from(uniqueInstructors.values()))
         }
       } catch (error) {
-        console.error('Error fetching classes:', error)
+        console.error('❌ Error fetching classes:', error)
       } finally {
         setLoading(false)
+        console.log('✅ Loading complete')
       }
     }
 
