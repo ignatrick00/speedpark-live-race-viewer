@@ -22,6 +22,7 @@ export default function EventoPage() {
   const [occupiedKarts, setOccupiedKarts] = useState<number[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [unregistering, setUnregistering] = useState(false);
+  const [hasUnregistered, setHasUnregistered] = useState(false);
 
   useEffect(() => {
     if (token && params.id) {
@@ -95,20 +96,10 @@ export default function EventoPage() {
 
         // Find user's squadron participation
         const userSquadronId = (user as any)?.squadron?.squadronId;
-        const userId = (user as any)?._id;
         const participation = data.event.participants?.find(
           (p: any) => p.squadronId?._id?.toString() === userSquadronId?.toString() || p.squadronId?.toString() === userSquadronId?.toString()
         );
-
-        // Only set participation if user is actually in the confirmed pilots
-        if (participation) {
-          const isUserConfirmed = participation.confirmedPilots?.some(
-            (pilot: any) => (pilot.pilotId?._id?.toString() || pilot.pilotId?.toString()) === userId?.toString()
-          );
-          setMyParticipation(isUserConfirmed ? participation : null);
-        } else {
-          setMyParticipation(null);
-        }
+        setMyParticipation(participation);
       }
 
       // Fetch occupied karts
@@ -207,14 +198,15 @@ export default function EventoPage() {
 
       if (response.ok) {
         alert('Te has desregistrado exitosamente del evento');
+        setHasUnregistered(true);
         fetchEvent();
       } else {
         alert(data.error || 'Error al desregistrarse');
+        setUnregistering(false);
       }
     } catch (error) {
       console.error('Error unregistering:', error);
       alert('Error al desregistrarse del evento');
-    } finally {
       setUnregistering(false);
     }
   };
@@ -343,13 +335,15 @@ export default function EventoPage() {
           <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-racing text-purple-400">Mi Equipo</h3>
-              <button
-                onClick={handleUnregister}
-                disabled={unregistering}
-                className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm font-bold"
-              >
-                {unregistering ? '⏳ DESREGISTRANDO...' : '❌ DESREGISTRARSE'}
-              </button>
+              {!hasUnregistered && (
+                <button
+                  onClick={handleUnregister}
+                  disabled={unregistering}
+                  className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm font-bold"
+                >
+                  {unregistering ? '⏳ DESREGISTRANDO...' : '❌ DESREGISTRARSE'}
+                </button>
+              )}
             </div>
 
             {/* Team Status */}
