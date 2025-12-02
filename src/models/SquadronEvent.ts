@@ -44,6 +44,7 @@ export interface ISquadronEvent extends Document {
     }>; // Pilotos confirmados con sus karts
     pendingInvitations: Array<{
       pilotId: mongoose.Types.ObjectId;
+      invitedBy?: mongoose.Types.ObjectId; // Who sent the invitation
       kartNumber: number;
       invitedAt: Date;
       expiresAt: Date;
@@ -187,6 +188,11 @@ const SquadronEventSchema: Schema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'WebUser',
         required: true,
+      },
+      invitedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'WebUser',
+        required: false,
       },
       kartNumber: {
         type: Number,

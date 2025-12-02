@@ -83,7 +83,8 @@ export async function GET(request: NextRequest) {
         .populate('createdBy', 'email profile')
         .populate('participants.squadronId', 'name tag');
 
-      events.forEach((event: any) => {
+      // Manually populate invitedBy for each invitation
+      for (const event of events) {
         const participation = event.participants.find(
           (p: any) => p.squadronId._id.toString() === userSquadronId.toString()
         );
@@ -94,6 +95,22 @@ export async function GET(request: NextRequest) {
           );
 
           if (invitation) {
+            console.log('📧 Processing invitation:', {
+              eventName: event.name,
+              invitedBy: invitation.invitedBy,
+              pilotId: invitation.pilotId,
+              kartNumber: invitation.kartNumber
+            });
+
+            // Manually populate invitedBy if it exists
+            let invitedByUser = null;
+            if (invitation.invitedBy) {
+              invitedByUser = await WebUser.findById(invitation.invitedBy).select('email profile');
+              console.log('👤 invitedBy populated:', invitedByUser ? invitedByUser.email : 'NOT FOUND');
+            } else {
+              console.log('⚠️ invitation.invitedBy is missing');
+            }
+
             eventInvitations.push({
               type: 'event',
               eventId: event._id,
@@ -105,11 +122,12 @@ export async function GET(request: NextRequest) {
               kartNumber: invitation.kartNumber,
               invitedAt: invitation.invitedAt,
               expiresAt: invitation.expiresAt,
+              invitedBy: invitedByUser, // Add who sent the invitation
               squadron: participation.squadronId,
             });
           }
         }
-      });
+      }
     }
 
     // Combine all invitations

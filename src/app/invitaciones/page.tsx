@@ -290,6 +290,16 @@ export default function InvitacionesPage() {
                             <p className="text-gray-500">Ubicación</p>
                             <p className="text-white">{invitation.location}</p>
                           </div>
+                          {invitation.invitedBy && (
+                            <div className="col-span-2">
+                              <p className="text-gray-500">Invitado por</p>
+                              <p className="text-white">
+                                {invitation.invitedBy.profile?.alias ||
+                                  `${invitation.invitedBy.profile?.firstName || ''} ${invitation.invitedBy.profile?.lastName || ''}`.trim() ||
+                                  invitation.invitedBy.email}
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                         <div className="mt-3 text-sm">

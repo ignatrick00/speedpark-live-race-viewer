@@ -145,6 +145,7 @@ export async function POST(
 
     const newInvitation = {
       pilotId: teammate._id,
+      invitedBy: decoded.userId,
       kartNumber: Number(kartNumber),
       invitedAt: new Date(),
       expiresAt,
