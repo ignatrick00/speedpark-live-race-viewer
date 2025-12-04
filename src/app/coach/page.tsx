@@ -9,6 +9,7 @@ interface CoachAvailability {
   dayOfWeek: number;
   startTime: string;
   endTime: string;
+  blockDurationMinutes: number;
   individualPrice: number;
   groupPricePerPerson: number;
   maxGroupCapacity: number;
@@ -153,6 +154,7 @@ export default function CoachPage() {
       dayOfWeek: avail.dayOfWeek,
       startTime: avail.startTime,
       endTime: avail.endTime,
+      blockDurationMinutes: avail.blockDurationMinutes || 45,
       individualPrice: avail.individualPrice,
       groupPricePerPerson: avail.groupPricePerPerson,
       maxGroupCapacity: avail.maxGroupCapacity,
@@ -343,6 +345,9 @@ export default function CoachPage() {
                         </p>
                         <p className="text-sm text-sky-blue/70">
                           {avail.startTime} - {avail.endTime}
+                        </p>
+                        <p className="text-xs text-orange-400">
+                          ⏱️ Bloques de {avail.blockDurationMinutes || 45} minutos
                         </p>
                       </div>
                       <div className="flex gap-2">
