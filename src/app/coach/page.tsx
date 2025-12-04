@@ -49,6 +49,7 @@ export default function CoachPage() {
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const [availabilities, setAvailabilities] = useState<CoachAvailability[]>([]);
   const [loadingAvailabilities, setLoadingAvailabilities] = useState(false);
+  const [editingAvailability, setEditingAvailability] = useState<CoachAvailability | null>(null);
 
   // Classes state
   const [showMyClasses, setShowMyClasses] = useState(false);
@@ -120,14 +121,48 @@ export default function CoachPage() {
     }
   }, [showMyClasses, token, user]);
 
-  // Create availability
-  const handleCreateAvailability = async (e: React.FormEvent) => {
+  // Open modal for creating new availability
+  const handleOpenCreateModal = () => {
+    setEditingAvailability(null);
+    setAvailabilityForm({
+      dayOfWeek: 1,
+      startTime: '14:00',
+      endTime: '18:00',
+      individualPrice: 45000,
+      groupPricePerPerson: 25000,
+      maxGroupCapacity: 4,
+    });
+    setShowAvailabilityModal(true);
+  };
+
+  // Open modal for editing availability
+  const handleOpenEditModal = (avail: CoachAvailability) => {
+    setEditingAvailability(avail);
+    setAvailabilityForm({
+      dayOfWeek: avail.dayOfWeek,
+      startTime: avail.startTime,
+      endTime: avail.endTime,
+      individualPrice: avail.individualPrice,
+      groupPricePerPerson: avail.groupPricePerPerson,
+      maxGroupCapacity: avail.maxGroupCapacity,
+    });
+    setShowAvailabilityModal(true);
+  };
+
+  // Create or update availability
+  const handleSaveAvailability = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setIsCreatingAvailability(true);
     try {
-      const response = await fetch('/api/coach-availability', {
-        method: 'POST',
+      const isEditing = !!editingAvailability;
+      const url = isEditing
+        ? `/api/coach-availability/${editingAvailability._id}`
+        : '/api/coach-availability';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -138,8 +173,9 @@ export default function CoachPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('¡Disponibilidad creada exitosamente!');
+        alert(isEditing ? '¡Disponibilidad actualizada!' : '¡Disponibilidad creada exitosamente!');
         setShowAvailabilityModal(false);
+        setEditingAvailability(null);
         fetchAvailabilities();
         // Reset form
         setAvailabilityForm({
@@ -151,11 +187,11 @@ export default function CoachPage() {
           maxGroupCapacity: 4,
         });
       } else {
-        alert(data.error || 'Error al crear disponibilidad');
+        alert(data.error || 'Error al guardar disponibilidad');
       }
     } catch (error) {
-      console.error('Error creating availability:', error);
-      alert('Error al crear disponibilidad');
+      console.error('Error saving availability:', error);
+      alert('Error al guardar disponibilidad');
     } finally {
       setIsCreatingAvailability(false);
     }
@@ -253,7 +289,7 @@ export default function CoachPage() {
                 Define los horarios en que puedes dar clases
               </p>
               <button
-                onClick={() => setShowAvailabilityModal(true)}
+                onClick={handleOpenCreateModal}
                 className="w-full px-6 py-4 bg-gold/20 border-2 border-gold/50 text-gold rounded-lg hover:bg-gold/30 transition-all font-racing text-lg mb-4"
               >
                 ➕ AGREGAR HORARIO
@@ -283,12 +319,22 @@ export default function CoachPage() {
                           {avail.startTime} - {avail.endTime}
                         </p>
                       </div>
-                      <button
-                        onClick={() => handleDeleteAvailability(avail._id)}
-                        className="text-red-400 hover:text-red-300 px-2"
-                      >
-                        🗑️
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleOpenEditModal(avail)}
+                          className="text-blue-400 hover:text-blue-300 px-2"
+                          title="Editar"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAvailability(avail._id)}
+                          className="text-red-400 hover:text-red-300 px-2"
+                          title="Eliminar"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -461,12 +507,14 @@ export default function CoachPage() {
               ✕
             </button>
 
-            <h2 className="text-3xl font-racing text-gold mb-6">AGREGAR DISPONIBILIDAD</h2>
+            <h2 className="text-3xl font-racing text-gold mb-6">
+              {editingAvailability ? 'EDITAR DISPONIBILIDAD' : 'AGREGAR DISPONIBILIDAD'}
+            </h2>
             <p className="text-slate-400 mb-6">
               Define un horario recurrente semanal en el que puedes dar clases
             </p>
 
-            <form onSubmit={handleCreateAvailability} className="space-y-6">
+            <form onSubmit={handleSaveAvailability} className="space-y-6">
               {/* Day of week */}
               <div>
                 <label className="block text-electric-blue font-racing mb-2">
@@ -565,14 +613,14 @@ export default function CoachPage() {
                 <button
                   type="button"
                   onClick={() => setShowAvailabilityModal(false)}
-                  className="flex-1 px-6 py-3 border-2 border-slate-500 text-slate-400 rounded-lg hover:bg-slate-500/10 transition-all"
+                  className="flex-1 px-6 py-3 border-2 border-slate-500 text-slate-300 rounded-lg hover:bg-slate-500/10 transition-all font-medium"
                   disabled={isCreatingAvailability}
                 >
                   CANCELAR
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-gold text-midnight rounded-lg hover:bg-gold/90 transition-all font-racing text-lg"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg hover:from-yellow-300 hover:to-yellow-400 transition-all font-racing text-lg shadow-lg"
                   disabled={isCreatingAvailability}
                 >
                   {isCreatingAvailability ? 'GUARDANDO...' : '✓ GUARDAR'}
