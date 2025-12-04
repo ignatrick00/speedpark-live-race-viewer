@@ -59,6 +59,12 @@ export default function ClasesPage() {
   const [notificationMessage, setNotificationMessage] = useState('')
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success')
 
+  // Invitation modal state
+  const [showInvitationModal, setShowInvitationModal] = useState(false)
+  const [selectedClassForInvite, setSelectedClassForInvite] = useState<ClaseBloque | null>(null)
+  const [inviteeEmail, setInviteeEmail] = useState('')
+  const [sendingInvitation, setSendingInvitation] = useState(false)
+
   // Fetch available slots from API
   useEffect(() => {
     const fetchClasses = async () => {
@@ -201,6 +207,63 @@ export default function ClasesPage() {
       setShowNotification(true)
     } finally {
       setBookingInProgress(null)
+    }
+  }
+
+  const handleSendInvitation = async () => {
+    if (!token) {
+      setNotificationMessage('Debes iniciar sesión para enviar invitaciones')
+      setNotificationType('error')
+      setShowNotification(true)
+      return
+    }
+
+    if (!inviteeEmail) {
+      setNotificationMessage('Por favor ingresa un email')
+      setNotificationType('error')
+      setShowNotification(true)
+      return
+    }
+
+    if (!selectedClassForInvite) {
+      return
+    }
+
+    setSendingInvitation(true)
+    try {
+      const response = await fetch('/api/group-invitations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          classId: selectedClassForInvite.id,
+          inviteeEmail
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setNotificationMessage(`¡Invitación enviada a ${inviteeEmail}!`)
+        setNotificationType('success')
+        setShowNotification(true)
+        setShowInvitationModal(false)
+        setInviteeEmail('')
+        setSelectedClassForInvite(null)
+      } else {
+        setNotificationMessage(data.error || 'Error al enviar invitación')
+        setNotificationType('error')
+        setShowNotification(true)
+      }
+    } catch (error) {
+      console.error('Error sending invitation:', error)
+      setNotificationMessage('Error al enviar invitación')
+      setNotificationType('error')
+      setShowNotification(true)
+    } finally {
+      setSendingInvitation(false)
     }
   }
 
@@ -807,15 +870,37 @@ export default function ClasesPage() {
                           
                           {/* Group members if any */}
                           {slotStatus.students && slotStatus.students.length > 0 && (
-                            <div className="text-xs text-orange-300 mb-3">
-                              👥 {slotStatus.students.join(', ')}
+                            <div className="mb-3">
+                              <div className="text-xs text-orange-300 mb-2">
+                                👥 {slotStatus.students.join(', ')}
+                              </div>
+                              {/* Invite button if user is part of the group */}
+                              {user && token && bloque.groupBookings?.some(b => b.studentName === (user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`)) && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedClassForInvite(bloque)
+                                    setShowInvitationModal(true)
+                                  }}
+                                  className="text-xs px-3 py-1 bg-electric-blue/20 border border-electric-blue/40 text-electric-blue rounded-lg hover:bg-electric-blue/30 transition-all"
+                                >
+                                  ✉️ Invitar Corredor
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Reservation Panel */}
                         <div className="sm:ml-6 w-full sm:w-auto">
-                          {slotStatus.status !== 'occupied' && (
+                          {slotStatus.status === 'occupied' ? (
+                            <div className="bg-red-900/20 border border-red-400/30 rounded-lg p-4 w-full sm:w-[240px]">
+                              <div className="text-center">
+                                <div className="text-3xl mb-2">🔒</div>
+                                <p className="text-red-400 font-medium text-sm">Clase Reservada</p>
+                                <p className="text-red-300/70 text-xs mt-1">Este slot ya no está disponible</p>
+                              </div>
+                            </div>
+                          ) : (
                             <div className="bg-blue-900/30 border border-blue-400/20 rounded-lg p-4 w-full sm:w-[240px]">
                               {/* Mode Switch */}
                               <div className="flex bg-blue-800/30 rounded-lg p-1 mb-3">
@@ -880,6 +965,75 @@ export default function ClasesPage() {
           </div>
         )}
       </div>
+
+      {/* Invitation Modal */}
+      {showInvitationModal && selectedClassForInvite && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-midnight via-racing-black to-midnight border-2 border-electric-blue/50 rounded-lg p-8 max-w-md w-full shadow-2xl">
+            <div className="mb-6">
+              <h3 className="text-2xl font-racing text-electric-blue mb-2">INVITAR CORREDOR</h3>
+              <p className="text-sky-blue/70 text-sm">
+                Invita a otro corredor a unirse a esta clase grupal
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-electric-blue text-sm mb-2">
+                  Clase
+                </label>
+                <div className="bg-midnight/50 border border-electric-blue/30 rounded-lg p-3">
+                  <p className="text-white">{selectedClassForInvite.instructor}</p>
+                  <p className="text-sky-blue/70 text-sm">
+                    {new Date(selectedClassForInvite.date).toLocaleDateString('es-CL')} • {selectedClassForInvite.startTime} - {selectedClassForInvite.endTime}
+                  </p>
+                  <p className="text-orange-400 text-xs mt-1">
+                    {selectedClassForInvite.groupBookings.length}/{selectedClassForInvite.maxGroupCapacity} cupos ocupados
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-electric-blue text-sm mb-2">
+                  Email del corredor *
+                </label>
+                <input
+                  type="email"
+                  value={inviteeEmail}
+                  onChange={(e) => setInviteeEmail(e.target.value)}
+                  placeholder="corredor@ejemplo.com"
+                  className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
+                  disabled={sendingInvitation}
+                />
+                <p className="text-sky-blue/50 text-xs mt-1">
+                  Se enviará un link de invitación a este email
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => {
+                  setShowInvitationModal(false)
+                  setSelectedClassForInvite(null)
+                  setInviteeEmail('')
+                }}
+                disabled={sendingInvitation}
+                className="flex-1 px-6 py-3 border-2 border-slate-500 text-slate-300 rounded-lg hover:bg-slate-500/10 transition-all font-medium disabled:opacity-50"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={handleSendInvitation}
+                disabled={sendingInvitation || !inviteeEmail}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg hover:from-yellow-300 hover:to-yellow-400 transition-all font-racing text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sendingInvitation ? 'ENVIANDO...' : 'ENVIAR'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification Modal */}
       {showNotification && (
