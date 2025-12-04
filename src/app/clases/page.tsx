@@ -67,7 +67,7 @@ export default function ClasesPage() {
           // Transform API data to match existing format
           const transformedBloques: ClaseBloque[] = data.classes.map((clase: any) => ({
             id: clase._id,
-            instructorId: clase.coachId,
+            instructorId: typeof clase.coachId === 'string' ? clase.coachId : clase.coachId._id,
             instructor: clase.coachName,
             date: new Date(clase.date).toISOString().split('T')[0],
             startTime: clase.startTime,
@@ -75,13 +75,11 @@ export default function ClasesPage() {
             individualBooking: clase.individualBooking ? {
               isBooked: true,
               studentName: clase.individualBooking.studentName
-            } : {
-              isBooked: false
-            },
-            groupBookings: clase.groupBookings.map((booking: any) => ({
+            } : undefined,
+            groupBookings: clase.groupBookings?.map((booking: any) => ({
               studentName: booking.studentName,
               bookedAt: new Date(booking.bookedAt)
-            })),
+            })) || [],
             maxGroupCapacity: clase.maxGroupCapacity,
             individualPrice: clase.individualPrice,
             groupPricePerPerson: clase.groupPricePerPerson
@@ -93,9 +91,10 @@ export default function ClasesPage() {
           // Extract unique instructors from classes
           const uniqueInstructors = new Map<string, Instructor>()
           data.classes.forEach((clase: any) => {
-            if (!uniqueInstructors.has(clase.coachId)) {
-              uniqueInstructors.set(clase.coachId, {
-                id: clase.coachId,
+            const coachId = typeof clase.coachId === 'string' ? clase.coachId : clase.coachId._id
+            if (!uniqueInstructors.has(coachId)) {
+              uniqueInstructors.set(coachId, {
+                id: coachId,
                 name: clase.coachName,
                 specialties: clase.specialties || [],
                 rating: 4.9, // Default rating
