@@ -42,13 +42,6 @@ interface TrainingClass {
 
 const DAYS_OF_WEEK = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-const TIME_BLOCKS = [
-  { label: 'Mañana (09:00 - 13:00)', start: '09:00', end: '13:00' },
-  { label: 'Tarde Temprano (14:00 - 18:00)', start: '14:00', end: '18:00' },
-  { label: 'Tarde (18:00 - 22:00)', start: '18:00', end: '22:00' },
-  { label: 'Personalizado', start: '', end: '' },
-];
-
 export default function CoachPage() {
   const { user, token, isCoach, isLoading } = useAuth();
 
@@ -72,7 +65,6 @@ export default function CoachPage() {
     groupPricePerPerson: 25000,
     maxGroupCapacity: 4,
   });
-  const [selectedTimeBlock, setSelectedTimeBlock] = useState<number | null>(null);
   const [isCreatingAvailability, setIsCreatingAvailability] = useState(false);
 
   // Fetch availabilities
@@ -129,23 +121,9 @@ export default function CoachPage() {
     }
   }, [showMyClasses, token, user]);
 
-  // Handle time block selection
-  const handleTimeBlockChange = (blockIndex: number) => {
-    setSelectedTimeBlock(blockIndex);
-    const block = TIME_BLOCKS[blockIndex];
-    if (block.start && block.end) {
-      setAvailabilityForm({
-        ...availabilityForm,
-        startTime: block.start,
-        endTime: block.end,
-      });
-    }
-  };
-
   // Open modal for creating new availability
   const handleOpenCreateModal = () => {
     setEditingAvailability(null);
-    setSelectedTimeBlock(1); // Default to "Tarde Temprano"
     setAvailabilityForm({
       dayOfWeek: 1,
       startTime: '14:00',
@@ -160,13 +138,6 @@ export default function CoachPage() {
   // Open modal for editing availability
   const handleOpenEditModal = (avail: CoachAvailability) => {
     setEditingAvailability(avail);
-
-    // Find matching time block
-    const matchingBlockIndex = TIME_BLOCKS.findIndex(
-      block => block.start === avail.startTime && block.end === avail.endTime
-    );
-    setSelectedTimeBlock(matchingBlockIndex !== -1 ? matchingBlockIndex : 3); // 3 = Personalizado
-
     setAvailabilityForm({
       dayOfWeek: avail.dayOfWeek,
       startTime: avail.startTime,
@@ -561,57 +532,32 @@ export default function CoachPage() {
                 </select>
               </div>
 
-              {/* Time blocks */}
-              <div>
-                <label className="block text-electric-blue font-racing mb-3">
-                  BLOQUE HORARIO *
-                </label>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  {TIME_BLOCKS.map((block, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleTimeBlockChange(idx)}
-                      className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                        selectedTimeBlock === idx
-                          ? 'bg-cyan-400 text-black border-2 border-cyan-300'
-                          : 'bg-midnight/50 text-slate-300 border-2 border-slate-600 hover:border-cyan-400/50'
-                      }`}
-                    >
-                      {block.label}
-                    </button>
-                  ))}
+              {/* Time range */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-electric-blue font-racing mb-2">
+                    HORA INICIO *
+                  </label>
+                  <input
+                    type="time"
+                    value={availabilityForm.startTime}
+                    onChange={(e) => setAvailabilityForm({ ...availabilityForm, startTime: e.target.value })}
+                    className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
+                    required
+                  />
                 </div>
-
-                {/* Show time inputs only if "Personalizado" is selected */}
-                {selectedTimeBlock === 3 && (
-                  <div className="grid md:grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <label className="block text-slate-400 text-sm mb-2">
-                        HORA INICIO *
-                      </label>
-                      <input
-                        type="time"
-                        value={availabilityForm.startTime}
-                        onChange={(e) => setAvailabilityForm({ ...availabilityForm, startTime: e.target.value })}
-                        className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-400 text-sm mb-2">
-                        HORA FIN *
-                      </label>
-                      <input
-                        type="time"
-                        value={availabilityForm.endTime}
-                        onChange={(e) => setAvailabilityForm({ ...availabilityForm, endTime: e.target.value })}
-                        className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-electric-blue font-racing mb-2">
+                    HORA FIN *
+                  </label>
+                  <input
+                    type="time"
+                    value={availabilityForm.endTime}
+                    onChange={(e) => setAvailabilityForm({ ...availabilityForm, endTime: e.target.value })}
+                    className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
+                    required
+                  />
+                </div>
               </div>
 
               {/* Pricing and capacity */}
