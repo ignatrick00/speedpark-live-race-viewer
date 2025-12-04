@@ -224,29 +224,18 @@ export class DriverRaceDataService {
   }
   
   /**
-   * Detect if we should save current data as a snapshot
-   * STRATEGY: Save every valid update (already rate-limited to 4 seconds)
-   * This captures the driver's progress without duplicates
+   * Detect if we should save current data as a new lap
+   * STRATEGY: ONLY save when lap counter increases (L > previous.L)
+   * This ensures we capture ACTUAL completed laps, not mid-lap position updates
    */
   private static isNewLap(current: SMSDriverData, previous?: SMSDriverData): boolean {
     if (!previous) {
-      console.log(`🆕 [LAP DETECTION] First time seeing driver ${current.N} - WILL SAVE`);
+      console.log(`🆕 [LAP DETECTION] First time seeing driver ${current.N} - WILL SAVE lap ${current.L}`);
       return true; // First time seeing this driver
     }
 
-    // Method 1: Lap count increased (most reliable indicator of new lap)
+    // ONLY save when lap count actually increases
     const lapIncreased = current.L > (previous.L || 0);
-
-    // Method 2: Any data changed (driver is active in session)
-    const dataChanged =
-      current.L !== previous.L ||
-      current.T !== previous.T ||
-      current.B !== previous.B ||
-      current.P !== previous.P;
-
-    // Save if lap increased OR if any data changed
-    // Rate limiting (4 seconds) prevents duplicates and MongoDB overload
-    const shouldSave = lapIncreased || dataChanged;
 
     // Enhanced diagnostic logging
     console.log(`🔍 [LAP DETECTION] ${current.N}:`, {
@@ -259,14 +248,14 @@ export class DriverRaceDataService {
       currentBest: current.B,
       previousBest: previous.B,
       bestChanged: current.B !== previous.B,
+      currentPosition: current.P,
+      previousPosition: previous.P,
       positionChanged: current.P !== previous.P,
-      WILL_SAVE: shouldSave ? '✅ YES' : '❌ NO',
-      reason: shouldSave
-        ? (lapIncreased ? 'LAP_COUNT_INCREASED' : 'DATA_CHANGED')
-        : 'NO_CHANGE'
+      WILL_SAVE: lapIncreased ? '✅ YES' : '❌ NO',
+      reason: lapIncreased ? 'LAP_COUNT_INCREASED' : 'NO_NEW_LAP'
     });
 
-    return shouldSave;
+    return lapIncreased;
   }
   
   /**
@@ -277,13 +266,14 @@ export class DriverRaceDataService {
     const lapTime = driverData.T || 0;
 
     // Check if lap already exists (duplicate detection)
-    const existingLap = session.laps.find(lap => lap.lapNumber === lapNumber);
-    if (existingLap) {
-      console.log(`⚠️ [DUPLICATE LAP] ${driverData.N} - Lap ${lapNumber} already exists, replacing...`);
-    }
+    const existingLapIndex = session.laps.findIndex(lap => lap.lapNumber === lapNumber);
 
-    // Enhanced duplicate prevention: Remove any existing lap with same lap number first
-    session.laps = session.laps.filter(lap => lap.lapNumber !== lapNumber);
+    if (existingLapIndex !== -1) {
+      console.log(`⚠️ [DUPLICATE LAP] ${driverData.N} - Lap ${lapNumber} already exists! SKIPPING to prevent overwrite.`);
+      console.log(`   Existing: ${session.laps[existingLapIndex].time}ms at ${session.laps[existingLapIndex].timestamp}`);
+      console.log(`   New (ignored): ${lapTime}ms at ${timestamp}`);
+      return; // DON'T replace - keep the first lap recorded
+    }
 
     // Determine if this is a personal best lap
     const isPersonalBest = (driverData.B === lapTime) && lapTime > 0;

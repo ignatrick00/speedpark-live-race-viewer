@@ -72,11 +72,21 @@ class EmailService {
    */
   async sendEmail({ to, subject, html, text }: EmailOptions): Promise<boolean> {
     if (!this.isConfigured || !this.transporter) {
-      console.warn('Email service not configured. Skipping email send.');
+      console.warn('⚠️ Email service not configured. Skipping email send.');
+      console.warn('Configuration status:', {
+        isConfigured: this.isConfigured,
+        hasTransporter: !!this.transporter,
+      });
       return false;
     }
 
     try {
+      console.log('📤 Attempting to send email:', {
+        to,
+        subject,
+        from: `"Karteando.cl" <${process.env.SMTP_USER}>`,
+      });
+
       const info = await this.transporter.sendMail({
         from: `"Karteando.cl" <${process.env.SMTP_USER}>`,
         to,
@@ -85,10 +95,22 @@ class EmailService {
         html,
       });
 
-      console.log('✅ Email sent successfully:', info.messageId);
+      console.log('✅ Email sent successfully:', {
+        messageId: info.messageId,
+        to,
+        subject,
+        accepted: info.accepted,
+        rejected: info.rejected,
+      });
       return true;
-    } catch (error) {
-      console.error('❌ Failed to send email:', error);
+    } catch (error: any) {
+      console.error('❌ Failed to send email:', {
+        error: error.message,
+        code: error.code,
+        to,
+        subject,
+        stack: error.stack,
+      });
       return false;
     }
   }

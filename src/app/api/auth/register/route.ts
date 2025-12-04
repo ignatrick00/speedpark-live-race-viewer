@@ -74,22 +74,32 @@ export async function POST(request: NextRequest) {
       accountStatus: 'active',
     });
     
-    // Send verification email if enabled (async - don't wait for it)
+    // Send verification email if enabled
     if (emailValidationEnabled) {
-      // Fire-and-forget email sending to avoid blocking response
-      emailService.sendVerificationEmail(
-        user.email,
-        user.profile.firstName,
-        verificationToken
-      ).then((sent) => {
-        if (sent) {
-          console.log(`✅ Verification email sent to ${user.email}`);
+      console.log(`📧 Email validation enabled, sending verification email to ${user.email}...`);
+      try {
+        // Wait for email to be sent before responding
+        const emailSent = await emailService.sendVerificationEmail(
+          user.email,
+          user.profile.firstName,
+          verificationToken
+        );
+
+        if (emailSent) {
+          console.log(`✅ Verification email sent successfully to ${user.email}`);
         } else {
-          console.warn(`⚠️ Failed to send verification email to ${user.email}`);
+          console.warn(`⚠️ Failed to send verification email to ${user.email} - email service returned false`);
         }
-      }).catch((error) => {
-        console.error('Error sending verification email:', error);
-      });
+      } catch (error: any) {
+        console.error('❌ Error sending verification email:', {
+          error: error.message,
+          email: user.email,
+          stack: error.stack,
+        });
+        // Don't fail registration if email fails, just log it
+      }
+    } else {
+      console.log('📧 Email validation disabled, skipping verification email');
     }
 
     // Try to link with real racing data
