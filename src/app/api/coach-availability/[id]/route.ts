@@ -57,6 +57,7 @@ export async function PUT(
 
     // Parse request body
     const body = await request.json();
+    console.log('📨 PUT request received with body:', body);
     const {
       dayOfWeek,
       startTime,
@@ -69,16 +70,22 @@ export async function PUT(
     } = body;
 
     // Update fields
+    console.log('🔧 Before update - blockDurationMinutes:', availability.blockDurationMinutes);
     if (dayOfWeek !== undefined) availability.dayOfWeek = dayOfWeek;
     if (startTime) availability.startTime = startTime;
     if (endTime) availability.endTime = endTime;
-    if (blockDurationMinutes) availability.blockDurationMinutes = blockDurationMinutes;
-    if (individualPrice) availability.individualPrice = individualPrice;
-    if (groupPricePerPerson) availability.groupPricePerPerson = groupPricePerPerson;
-    if (maxGroupCapacity) availability.maxGroupCapacity = maxGroupCapacity;
+    if (blockDurationMinutes !== undefined) {
+      console.log('🔧 Updating blockDurationMinutes from', availability.blockDurationMinutes, 'to', blockDurationMinutes);
+      availability.blockDurationMinutes = blockDurationMinutes;
+    }
+    if (individualPrice !== undefined) availability.individualPrice = individualPrice;
+    if (groupPricePerPerson !== undefined) availability.groupPricePerPerson = groupPricePerPerson;
+    if (maxGroupCapacity !== undefined) availability.maxGroupCapacity = maxGroupCapacity;
     if (isActive !== undefined) availability.isActive = isActive;
 
+    console.log('💾 Saving availability with blockDurationMinutes:', availability.blockDurationMinutes);
     await availability.save();
+    console.log('✅ Saved successfully');
 
     return NextResponse.json({
       success: true,

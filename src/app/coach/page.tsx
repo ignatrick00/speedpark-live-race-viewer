@@ -85,12 +85,14 @@ export default function CoachPage() {
 
     setLoadingAvailabilities(true);
     try {
+      console.log('🔄 Fetching availabilities...');
       const response = await fetch(`/api/coach-availability?coachId=${user.id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
       if (response.ok) {
         const data = await response.json();
+        console.log('📦 Received availabilities:', data.availabilities);
         setAvailabilities(data.availabilities || []);
       }
     } catch (error) {
@@ -140,6 +142,7 @@ export default function CoachPage() {
       dayOfWeek: 1,
       startTime: '14:00',
       endTime: '18:00',
+      blockDurationMinutes: 45,
       individualPrice: 45000,
       groupPricePerPerson: 25000,
       maxGroupCapacity: 4,
@@ -149,6 +152,8 @@ export default function CoachPage() {
 
   // Open modal for editing availability
   const handleOpenEditModal = (avail: CoachAvailability) => {
+    console.log('📝 Opening edit modal for availability:', avail);
+    console.log('📊 Current blockDurationMinutes:', avail.blockDurationMinutes);
     setEditingAvailability(avail);
     setAvailabilityForm({
       dayOfWeek: avail.dayOfWeek,
@@ -165,6 +170,8 @@ export default function CoachPage() {
   // Create or update availability
   const handleSaveAvailability = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    console.log('🔍 Saving availability with form:', availabilityForm);
 
     setIsCreatingAvailability(true);
     try {
@@ -184,8 +191,10 @@ export default function CoachPage() {
       });
 
       const data = await response.json();
+      console.log('📬 Server response:', data);
 
       if (response.ok) {
+        console.log('✅ Save successful, refreshing availabilities...');
         setNotificationMessage(isEditing ? '¡Disponibilidad actualizada!' : '¡Disponibilidad creada exitosamente!');
         setNotificationType('success');
         setShowNotification(true);
