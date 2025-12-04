@@ -57,37 +57,34 @@ export default function ClasesPage() {
     const fetchClasses = async () => {
       try {
         setLoading(true)
-        console.log('🔍 Fetching training classes from API...')
         const response = await fetch('/api/training-classes')
-        console.log('📡 Response status:', response.status)
         if (response.ok) {
           const data = await response.json()
-          console.log('✅ Classes received:', data.classes.length, 'classes')
-          console.log('📋 Classes data:', data.classes)
 
           // Transform API data to match existing format
-          const transformedBloques: ClaseBloque[] = data.classes.map((clase: any) => ({
-            id: clase._id,
-            instructorId: typeof clase.coachId === 'string' ? clase.coachId : clase.coachId._id,
-            instructor: clase.coachName,
-            date: new Date(clase.date).toISOString().split('T')[0],
-            startTime: clase.startTime,
-            endTime: clase.endTime,
-            individualBooking: clase.individualBooking ? {
-              isBooked: true,
-              studentName: clase.individualBooking.studentName
-            } : undefined,
-            groupBookings: clase.groupBookings?.map((booking: any) => ({
-              studentName: booking.studentName,
-              bookedAt: new Date(booking.bookedAt)
-            })) || [],
-            maxGroupCapacity: clase.maxGroupCapacity,
-            individualPrice: clase.individualPrice,
-            groupPricePerPerson: clase.groupPricePerPerson
-          }))
+          const transformedBloques: ClaseBloque[] = data.classes.map((clase: any) => {
+            return {
+              id: clase._id,
+              instructorId: typeof clase.coachId === 'string' ? clase.coachId : clase.coachId._id,
+              instructor: clase.coachName,
+              date: new Date(clase.date).toISOString().split('T')[0],
+              startTime: clase.startTime,
+              endTime: clase.endTime,
+              individualBooking: clase.individualBooking ? {
+                isBooked: true,
+                studentName: clase.individualBooking.studentName
+              } : undefined,
+              groupBookings: clase.groupBookings?.map((booking: any) => ({
+                studentName: booking.studentName,
+                bookedAt: new Date(booking.bookedAt)
+              })) || [],
+              maxGroupCapacity: clase.maxGroupCapacity,
+              individualPrice: clase.individualPrice,
+              groupPricePerPerson: clase.groupPricePerPerson
+            }
+          })
 
           setBloques(transformedBloques)
-          console.log('🎯 Transformed bloques:', transformedBloques)
 
           // Extract unique instructors from classes
           const uniqueInstructors = new Map<string, Instructor>()
@@ -98,20 +95,18 @@ export default function ClasesPage() {
                 id: coachId,
                 name: clase.coachName,
                 specialties: clase.specialties || [],
-                rating: 4.9, // Default rating
+                rating: 4.9,
                 experience: 'Coach certificado'
               })
             }
           })
 
           setInstructors(Array.from(uniqueInstructors.values()))
-          console.log('👥 Instructors:', Array.from(uniqueInstructors.values()))
         }
       } catch (error) {
-        console.error('❌ Error fetching classes:', error)
+        console.error('Error fetching classes:', error)
       } finally {
         setLoading(false)
-        console.log('✅ Loading complete')
       }
     }
 
@@ -119,9 +114,6 @@ export default function ClasesPage() {
   }, [])
 
   const handleBookClass = async (bloqueId: string, bookingType: 'individual' | 'group') => {
-    console.log('🎫 Attempting to book class:', bloqueId, 'Type:', bookingType)
-    console.log('🔑 Token exists:', !!token)
-
     if (!token) {
       alert('Debes iniciar sesión para reservar una clase')
       return
@@ -129,7 +121,6 @@ export default function ClasesPage() {
 
     setBookingInProgress(bloqueId)
     try {
-      console.log('📤 Sending booking request...')
       const response = await fetch(`/api/training-classes/${bloqueId}/book`, {
         method: 'POST',
         headers: {
@@ -139,9 +130,7 @@ export default function ClasesPage() {
         body: JSON.stringify({ bookingType })
       })
 
-      console.log('📥 Response status:', response.status)
       const data = await response.json()
-      console.log('📦 Response data:', data)
 
       if (response.ok) {
         alert(`¡Reserva exitosa! Precio: $${data.price.toLocaleString('es-CL')}`)
@@ -174,7 +163,7 @@ export default function ClasesPage() {
         alert(data.error || 'Error al hacer la reserva')
       }
     } catch (error) {
-      console.error('❌ Error booking class:', error)
+      console.error('Error booking class:', error)
       alert('Error al hacer la reserva')
     } finally {
       setBookingInProgress(null)
@@ -261,10 +250,14 @@ export default function ClasesPage() {
   const isSlotAvailable = (bloque: ClaseBloque, mode: 'individual' | 'group') => {
     if (mode === 'individual') {
       // Individual: disponible si no hay reserva individual Y no hay reservas grupales
-      return !bloque.individualBooking?.isBooked && bloque.groupBookings.length === 0
+      const hasIndividualBooking = bloque.individualBooking?.isBooked === true
+      const hasGroupBookings = bloque.groupBookings.length > 0
+      return !hasIndividualBooking && !hasGroupBookings
     } else {
       // Grupal: disponible si no hay reserva individual Y hay espacio en el grupo
-      return !bloque.individualBooking?.isBooked && bloque.groupBookings.length < bloque.maxGroupCapacity
+      const hasIndividualBooking = bloque.individualBooking?.isBooked === true
+      const hasSpace = bloque.groupBookings.length < bloque.maxGroupCapacity
+      return !hasIndividualBooking && hasSpace
     }
   }
 

@@ -4,6 +4,17 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 
+interface CoachAvailability {
+  _id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  individualPrice: number;
+  groupPricePerPerson: number;
+  maxGroupCapacity: number;
+  isActive: boolean;
+}
+
 interface TrainingClass {
   _id: string;
   title: string;
@@ -29,28 +40,54 @@ interface TrainingClass {
   status: string;
 }
 
+const DAYS_OF_WEEK = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
 export default function CoachPage() {
   const { user, token, isCoach, isLoading } = useAuth();
-  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Availability state
+  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
+  const [availabilities, setAvailabilities] = useState<CoachAvailability[]>([]);
+  const [loadingAvailabilities, setLoadingAvailabilities] = useState(false);
+
+  // Classes state
   const [showMyClasses, setShowMyClasses] = useState(false);
   const [myClasses, setMyClasses] = useState<TrainingClass[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    specialties: [] as string[],
-    date: '',
+  // Availability form state
+  const [availabilityForm, setAvailabilityForm] = useState({
+    dayOfWeek: 1, // Monday by default
     startTime: '14:00',
-    endTime: '15:00',
-    maxGroupCapacity: 4,
+    endTime: '18:00',
     individualPrice: 45000,
     groupPricePerPerson: 25000,
+    maxGroupCapacity: 4,
   });
-  const [specialtyInput, setSpecialtyInput] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
+  const [isCreatingAvailability, setIsCreatingAvailability] = useState(false);
 
+  // Fetch availabilities
+  const fetchAvailabilities = async () => {
+    if (!token || !user) return;
+
+    setLoadingAvailabilities(true);
+    try {
+      const response = await fetch(`/api/coach-availability?coachId=${user.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAvailabilities(data.availabilities || []);
+      }
+    } catch (error) {
+      console.error('Error fetching availabilities:', error);
+    } finally {
+      setLoadingAvailabilities(false);
+    }
+  };
+
+  // Fetch classes
   const fetchMyClasses = async () => {
     if (!token || !user) return;
 
@@ -72,74 +109,79 @@ export default function CoachPage() {
   };
 
   useEffect(() => {
+    if (user && token) {
+      fetchAvailabilities();
+    }
+  }, [user, token]);
+
+  useEffect(() => {
     if (showMyClasses) {
       fetchMyClasses();
     }
   }, [showMyClasses, token, user]);
 
-  const handleCreateClass = async (e: React.FormEvent) => {
+  // Create availability
+  const handleCreateAvailability = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.date || !formData.startTime || !formData.endTime) {
-      alert('Por favor completa todos los campos obligatorios');
-      return;
-    }
-
-    setIsCreating(true);
+    setIsCreatingAvailability(true);
     try {
-      const response = await fetch('/api/training-classes', {
+      const response = await fetch('/api/coach-availability', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(availabilityForm),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert('¡Clase creada exitosamente!');
-        setShowCreateModal(false);
+        alert('¡Disponibilidad creada exitosamente!');
+        setShowAvailabilityModal(false);
+        fetchAvailabilities();
         // Reset form
-        setFormData({
-          title: '',
-          description: '',
-          specialties: [],
-          date: '',
+        setAvailabilityForm({
+          dayOfWeek: 1,
           startTime: '14:00',
-          endTime: '15:00',
-          maxGroupCapacity: 4,
+          endTime: '18:00',
           individualPrice: 45000,
           groupPricePerPerson: 25000,
+          maxGroupCapacity: 4,
         });
-        setSpecialtyInput('');
       } else {
-        alert(data.error || 'Error al crear la clase');
+        alert(data.error || 'Error al crear disponibilidad');
       }
     } catch (error) {
-      console.error('Error creating class:', error);
-      alert('Error al crear la clase');
+      console.error('Error creating availability:', error);
+      alert('Error al crear disponibilidad');
     } finally {
-      setIsCreating(false);
+      setIsCreatingAvailability(false);
     }
   };
 
-  const addSpecialty = () => {
-    if (specialtyInput.trim() && !formData.specialties.includes(specialtyInput.trim())) {
-      setFormData({
-        ...formData,
-        specialties: [...formData.specialties, specialtyInput.trim()],
+  // Delete availability
+  const handleDeleteAvailability = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta disponibilidad?')) return;
+
+    try {
+      const response = await fetch(`/api/coach-availability/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-      setSpecialtyInput('');
-    }
-  };
 
-  const removeSpecialty = (specialty: string) => {
-    setFormData({
-      ...formData,
-      specialties: formData.specialties.filter(s => s !== specialty),
-    });
+      if (response.ok) {
+        alert('Disponibilidad eliminada');
+        fetchAvailabilities();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Error al eliminar');
+      }
+    } catch (error) {
+      console.error('Error deleting availability:', error);
+      alert('Error al eliminar');
+    }
   };
 
   if (isLoading) {
@@ -193,29 +235,64 @@ export default function CoachPage() {
               </h1>
             </div>
             <p className="text-sky-blue/70 text-lg">
-              Gestiona tus clases de karting
+              Gestiona tu disponibilidad y clases de karting
             </p>
           </div>
 
-          {/* Main Actions - Only 2 cards */}
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {/* Crear Clase */}
+          {/* Main Actions - 2 cards */}
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-8">
+            {/* Gestionar Disponibilidad */}
             <div className="bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-sm border-2 border-gold/50 rounded-xl p-8">
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-4xl">➕</span>
+                <span className="text-4xl">📅</span>
                 <h2 className="text-3xl font-racing text-gold">
-                  CREAR CLASE
+                  MI DISPONIBILIDAD
                 </h2>
               </div>
               <p className="text-slate-400 mb-6 text-lg">
-                Programa una nueva sesión de entrenamiento
+                Define los horarios en que puedes dar clases
               </p>
               <button
-                onClick={() => setShowCreateModal(true)}
-                className="w-full px-6 py-4 bg-gold/20 border-2 border-gold/50 text-gold rounded-lg hover:bg-gold/30 transition-all font-racing text-lg"
+                onClick={() => setShowAvailabilityModal(true)}
+                className="w-full px-6 py-4 bg-gold/20 border-2 border-gold/50 text-gold rounded-lg hover:bg-gold/30 transition-all font-racing text-lg mb-4"
               >
-                ➕ NUEVA CLASE
+                ➕ AGREGAR HORARIO
               </button>
+
+              {/* List of availabilities */}
+              {loadingAvailabilities ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin text-2xl">⚙️</div>
+                </div>
+              ) : availabilities.length === 0 ? (
+                <p className="text-slate-500 text-sm italic">
+                  No has configurado horarios disponibles aún
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {availabilities.map((avail) => (
+                    <div
+                      key={avail._id}
+                      className="bg-midnight/50 border border-slate-700/50 rounded-lg p-3 flex items-center justify-between"
+                    >
+                      <div>
+                        <p className="text-white font-medium">
+                          {DAYS_OF_WEEK[avail.dayOfWeek]}
+                        </p>
+                        <p className="text-sm text-sky-blue/70">
+                          {avail.startTime} - {avail.endTime}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteAvailability(avail._id)}
+                        className="text-red-400 hover:text-red-300 px-2"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Mis Clases */}
@@ -227,7 +304,7 @@ export default function CoachPage() {
                 </h2>
               </div>
               <p className="text-slate-400 mb-6 text-lg">
-                Ver clases creadas y estudiantes inscritos
+                Ver clases reservadas y estudiantes inscritos
               </p>
               <button
                 onClick={() => setShowMyClasses(!showMyClasses)}
@@ -242,7 +319,7 @@ export default function CoachPage() {
           {showMyClasses && (
             <div className="mt-8">
               <div className="bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-sm border-2 border-slate-700/50 rounded-xl p-6">
-                <h2 className="text-2xl font-racing text-white mb-6">MIS CLASES PROGRAMADAS</h2>
+                <h2 className="text-2xl font-racing text-white mb-6">CLASES CON RESERVAS</h2>
 
                 {loadingClasses ? (
                   <div className="text-center py-12">
@@ -252,7 +329,10 @@ export default function CoachPage() {
                 ) : myClasses.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="text-6xl mb-4">📭</div>
-                    <p className="text-slate-400 text-lg">No has creado ninguna clase aún</p>
+                    <p className="text-slate-400 text-lg">No tienes clases reservadas aún</p>
+                    <p className="text-slate-500 text-sm mt-2">
+                      Las clases aparecerán aquí cuando los estudiantes hagan reservas
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -267,16 +347,6 @@ export default function CoachPage() {
                             {clase.description && (
                               <p className="text-slate-400 mb-2">{clase.description}</p>
                             )}
-                            <div className="flex flex-wrap gap-2 mb-3">
-                              {clase.specialties.map((specialty) => (
-                                <span
-                                  key={specialty}
-                                  className="px-3 py-1 bg-cyan-400/20 text-cyan-400 rounded-full text-sm border border-cyan-400/30"
-                                >
-                                  {specialty}
-                                </span>
-                              ))}
-                            </div>
                           </div>
                           <span
                             className={`px-4 py-2 rounded-lg text-sm font-racing ${
@@ -380,112 +450,50 @@ export default function CoachPage() {
         </div>
       </div>
 
-      {/* Create Class Modal */}
-      {showCreateModal && (
+      {/* Create Availability Modal */}
+      {showAvailabilityModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-2xl bg-gradient-to-br from-midnight via-slate-800 to-midnight border-2 border-gold/50 rounded-xl p-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-gradient-to-br from-midnight via-slate-800 to-midnight border-2 border-gold/50 rounded-xl p-8">
             <button
-              onClick={() => setShowCreateModal(false)}
+              onClick={() => setShowAvailabilityModal(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl"
             >
               ✕
             </button>
 
-            <h2 className="text-3xl font-racing text-gold mb-6">CREAR NUEVA CLASE</h2>
+            <h2 className="text-3xl font-racing text-gold mb-6">AGREGAR DISPONIBILIDAD</h2>
+            <p className="text-slate-400 mb-6">
+              Define un horario recurrente semanal en el que puedes dar clases
+            </p>
 
-            <form onSubmit={handleCreateClass} className="space-y-6">
-              {/* Title */}
+            <form onSubmit={handleCreateAvailability} className="space-y-6">
+              {/* Day of week */}
               <div>
                 <label className="block text-electric-blue font-racing mb-2">
-                  TÍTULO DE LA CLASE *
+                  DÍA DE LA SEMANA *
                 </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                <select
+                  value={availabilityForm.dayOfWeek}
+                  onChange={(e) => setAvailabilityForm({ ...availabilityForm, dayOfWeek: parseInt(e.target.value) })}
                   className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
-                  placeholder="Ej: Técnica de Frenado Avanzado"
                   required
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-electric-blue font-racing mb-2">
-                  DESCRIPCIÓN
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
-                  placeholder="Descripción de la clase..."
-                  rows={3}
-                />
-              </div>
-
-              {/* Specialties */}
-              <div>
-                <label className="block text-electric-blue font-racing mb-2">
-                  ESPECIALIDADES
-                </label>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={specialtyInput}
-                    onChange={(e) => setSpecialtyInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialty())}
-                    className="flex-1 px-4 py-2 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
-                    placeholder="Ej: Principiantes"
-                  />
-                  <button
-                    type="button"
-                    onClick={addSpecialty}
-                    className="px-4 py-2 bg-cyan-400/20 border border-cyan-400/50 text-cyan-400 rounded-lg hover:bg-cyan-400/30"
-                  >
-                    + Agregar
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.specialties.map((specialty) => (
-                    <span
-                      key={specialty}
-                      className="px-3 py-1 bg-cyan-400/20 text-cyan-400 rounded-full text-sm border border-cyan-400/30 flex items-center gap-2"
-                    >
-                      {specialty}
-                      <button
-                        type="button"
-                        onClick={() => removeSpecialty(specialty)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        ✕
-                      </button>
-                    </span>
+                >
+                  {DAYS_OF_WEEK.map((day, idx) => (
+                    <option key={idx} value={idx}>{day}</option>
                   ))}
-                </div>
+                </select>
               </div>
 
-              {/* Date and Time */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-electric-blue font-racing mb-2">
-                    FECHA *
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
-                    required
-                  />
-                </div>
+              {/* Time range */}
+              <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-electric-blue font-racing mb-2">
                     HORA INICIO *
                   </label>
                   <input
                     type="time"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    value={availabilityForm.startTime}
+                    onChange={(e) => setAvailabilityForm({ ...availabilityForm, startTime: e.target.value })}
                     className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
                     required
                   />
@@ -496,15 +504,15 @@ export default function CoachPage() {
                   </label>
                   <input
                     type="time"
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    value={availabilityForm.endTime}
+                    onChange={(e) => setAvailabilityForm({ ...availabilityForm, endTime: e.target.value })}
                     className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
                     required
                   />
                 </div>
               </div>
 
-              {/* Capacity and Pricing */}
+              {/* Pricing and capacity */}
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-electric-blue font-racing mb-2">
@@ -512,8 +520,8 @@ export default function CoachPage() {
                   </label>
                   <input
                     type="number"
-                    value={formData.maxGroupCapacity}
-                    onChange={(e) => setFormData({ ...formData, maxGroupCapacity: parseInt(e.target.value) })}
+                    value={availabilityForm.maxGroupCapacity}
+                    onChange={(e) => setAvailabilityForm({ ...availabilityForm, maxGroupCapacity: parseInt(e.target.value) })}
                     className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
                     min="1"
                     max="10"
@@ -525,8 +533,8 @@ export default function CoachPage() {
                   </label>
                   <input
                     type="number"
-                    value={formData.individualPrice}
-                    onChange={(e) => setFormData({ ...formData, individualPrice: parseInt(e.target.value) })}
+                    value={availabilityForm.individualPrice}
+                    onChange={(e) => setAvailabilityForm({ ...availabilityForm, individualPrice: parseInt(e.target.value) })}
                     className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
                     step="1000"
                   />
@@ -537,30 +545,37 @@ export default function CoachPage() {
                   </label>
                   <input
                     type="number"
-                    value={formData.groupPricePerPerson}
-                    onChange={(e) => setFormData({ ...formData, groupPricePerPerson: parseInt(e.target.value) })}
+                    value={availabilityForm.groupPricePerPerson}
+                    onChange={(e) => setAvailabilityForm({ ...availabilityForm, groupPricePerPerson: parseInt(e.target.value) })}
                     className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
                     step="1000"
                   />
                 </div>
               </div>
 
+              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4">
+                <p className="text-cyan-400 text-sm">
+                  ℹ️ Los estudiantes podrán reservar clases automáticamente en este horario.
+                  El sistema generará slots de 1 hora dentro del rango horario que definas.
+                </p>
+              </div>
+
               {/* Buttons */}
               <div className="flex gap-4 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => setShowAvailabilityModal(false)}
                   className="flex-1 px-6 py-3 border-2 border-slate-500 text-slate-400 rounded-lg hover:bg-slate-500/10 transition-all"
-                  disabled={isCreating}
+                  disabled={isCreatingAvailability}
                 >
                   CANCELAR
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-6 py-3 bg-gold text-midnight rounded-lg hover:bg-gold/90 transition-all font-racing text-lg"
-                  disabled={isCreating}
+                  disabled={isCreatingAvailability}
                 >
-                  {isCreating ? 'CREANDO...' : '✓ CREAR CLASE'}
+                  {isCreatingAvailability ? 'GUARDANDO...' : '✓ GUARDAR'}
                 </button>
               </div>
             </form>
