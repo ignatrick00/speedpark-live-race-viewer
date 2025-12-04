@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface Instructor {
   id: string
@@ -32,6 +33,7 @@ interface ClaseBloque {
 }
 
 export default function ClasesPage() {
+  const { token } = useAuth()
   const [searchMode, setSearchMode] = useState<'instructor' | 'day'>('instructor')
   const [selectedInstructor, setSelectedInstructor] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
@@ -50,6 +52,7 @@ export default function ClasesPage() {
   const [instructors, setInstructors] = useState<Instructor[]>([])
   const [bloques, setBloques] = useState<ClaseBloque[]>([])
   const [loading, setLoading] = useState(true)
+  const [bookingInProgress, setBookingInProgress] = useState<string | null>(null)
 
   // Fetch training classes from API
   useEffect(() => {
@@ -116,6 +119,63 @@ export default function ClasesPage() {
 
     fetchClasses()
   }, [])
+
+  const handleBookClass = async (bloqueId: string, bookingType: 'individual' | 'group') => {
+    if (!token) {
+      alert('Debes iniciar sesión para reservar una clase')
+      return
+    }
+
+    setBookingInProgress(bloqueId)
+    try {
+      const response = await fetch(`/api/training-classes/${bloqueId}/book`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ bookingType })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert(`¡Reserva exitosa! Precio: $${data.price.toLocaleString('es-CL')}`)
+        // Refresh classes to show updated bookings
+        const classesResponse = await fetch('/api/training-classes')
+        if (classesResponse.ok) {
+          const classesData = await classesResponse.json()
+          const transformedBloques: ClaseBloque[] = classesData.classes.map((clase: any) => ({
+            id: clase._id,
+            instructorId: typeof clase.coachId === 'string' ? clase.coachId : clase.coachId._id,
+            instructor: clase.coachName,
+            date: new Date(clase.date).toISOString().split('T')[0],
+            startTime: clase.startTime,
+            endTime: clase.endTime,
+            individualBooking: clase.individualBooking ? {
+              isBooked: true,
+              studentName: clase.individualBooking.studentName
+            } : undefined,
+            groupBookings: clase.groupBookings?.map((booking: any) => ({
+              studentName: booking.studentName,
+              bookedAt: new Date(booking.bookedAt)
+            })) || [],
+            maxGroupCapacity: clase.maxGroupCapacity,
+            individualPrice: clase.individualPrice,
+            groupPricePerPerson: clase.groupPricePerPerson
+          }))
+          setBloques(transformedBloques)
+        }
+      } else {
+        alert(data.error || 'Error al hacer la reserva')
+      }
+    } catch (error) {
+      console.error('Error booking class:', error)
+      alert('Error al hacer la reserva')
+    } finally {
+      setBookingInProgress(null)
+    }
+  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CL', {
@@ -642,16 +702,16 @@ export default function ClasesPage() {
                                   </div>
                                   
                                   {/* Reserve button */}
-                                  <button 
+                                  <button
                                     className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
                                       isSlotAvailable(bloque, getBloqueReservationMode(bloque.id))
                                         ? 'bg-cyan-400 text-black hover:bg-cyan-300'
                                         : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                     }`}
-                                    disabled={!isSlotAvailable(bloque, getBloqueReservationMode(bloque.id))}
-                                    onClick={() => setSelectedBloque(bloque)}
+                                    disabled={!isSlotAvailable(bloque, getBloqueReservationMode(bloque.id)) || bookingInProgress === bloque.id}
+                                    onClick={() => handleBookClass(bloque.id, getBloqueReservationMode(bloque.id))}
                                   >
-                                    {isSlotAvailable(bloque, getBloqueReservationMode(bloque.id)) ? 'Reservar' : 'No disponible'}
+                                    {bookingInProgress === bloque.id ? 'Reservando...' : isSlotAvailable(bloque, getBloqueReservationMode(bloque.id)) ? 'Reservar' : 'No disponible'}
                                   </button>
                                 </div>
                               )}
@@ -860,16 +920,16 @@ export default function ClasesPage() {
                               </div>
                               
                               {/* Reserve button */}
-                              <button 
+                              <button
                                 className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
                                   isSlotAvailable(bloque, getBloqueReservationMode(bloque.id))
                                     ? 'bg-cyan-400 text-black hover:bg-cyan-300'
                                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                                 }`}
-                                disabled={!isSlotAvailable(bloque, getBloqueReservationMode(bloque.id))}
-                                onClick={() => setSelectedBloque(bloque)}
+                                disabled={!isSlotAvailable(bloque, getBloqueReservationMode(bloque.id)) || bookingInProgress === bloque.id}
+                                onClick={() => handleBookClass(bloque.id, getBloqueReservationMode(bloque.id))}
                               >
-                                {isSlotAvailable(bloque, getBloqueReservationMode(bloque.id)) ? 'Reservar' : 'No disponible'}
+                                {bookingInProgress === bloque.id ? 'Reservando...' : isSlotAvailable(bloque, getBloqueReservationMode(bloque.id)) ? 'Reservar' : 'No disponible'}
                               </button>
                             </div>
                           )}
