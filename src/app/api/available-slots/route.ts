@@ -12,18 +12,14 @@ export async function GET(request: NextRequest) {
     const coachId = searchParams.get('coachId');
     const weeksAhead = parseInt(searchParams.get('weeksAhead') || '2'); // Default 2 weeks
 
-    if (!coachId) {
-      return NextResponse.json(
-        { error: 'coachId parameter is required' },
-        { status: 400 }
-      );
+    // Build query filter
+    const filter: any = { isActive: true };
+    if (coachId) {
+      filter.coachId = coachId;
     }
 
-    // Get coach availabilities
-    const availabilities = await CoachAvailability.find({
-      coachId,
-      isActive: true,
-    }).populate('coachId', 'profile');
+    // Get coach availabilities (all coaches if no coachId specified)
+    const availabilities = await CoachAvailability.find(filter).populate('coachId', 'profile');
 
     if (availabilities.length === 0) {
       return NextResponse.json({
@@ -62,13 +58,29 @@ export async function GET(request: NextRequest) {
       const dayAvailabilities = availabilities.filter(a => a.dayOfWeek === dayOfWeek);
 
       for (const availability of dayAvailabilities) {
-        // Generate hourly slots within the availability window
+        // Generate slots based on block duration
         const [startHour, startMin] = availability.startTime.split(':').map(Number);
         const [endHour, endMin] = availability.endTime.split(':').map(Number);
 
-        for (let hour = startHour; hour < endHour; hour++) {
-          const slotStartTime = `${hour.toString().padStart(2, '0')}:00`;
-          const slotEndTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
+        // Calculate total minutes in availability window
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+        const blockDuration = availability.blockDurationMinutes || 45;
+
+        // Generate slots based on block duration
+        for (let minutes = startMinutes; minutes < endMinutes; minutes += blockDuration) {
+          const slotStartHour = Math.floor(minutes / 60);
+          const slotStartMin = minutes % 60;
+          const slotEndMinutes = minutes + blockDuration;
+
+          // Stop if the end time exceeds the availability window
+          if (slotEndMinutes > endMinutes) break;
+
+          const slotEndHour = Math.floor(slotEndMinutes / 60);
+          const slotEndMin = slotEndMinutes % 60;
+
+          const slotStartTime = `${slotStartHour.toString().padStart(2, '0')}:${slotStartMin.toString().padStart(2, '0')}`;
+          const slotEndTime = `${slotEndHour.toString().padStart(2, '0')}:${slotEndMin.toString().padStart(2, '0')}`;
           const slotDate = new Date(d);
           const key = `${slotDate.toISOString().split('T')[0]}_${slotStartTime}`;
 
@@ -116,6 +128,9 @@ export async function GET(request: NextRequest) {
             // Coach info
             coachId: availability.coachId._id || availability.coachId,
             coachName: availability.coachName,
+
+            // Block duration
+            durationMinutes: availability.blockDurationMinutes || 45,
 
             // Pricing
             individualPrice: availability.individualPrice,

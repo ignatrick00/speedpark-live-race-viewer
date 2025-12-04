@@ -12,6 +12,9 @@ export interface ICoachAvailability extends Document {
   startTime: string; // Format: "14:00"
   endTime: string;   // Format: "18:00"
 
+  // Block duration in minutes (how long each class slot is)
+  blockDurationMinutes: number; // e.g., 15, 20, 30, 45, 60
+
   // Pricing
   individualPrice: number;
   groupPricePerPerson: number;
@@ -53,6 +56,15 @@ const CoachAvailabilitySchema: Schema = new Schema({
   endTime: {
     type: String,
     required: true,
+  },
+
+  // Block duration
+  blockDurationMinutes: {
+    type: Number,
+    required: true,
+    default: 45,
+    min: 15,
+    max: 120,
   },
 
   // Pricing

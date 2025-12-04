@@ -61,11 +61,22 @@ export default function CoachPage() {
     dayOfWeek: 1, // Monday by default
     startTime: '14:00',
     endTime: '18:00',
+    blockDurationMinutes: 45,
     individualPrice: 45000,
     groupPricePerPerson: 25000,
     maxGroupCapacity: 4,
   });
   const [isCreatingAvailability, setIsCreatingAvailability] = useState(false);
+
+  // Notification modal state
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
+
+  // Confirm modal state
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
 
   // Fetch availabilities
   const fetchAvailabilities = async () => {
@@ -173,7 +184,9 @@ export default function CoachPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert(isEditing ? '¡Disponibilidad actualizada!' : '¡Disponibilidad creada exitosamente!');
+        setNotificationMessage(isEditing ? '¡Disponibilidad actualizada!' : '¡Disponibilidad creada exitosamente!');
+        setNotificationType('success');
+        setShowNotification(true);
         setShowAvailabilityModal(false);
         setEditingAvailability(null);
         fetchAvailabilities();
@@ -182,16 +195,21 @@ export default function CoachPage() {
           dayOfWeek: 1,
           startTime: '14:00',
           endTime: '18:00',
+          blockDurationMinutes: 45,
           individualPrice: 45000,
           groupPricePerPerson: 25000,
           maxGroupCapacity: 4,
         });
       } else {
-        alert(data.error || 'Error al guardar disponibilidad');
+        setNotificationMessage(data.error || 'Error al guardar disponibilidad');
+        setNotificationType('error');
+        setShowNotification(true);
       }
     } catch (error) {
       console.error('Error saving availability:', error);
-      alert('Error al guardar disponibilidad');
+      setNotificationMessage('Error al guardar disponibilidad');
+      setNotificationType('error');
+      setShowNotification(true);
     } finally {
       setIsCreatingAvailability(false);
     }
@@ -199,25 +217,33 @@ export default function CoachPage() {
 
   // Delete availability
   const handleDeleteAvailability = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta disponibilidad?')) return;
+    setConfirmMessage('¿Estás seguro de eliminar esta disponibilidad?');
+    setConfirmAction(() => async () => {
+      try {
+        const response = await fetch(`/api/coach-availability/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
 
-    try {
-      const response = await fetch(`/api/coach-availability/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        alert('Disponibilidad eliminada');
-        fetchAvailabilities();
-      } else {
-        const data = await response.json();
-        alert(data.error || 'Error al eliminar');
+        if (response.ok) {
+          setNotificationMessage('Disponibilidad eliminada');
+          setNotificationType('success');
+          setShowNotification(true);
+          fetchAvailabilities();
+        } else {
+          const data = await response.json();
+          setNotificationMessage(data.error || 'Error al eliminar');
+          setNotificationType('error');
+          setShowNotification(true);
+        }
+      } catch (error) {
+        console.error('Error deleting availability:', error);
+        setNotificationMessage('Error al eliminar');
+        setNotificationType('error');
+        setShowNotification(true);
       }
-    } catch (error) {
-      console.error('Error deleting availability:', error);
-      alert('Error al eliminar');
-    }
+    });
+    setShowConfirm(true);
   };
 
   if (isLoading) {
@@ -560,6 +586,30 @@ export default function CoachPage() {
                 </div>
               </div>
 
+              {/* Block duration */}
+              <div>
+                <label className="block text-electric-blue font-racing mb-2">
+                  DURACIÓN DEL BLOQUE *
+                </label>
+                <select
+                  value={availabilityForm.blockDurationMinutes}
+                  onChange={(e) => setAvailabilityForm({ ...availabilityForm, blockDurationMinutes: parseInt(e.target.value) })}
+                  className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
+                  required
+                >
+                  <option value={45}>45 minutos</option>
+                  <option value={15}>15 minutos</option>
+                  <option value={20}>20 minutos</option>
+                  <option value={30}>30 minutos</option>
+                  <option value={60}>60 minutos (1 hora)</option>
+                  <option value={90}>90 minutos (1.5 horas)</option>
+                  <option value={120}>120 minutos (2 horas)</option>
+                </select>
+                <p className="text-sky-blue/50 text-sm mt-1">
+                  Los estudiantes podrán reservar bloques de esta duración dentro del horario.
+                </p>
+              </div>
+
               {/* Pricing and capacity */}
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
@@ -601,12 +651,6 @@ export default function CoachPage() {
                 </div>
               </div>
 
-              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4">
-                <p className="text-cyan-400 text-sm">
-                  ℹ️ Los estudiantes podrán reservar clases automáticamente en este horario.
-                  El sistema generará slots de 1 hora dentro del rango horario que definas.
-                </p>
-              </div>
 
               {/* Buttons */}
               <div className="flex gap-4 pt-4">
@@ -627,6 +671,65 @@ export default function CoachPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Modal */}
+      {showNotification && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-midnight via-racing-black to-midnight border-2 border-electric-blue/50 rounded-lg p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center">
+              {notificationType === 'success' ? (
+                <div className="text-6xl mb-4">✅</div>
+              ) : (
+                <div className="text-6xl mb-4">❌</div>
+              )}
+              <h3 className={`text-2xl font-racing mb-4 ${notificationType === 'success' ? 'text-electric-blue' : 'text-red-400'}`}>
+                {notificationType === 'success' ? 'ÉXITO' : 'ERROR'}
+              </h3>
+              <p className="text-sky-blue/90 mb-6">{notificationMessage}</p>
+              <button
+                onClick={() => setShowNotification(false)}
+                className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg hover:from-yellow-300 hover:to-yellow-400 transition-all font-racing text-lg shadow-lg"
+              >
+                CERRAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-midnight via-racing-black to-midnight border-2 border-electric-blue/50 rounded-lg p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-racing text-electric-blue mb-4">CONFIRMACIÓN</h3>
+              <p className="text-sky-blue/90 mb-6">{confirmMessage}</p>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    setShowConfirm(false);
+                    setConfirmAction(null);
+                  }}
+                  className="flex-1 px-6 py-3 border-2 border-slate-500 text-slate-300 rounded-lg hover:bg-slate-500/10 transition-all font-medium"
+                >
+                  CANCELAR
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirmAction) confirmAction();
+                    setShowConfirm(false);
+                    setConfirmAction(null);
+                  }}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-400 hover:to-red-500 transition-all font-racing shadow-lg"
+                >
+                  ELIMINAR
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

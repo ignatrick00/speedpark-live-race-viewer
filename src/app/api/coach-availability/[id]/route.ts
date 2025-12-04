@@ -61,6 +61,7 @@ export async function PUT(
       dayOfWeek,
       startTime,
       endTime,
+      blockDurationMinutes,
       individualPrice,
       groupPricePerPerson,
       maxGroupCapacity,
@@ -71,6 +72,7 @@ export async function PUT(
     if (dayOfWeek !== undefined) availability.dayOfWeek = dayOfWeek;
     if (startTime) availability.startTime = startTime;
     if (endTime) availability.endTime = endTime;
+    if (blockDurationMinutes) availability.blockDurationMinutes = blockDurationMinutes;
     if (individualPrice) availability.individualPrice = individualPrice;
     if (groupPricePerPerson) availability.groupPricePerPerson = groupPricePerPerson;
     if (maxGroupCapacity) availability.maxGroupCapacity = maxGroupCapacity;

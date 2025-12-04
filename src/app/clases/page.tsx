@@ -31,6 +31,8 @@ interface ClaseBloque {
   maxGroupCapacity: number
   individualPrice: number
   groupPricePerPerson: number
+  availabilityId?: string
+  status?: string
 }
 
 export default function ClasesPage() {
@@ -52,49 +54,56 @@ export default function ClasesPage() {
   const [loading, setLoading] = useState(true)
   const [bookingInProgress, setBookingInProgress] = useState<string | null>(null)
 
-  // Fetch training classes from API
+  // Notification modal state
+  const [showNotification, setShowNotification] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState('')
+  const [notificationType, setNotificationType] = useState<'success' | 'error'>('success')
+
+  // Fetch available slots from API
   useEffect(() => {
     const fetchClasses = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/training-classes')
+        const response = await fetch('/api/available-slots')
         if (response.ok) {
           const data = await response.json()
 
           // Transform API data to match existing format
-          const transformedBloques: ClaseBloque[] = data.classes.map((clase: any) => {
+          const transformedBloques: ClaseBloque[] = data.slots.map((slot: any) => {
             return {
-              id: clase._id,
-              instructorId: typeof clase.coachId === 'string' ? clase.coachId : clase.coachId._id,
-              instructor: clase.coachName,
-              date: new Date(clase.date).toISOString().split('T')[0],
-              startTime: clase.startTime,
-              endTime: clase.endTime,
-              individualBooking: clase.individualBooking ? {
+              id: slot.existingClassId || `slot-${slot.date}-${slot.startTime}`,
+              instructorId: typeof slot.coachId === 'string' ? slot.coachId : slot.coachId,
+              instructor: slot.coachName,
+              date: slot.date,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              individualBooking: slot.individualBooking ? {
                 isBooked: true,
-                studentName: clase.individualBooking.studentName
+                studentName: slot.individualBooking.studentName
               } : undefined,
-              groupBookings: clase.groupBookings?.map((booking: any) => ({
+              groupBookings: slot.groupBookings?.map((booking: any) => ({
                 studentName: booking.studentName,
                 bookedAt: new Date(booking.bookedAt)
               })) || [],
-              maxGroupCapacity: clase.maxGroupCapacity,
-              individualPrice: clase.individualPrice,
-              groupPricePerPerson: clase.groupPricePerPerson
+              maxGroupCapacity: slot.maxGroupCapacity,
+              individualPrice: slot.individualPrice,
+              groupPricePerPerson: slot.groupPricePerPerson,
+              availabilityId: slot.availabilityId,
+              status: slot.status
             }
           })
 
           setBloques(transformedBloques)
 
-          // Extract unique instructors from classes
+          // Extract unique instructors from slots
           const uniqueInstructors = new Map<string, Instructor>()
-          data.classes.forEach((clase: any) => {
-            const coachId = typeof clase.coachId === 'string' ? clase.coachId : clase.coachId._id
+          data.slots.forEach((slot: any) => {
+            const coachId = typeof slot.coachId === 'string' ? slot.coachId : slot.coachId
             if (!uniqueInstructors.has(coachId)) {
               uniqueInstructors.set(coachId, {
                 id: coachId,
-                name: clase.coachName,
-                specialties: clase.specialties || [],
+                name: slot.coachName,
+                specialties: [],
                 rating: 4.9,
                 experience: 'Coach certificado'
               })
@@ -115,56 +124,81 @@ export default function ClasesPage() {
 
   const handleBookClass = async (bloqueId: string, bookingType: 'individual' | 'group') => {
     if (!token) {
-      alert('Debes iniciar sesión para reservar una clase')
+      setNotificationMessage('Debes iniciar sesión para reservar una clase')
+      setNotificationType('error')
+      setShowNotification(true)
+      return
+    }
+
+    // Find the bloque to get the necessary information
+    const bloque = bloques.find(b => b.id === bloqueId)
+    if (!bloque) {
+      setNotificationMessage('Bloque no encontrado')
+      setNotificationType('error')
+      setShowNotification(true)
       return
     }
 
     setBookingInProgress(bloqueId)
     try {
-      const response = await fetch(`/api/training-classes/${bloqueId}/book`, {
+      const response = await fetch('/api/book-slot', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ bookingType })
+        body: JSON.stringify({
+          availabilityId: bloque.availabilityId,
+          date: bloque.date,
+          startTime: bloque.startTime,
+          endTime: bloque.endTime,
+          bookingType
+        })
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        alert(`¡Reserva exitosa! Precio: $${data.price.toLocaleString('es-CL')}`)
-        // Refresh classes to show updated bookings
-        const classesResponse = await fetch('/api/training-classes')
-        if (classesResponse.ok) {
-          const classesData = await classesResponse.json()
-          const transformedBloques: ClaseBloque[] = classesData.classes.map((clase: any) => ({
-            id: clase._id,
-            instructorId: typeof clase.coachId === 'string' ? clase.coachId : clase.coachId._id,
-            instructor: clase.coachName,
-            date: new Date(clase.date).toISOString().split('T')[0],
-            startTime: clase.startTime,
-            endTime: clase.endTime,
-            individualBooking: clase.individualBooking ? {
+        setNotificationMessage(`¡Reserva exitosa! Precio: $${data.price.toLocaleString('es-CL')}`)
+        setNotificationType('success')
+        setShowNotification(true)
+        // Refresh slots to show updated bookings
+        const slotsResponse = await fetch('/api/available-slots')
+        if (slotsResponse.ok) {
+          const slotsData = await slotsResponse.json()
+          const transformedBloques: ClaseBloque[] = slotsData.slots.map((slot: any) => ({
+            id: slot.existingClassId || `slot-${slot.date}-${slot.startTime}`,
+            instructorId: typeof slot.coachId === 'string' ? slot.coachId : slot.coachId,
+            instructor: slot.coachName,
+            date: slot.date,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            individualBooking: slot.individualBooking ? {
               isBooked: true,
-              studentName: clase.individualBooking.studentName
+              studentName: slot.individualBooking.studentName
             } : undefined,
-            groupBookings: clase.groupBookings?.map((booking: any) => ({
+            groupBookings: slot.groupBookings?.map((booking: any) => ({
               studentName: booking.studentName,
               bookedAt: new Date(booking.bookedAt)
             })) || [],
-            maxGroupCapacity: clase.maxGroupCapacity,
-            individualPrice: clase.individualPrice,
-            groupPricePerPerson: clase.groupPricePerPerson
+            maxGroupCapacity: slot.maxGroupCapacity,
+            individualPrice: slot.individualPrice,
+            groupPricePerPerson: slot.groupPricePerPerson,
+            availabilityId: slot.availabilityId,
+            status: slot.status
           }))
           setBloques(transformedBloques)
         }
       } else {
-        alert(data.error || 'Error al hacer la reserva')
+        setNotificationMessage(data.error || 'Error al hacer la reserva')
+        setNotificationType('error')
+        setShowNotification(true)
       }
     } catch (error) {
       console.error('Error booking class:', error)
-      alert('Error al hacer la reserva')
+      setNotificationMessage('Error al hacer la reserva')
+      setNotificationType('error')
+      setShowNotification(true)
     } finally {
       setBookingInProgress(null)
     }
@@ -846,6 +880,31 @@ export default function ClasesPage() {
           </div>
         )}
       </div>
+
+      {/* Notification Modal */}
+      {showNotification && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-midnight via-racing-black to-midnight border-2 border-electric-blue/50 rounded-lg p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center">
+              {notificationType === 'success' ? (
+                <div className="text-6xl mb-4">✅</div>
+              ) : (
+                <div className="text-6xl mb-4">❌</div>
+              )}
+              <h3 className={`text-2xl font-racing mb-4 ${notificationType === 'success' ? 'text-electric-blue' : 'text-red-400'}`}>
+                {notificationType === 'success' ? 'ÉXITO' : 'ERROR'}
+              </h3>
+              <p className="text-sky-blue/90 mb-6">{notificationMessage}</p>
+              <button
+                onClick={() => setShowNotification(false)}
+                className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg hover:from-yellow-300 hover:to-yellow-400 transition-all font-racing text-lg shadow-lg"
+              >
+                CERRAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

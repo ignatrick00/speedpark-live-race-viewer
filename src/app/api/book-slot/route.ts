@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         date: slotDate,
         startTime,
         endTime,
-        durationMinutes: 60,
+        durationMinutes: availability.blockDurationMinutes || 45,
         bookingType: 'both',
         maxGroupCapacity: availability.maxGroupCapacity,
         individualPrice: availability.individualPrice,
