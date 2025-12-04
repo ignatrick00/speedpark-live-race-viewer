@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
+import Navbar from '@/components/Navbar'
 
 interface Instructor {
   id: string
@@ -40,9 +41,6 @@ export default function ClasesPage() {
   const [selectedBloque, setSelectedBloque] = useState<ClaseBloque | null>(null)
   const [reservationMode, setReservationMode] = useState<'individual' | 'group'>('individual')
   const [bloqueReservationModes, setBloqueReservationModes] = useState<Record<string, 'individual' | 'group'>>({})
-
-  // Mobile menu state
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   // Calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -121,6 +119,9 @@ export default function ClasesPage() {
   }, [])
 
   const handleBookClass = async (bloqueId: string, bookingType: 'individual' | 'group') => {
+    console.log('🎫 Attempting to book class:', bloqueId, 'Type:', bookingType)
+    console.log('🔑 Token exists:', !!token)
+
     if (!token) {
       alert('Debes iniciar sesión para reservar una clase')
       return
@@ -128,6 +129,7 @@ export default function ClasesPage() {
 
     setBookingInProgress(bloqueId)
     try {
+      console.log('📤 Sending booking request...')
       const response = await fetch(`/api/training-classes/${bloqueId}/book`, {
         method: 'POST',
         headers: {
@@ -137,7 +139,9 @@ export default function ClasesPage() {
         body: JSON.stringify({ bookingType })
       })
 
+      console.log('📥 Response status:', response.status)
       const data = await response.json()
+      console.log('📦 Response data:', data)
 
       if (response.ok) {
         alert(`¡Reserva exitosa! Precio: $${data.price.toLocaleString('es-CL')}`)
@@ -170,7 +174,7 @@ export default function ClasesPage() {
         alert(data.error || 'Error al hacer la reserva')
       }
     } catch (error) {
-      console.error('Error booking class:', error)
+      console.error('❌ Error booking class:', error)
       alert('Error al hacer la reserva')
     } finally {
       setBookingInProgress(null)
@@ -307,102 +311,7 @@ export default function ClasesPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Navigation Bar */}
-      <nav className="relative z-20 border-b border-blue-800/30 bg-black/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo - Responsive */}
-            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-400 via-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-400/25">
-                <span className="text-white font-bold text-lg sm:text-xl">🏁</span>
-              </div>
-              <div className="min-w-0">
-                <a href="/" className="block">
-                  <h1 className="font-racing text-lg sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-wider">
-                    KARTEANDO<span className="text-sky-400">.CL</span>
-                  </h1>
-                  <p className="text-blue-300 text-xs font-medium hidden sm:block">Racing Platform</p>
-                </a>
-              </div>
-            </div>
-
-            {/* Navigation Links & Menu */}
-            <div className="flex items-center space-x-2 sm:space-x-6 min-w-0">
-              {/* Desktop Navigation Links */}
-              <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
-                <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Live View
-                </a>
-                <a href="/clases" className="text-cyan-400 font-medium uppercase tracking-wider text-sm">
-                  Clases
-                </a>
-                <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Rankings
-                </a>
-                <a href="#" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Carreras
-                </a>
-              </div>
-
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="lg:hidden p-2 text-blue-300 hover:text-cyan-400 transition-colors"
-                aria-label="Toggle mobile menu"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {showMobileMenu ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Mobile Menu Dropdown */}
-      {showMobileMenu && (
-        <div className="lg:hidden relative z-30 bg-black/95 backdrop-blur-sm border-b border-blue-800/30">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex flex-col space-y-4">
-              {/* Navigation Links */}
-              <div className="space-y-3">
-                <a 
-                  href="/" 
-                  className="block text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm py-2 px-3 rounded-lg hover:bg-blue-900/30"
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  🏁 Live View
-                </a>
-                <a 
-                  href="/clases" 
-                  className="block text-cyan-400 font-medium uppercase tracking-wider text-sm py-2 px-3 rounded-lg bg-blue-900/30"
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  🧑‍🏫 Clases
-                </a>
-                <a 
-                  href="#" 
-                  className="block text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm py-2 px-3 rounded-lg hover:bg-blue-900/30"
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  🏆 Rankings
-                </a>
-                <a 
-                  href="#" 
-                  className="block text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm py-2 px-3 rounded-lg hover:bg-blue-900/30"
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  🏎️ Carreras
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Navbar />
 
       {/* Page Header */}
       <div className="bg-gradient-to-r from-cyan-900/50 via-blue-900/50 to-purple-900/50 border-b border-cyan-400/20">
