@@ -27,6 +27,7 @@ interface Driver {
       alias?: string;
     };
     email: string;
+    role?: string;
   };
 }
 
@@ -53,7 +54,11 @@ export default function DriversAdminPage() {
   const [search, setSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isLinking, setIsLinking] = useState(false);
+  const [selectedRoles, setSelectedRoles] = useState({ isCoach: false, isOrganizer: false });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState({ driverName: '', email: '', role: '' });
 
   // Verificar acceso de administrador
   useEffect(() => {
@@ -110,7 +115,9 @@ export default function DriversAdminPage() {
     }
   };
 
-  const linkDriver = async (driverName: string, webUserId: string, personId?: string) => {
+  const linkDriver = async () => {
+    if (!selectedDriver || !selectedUser) return;
+
     setIsLinking(true);
     try {
       const response = await fetch('/api/drivers', {
@@ -118,19 +125,30 @@ export default function DriversAdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'link_driver',
-          driverName,
-          webUserId,
-          personId
+          driverName: selectedDriver.driverName,
+          webUserId: selectedUser._id,
+          personId: undefined,
+          roles: selectedRoles
         })
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
-        alert(`✅ ${data.message}`);
+        // Mostrar modal de éxito personalizado
+        setSuccessMessage({
+          driverName: selectedDriver.driverName,
+          email: selectedUser.email,
+          role: data.assignedRole || 'user'
+        });
+        setShowSuccessModal(true);
+
+        // Limpiar estado
         setSelectedDriver(null);
+        setSelectedUser(null);
         setUserSearch('');
         setUsers([]);
+        setSelectedRoles({ isCoach: false, isOrganizer: false });
         fetchDrivers(); // Refresh list
       } else {
         alert(`❌ Error: ${data.error}`);
@@ -328,6 +346,25 @@ export default function DriversAdminPage() {
                           <div className="text-xs text-gray-400 mt-1">
                             {driver.webUser.email}
                           </div>
+                          {driver.webUser.role && driver.webUser.role !== 'user' && (
+                            <div className="mt-1">
+                              {driver.webUser.role === 'admin' && (
+                                <span className="inline-block px-2 py-0.5 bg-red-600 text-white text-xs rounded font-medium">
+                                  🔑 Admin
+                                </span>
+                              )}
+                              {driver.webUser.role === 'organizer' && (
+                                <span className="inline-block px-2 py-0.5 bg-purple-600 text-white text-xs rounded font-medium">
+                                  🎯 Organizador
+                                </span>
+                              )}
+                              {driver.webUser.role === 'coach' && (
+                                <span className="inline-block px-2 py-0.5 bg-yellow-600 text-white text-xs rounded font-medium">
+                                  🏎️ Coach
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="text-gray-500 text-center">
@@ -411,7 +448,7 @@ export default function DriversAdminPage() {
               {/* Users List */}
               {users.length > 0 && (
                 <div className="mb-4 space-y-2 max-h-60 overflow-y-auto">
-                  <h3 className="text-sm font-medium text-gray-300">Usuarios encontrados:</h3>
+                  <h3 className="text-sm font-medium text-gray-300">Usuarios encontrados (click para seleccionar):</h3>
                   {users.map((user) => {
                     // Crear lista de posibles nombres para matching
                     const possibleNames = [
@@ -420,59 +457,118 @@ export default function DriversAdminPage() {
                       `${user.profile.firstName} ${user.profile.lastName}`,
                       user.profile.alias
                     ].filter(Boolean);
-                    
+
                     // Verificar si algún nombre coincide con el driver seleccionado
-                    const hasMatch = possibleNames.some(name => 
+                    const hasMatch = possibleNames.some(name =>
                       name && (
                         name.toLowerCase().includes(selectedDriver.driverName.toLowerCase()) ||
                         selectedDriver.driverName.toLowerCase().includes(name.toLowerCase())
                       )
                     );
-                    
+
+                    const isSelected = selectedUser?._id === user._id;
+
                     return (
-                      <div key={user._id} className={`bg-gray-700 p-3 rounded flex items-center justify-between ${hasMatch ? 'ring-2 ring-green-400' : ''}`}>
-                        <div className="flex-1">
-                          <div className="font-medium text-white">
-                            {user.profile.firstName} {user.profile.lastName}
-                            {user.profile.alias && (
-                              <span className="ml-2 text-cyan-400 font-bold">({user.profile.alias})</span>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-400">{user.email}</div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Estado: {user.kartingLink.status}
-                            {user.kartingLink.driverName && (
-                              <span className="ml-2 text-yellow-400">
-                                → Vinculado a: {user.kartingLink.driverName}
-                              </span>
-                            )}
-                          </div>
-                          {hasMatch && (
-                            <div className="text-xs text-green-400 font-bold mt-1">
-                              ✨ POSIBLE COINCIDENCIA
+                      <div
+                        key={user._id}
+                        onClick={() => setSelectedUser(user)}
+                        className={`bg-gray-700 p-3 rounded cursor-pointer transition-all ${
+                          isSelected
+                            ? 'ring-4 ring-cyan-400 bg-cyan-900/30'
+                            : hasMatch
+                            ? 'ring-2 ring-green-400 hover:bg-gray-600'
+                            : 'hover:bg-gray-600'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium text-white">
+                              {isSelected && <span className="mr-2">✅</span>}
+                              {user.profile.firstName} {user.profile.lastName}
+                              {user.profile.alias && (
+                                <span className="ml-2 text-cyan-400 font-bold">({user.profile.alias})</span>
+                              )}
                             </div>
-                          )}
-                          {/* Mostrar todos los nombres posibles */}
-                          <div className="text-xs text-gray-600 mt-1">
-                            Nombres: {possibleNames.join(', ')}
+                            <div className="text-sm text-gray-400">{user.email}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Estado: {user.kartingLink.status}
+                              {user.kartingLink.driverName && (
+                                <span className="ml-2 text-yellow-400">
+                                  → Vinculado a: {user.kartingLink.driverName}
+                                </span>
+                              )}
+                            </div>
+                            {hasMatch && !isSelected && (
+                              <div className="text-xs text-green-400 font-bold mt-1">
+                                ✨ POSIBLE COINCIDENCIA
+                              </div>
+                            )}
+                            {isSelected && (
+                              <div className="text-xs text-cyan-400 font-bold mt-1">
+                                ✅ USUARIO SELECCIONADO
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <button
-                          onClick={() => linkDriver(selectedDriver.driverName, user._id)}
-                          disabled={isLinking}
-                          className={`px-3 py-1 rounded text-sm transition-colors ${
-                            hasMatch 
-                              ? 'bg-green-600 hover:bg-green-700 ring-2 ring-green-400' 
-                              : 'bg-blue-600 hover:bg-blue-700'
-                          } disabled:bg-gray-600`}
-                        >
-                          {isLinking ? 'Vinculando...' : hasMatch ? '✨ VINCULAR' : 'Vincular'}
-                        </button>
                       </div>
                     );
                   })}
                 </div>
               )}
+
+              {/* Role Selection */}
+              <div className="mb-4 bg-gray-700 p-4 rounded-lg border border-cyan-400/30">
+                <h3 className="text-sm font-medium text-cyan-400 mb-3 flex items-center gap-2">
+                  🎯 Asignar Roles (opcional):
+                </h3>
+                <div className="space-y-3">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={selectedRoles.isCoach}
+                      onChange={(e) => setSelectedRoles({ ...selectedRoles, isCoach: e.target.checked })}
+                      className="mt-1 w-5 h-5 text-yellow-600 bg-gray-600 border-gray-500 rounded focus:ring-yellow-500 focus:ring-2"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-white group-hover:text-yellow-400 transition-colors">
+                        🏎️ Coach
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Acceso a panel de análisis y métricas de rendimiento
+                      </div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={selectedRoles.isOrganizer}
+                      onChange={(e) => setSelectedRoles({ ...selectedRoles, isOrganizer: e.target.checked })}
+                      className="mt-1 w-5 h-5 text-purple-600 bg-gray-600 border-gray-500 rounded focus:ring-purple-500 focus:ring-2"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-white group-hover:text-purple-400 transition-colors">
+                        🎯 Organizador
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Puede crear y administrar campeonatos (incluye permisos de Coach)
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                {(selectedRoles.isCoach || selectedRoles.isOrganizer) && (
+                  <div className="mt-3 p-3 bg-cyan-900/30 border border-cyan-400/30 rounded-lg">
+                    <div className="text-xs text-cyan-300 font-medium">
+                      ℹ️ Roles seleccionados:
+                    </div>
+                    <div className="text-xs text-gray-300 mt-1">
+                      {selectedRoles.isOrganizer && '🎯 Organizador (acceso completo)'}
+                      {!selectedRoles.isOrganizer && selectedRoles.isCoach && '🏎️ Coach (análisis y métricas)'}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Driver Info */}
               <div className="bg-gray-700 p-4 rounded mb-4">
@@ -502,12 +598,82 @@ export default function DriversAdminPage() {
                 <button
                   onClick={() => {
                     setSelectedDriver(null);
+                    setSelectedUser(null);
                     setUserSearch('');
                     setUsers([]);
+                    setSelectedRoles({ isCoach: false, isOrganizer: false });
                   }}
                   className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded transition-colors"
                 >
                   Cancelar
+                </button>
+                <button
+                  onClick={linkDriver}
+                  disabled={!selectedUser || isLinking}
+                  className={`px-6 py-2 rounded font-medium transition-colors ${
+                    selectedUser && !isLinking
+                      ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
+                      : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {isLinking ? '⏳ Vinculando...' : selectedUser ? '✅ Guardar Vinculación' : '⚠️ Selecciona un usuario'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success Modal */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 max-w-md w-full border-2 border-cyan-400 shadow-2xl">
+              <div className="text-center">
+                {/* Icono de éxito animado */}
+                <div className="mb-6">
+                  <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto animate-bounce">
+                    <span className="text-4xl">✅</span>
+                  </div>
+                </div>
+
+                {/* Título */}
+                <h2 className="text-2xl font-bold text-white mb-4">
+                  ¡Vinculación Exitosa!
+                </h2>
+
+                {/* Detalles */}
+                <div className="bg-gray-700/50 rounded-lg p-4 mb-6 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 text-sm">Corredor:</span>
+                    <span className="text-cyan-400 font-bold">{successMessage.driverName}</span>
+                  </div>
+                  <div className="h-px bg-gray-600"></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 text-sm">Usuario:</span>
+                    <span className="text-white font-medium text-sm">{successMessage.email}</span>
+                  </div>
+                  <div className="h-px bg-gray-600"></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 text-sm">Rol asignado:</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      successMessage.role === 'admin' ? 'bg-red-600 text-white' :
+                      successMessage.role === 'organizer' ? 'bg-purple-600 text-white' :
+                      successMessage.role === 'coach' ? 'bg-yellow-600 text-white' :
+                      'bg-gray-600 text-white'
+                    }`}>
+                      {successMessage.role === 'admin' && '🔑 Administrador'}
+                      {successMessage.role === 'organizer' && '🎯 Organizador'}
+                      {successMessage.role === 'coach' && '🏎️ Coach'}
+                      {successMessage.role === 'user' && '👤 Usuario'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Botón cerrar */}
+                <button
+                  onClick={() => setShowSuccessModal(false)}
+                  className="w-full px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-lg transition-colors"
+                >
+                  Continuar
                 </button>
               </div>
             </div>
