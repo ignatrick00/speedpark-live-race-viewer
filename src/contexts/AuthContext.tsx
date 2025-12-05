@@ -5,7 +5,8 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 interface User {
   id: string;
   email: string;
-  role?: 'user' | 'organizer' | 'admin' | 'coach';
+  role?: 'user' | 'organizer' | 'admin' | 'coach';  // ← Legacy field (backward compatibility)
+  roles?: ('user' | 'organizer' | 'admin' | 'coach')[];  // ← New array field
   profile: {
     firstName: string;
     lastName: string;
@@ -274,9 +275,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     token,
     isLoading,
     isAuthenticated: !!user && !!token,
-    isAdmin: !!user && user.email === 'icabreraquezada@gmail.com',
-    isOrganizer: !!user && (user.role === 'organizer' || user.role === 'admin' || user.email === 'icabreraquezada@gmail.com'),
-    isCoach: !!user && user.role === 'coach',
+    isAdmin: !!user && (user.email === 'icabreraquezada@gmail.com' || (user.roles?.includes('admin') ?? user.role === 'admin')),
+    isOrganizer: !!user && (user.email === 'icabreraquezada@gmail.com' || (user.roles?.includes('organizer') ?? user.role === 'organizer') || (user.roles?.includes('admin') ?? user.role === 'admin')),
+    isCoach: !!user && (user.roles?.includes('coach') ?? user.role === 'coach'),
     login,
     register,
     logout,

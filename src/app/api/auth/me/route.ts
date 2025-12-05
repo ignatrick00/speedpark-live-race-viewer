@@ -49,12 +49,23 @@ export async function GET(request: NextRequest) {
       stats = await RealStatsLinker.getUserRealStats(user._id.toString());
     }
     
+    // Normalizar roles: usar array 'roles' con fallback a 'role' legacy
+    const userRoles = (user as any).roles && Array.isArray((user as any).roles)
+      ? (user as any).roles
+      : ((user as any).role ? [(user as any).role] : ['user']);
+
+    // Determinar rol principal para backward compatibility
+    const primaryRole = userRoles.includes('admin') ? 'admin' :
+                       userRoles.includes('organizer') ? 'organizer' :
+                       userRoles.includes('coach') ? 'coach' : 'user';
+
     return NextResponse.json({
       success: true,
       user: {
         id: user._id,
         email: user.email,
-        role: user.role,
+        role: primaryRole,  // ← Para backward compatibility
+        roles: userRoles,   // ← Nuevo campo con múltiples roles
         profile: user.profile,
         squadron: user.squadron,
         kartingLink: user.kartingLink,

@@ -44,8 +44,8 @@ export interface IWebUser extends Document {
     respondedAt?: Date;
   }>;
 
-  // Role system
-  role: 'user' | 'organizer' | 'admin' | 'coach';
+  // Role system (supports multiple roles)
+  roles: ('user' | 'organizer' | 'admin' | 'coach')[];
 
   // Organizer permissions (only if role is 'organizer' or 'admin')
   organizerProfile?: {
@@ -193,11 +193,13 @@ const WebUserSchema: Schema = new Schema({
     },
   }],
 
-  // Role system
-  role: {
-    type: String,
-    enum: ['user', 'organizer', 'admin', 'coach'],
-    default: 'user',
+  // Role system (supports multiple roles)
+  roles: {
+    type: [{
+      type: String,
+      enum: ['user', 'organizer', 'admin', 'coach'],
+    }],
+    default: ['user']
   },
 
   // Organizer permissions (only if role is 'organizer' or 'admin')

@@ -27,7 +27,8 @@ interface Driver {
       alias?: string;
     };
     email: string;
-    role?: string;
+    role?: string;      // ← Legacy field for backward compatibility
+    roles?: string[];   // ← New array field
   };
 }
 
@@ -59,6 +60,8 @@ export default function DriversAdminPage() {
   const [selectedRoles, setSelectedRoles] = useState({ isCoach: false, isOrganizer: false });
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState({ driverName: '', email: '', role: '' });
+  const [editingPrivileges, setEditingPrivileges] = useState<{ driver: Driver | null, roles: { isCoach: boolean, isOrganizer: boolean } } | null>(null);
+  const [isSavingRoles, setIsSavingRoles] = useState(false);
 
   // Verificar acceso de administrador
   useEffect(() => {
@@ -191,7 +194,7 @@ export default function DriversAdminPage() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         alert(`✅ ${data.message}`);
         fetchDrivers(); // Refresh list
@@ -200,6 +203,63 @@ export default function DriversAdminPage() {
       }
     } catch (error) {
       alert(`❌ Error unlinking driver: ${error}`);
+    }
+  };
+
+  // Helper para normalizar roles (migración de role → roles)
+  const getUserRoles = (webUser?: Driver['webUser']): string[] => {
+    if (!webUser) return ['user'];
+    // Si tiene el campo nuevo 'roles', usarlo
+    if (webUser.roles && Array.isArray(webUser.roles)) {
+      return webUser.roles.length > 0 ? webUser.roles : ['user'];
+    }
+    // Si solo tiene el campo legacy 'role', convertirlo a array
+    if (webUser.role) {
+      return [webUser.role];
+    }
+    return ['user'];
+  };
+
+  const openPrivilegesModal = (driver: Driver) => {
+    // Pre-cargar roles basados en los roles actuales del usuario
+    const currentRoles = getUserRoles(driver.webUser);
+    setEditingPrivileges({
+      driver,
+      roles: {
+        isCoach: currentRoles.includes('coach'),
+        isOrganizer: currentRoles.includes('organizer')
+      }
+    });
+  };
+
+  const savePrivileges = async () => {
+    if (!editingPrivileges?.driver) return;
+
+    setIsSavingRoles(true);
+    try {
+      const response = await fetch('/api/drivers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_roles',
+          webUserId: editingPrivileges.driver.linkedUserId,
+          roles: editingPrivileges.roles
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`✅ Roles actualizados: ${data.assignedRole}`);
+        setEditingPrivileges(null);
+        fetchDrivers(); // Refresh list
+      } else {
+        alert(`❌ Error: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ Error updating roles: ${error}`);
+    } finally {
+      setIsSavingRoles(false);
     }
   };
 
@@ -361,25 +421,29 @@ export default function DriversAdminPage() {
                           <div className="text-xs text-gray-400 mt-1">
                             {driver.webUser.email}
                           </div>
-                          {driver.webUser.role && driver.webUser.role !== 'user' && (
-                            <div className="mt-1">
-                              {driver.webUser.role === 'admin' && (
-                                <span className="inline-block px-2 py-0.5 bg-red-600 text-white text-xs rounded font-medium">
-                                  🔑 Admin
-                                </span>
-                              )}
-                              {driver.webUser.role === 'organizer' && (
-                                <span className="inline-block px-2 py-0.5 bg-purple-600 text-white text-xs rounded font-medium">
-                                  🎯 Organizador
-                                </span>
-                              )}
-                              {driver.webUser.role === 'coach' && (
-                                <span className="inline-block px-2 py-0.5 bg-yellow-600 text-white text-xs rounded font-medium">
-                                  🏎️ Coach
-                                </span>
-                              )}
-                            </div>
-                          )}
+                          {(() => {
+                            const userRoles = getUserRoles(driver.webUser);
+                            const hasSpecialRoles = userRoles.some(r => r !== 'user');
+                            return hasSpecialRoles && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {userRoles.includes('admin') && (
+                                  <span className="inline-block px-2 py-0.5 bg-red-600 text-white text-xs rounded font-medium">
+                                    🔑 Admin
+                                  </span>
+                                )}
+                                {userRoles.includes('organizer') && (
+                                  <span className="inline-block px-2 py-0.5 bg-purple-600 text-white text-xs rounded font-medium">
+                                    🎯 Organizador
+                                  </span>
+                                )}
+                                {userRoles.includes('coach') && (
+                                  <span className="inline-block px-2 py-0.5 bg-yellow-600 text-white text-xs rounded font-medium">
+                                    🏎️ Coach
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       ) : (
                         <div className="text-gray-500 text-center">
@@ -413,12 +477,21 @@ export default function DriversAdminPage() {
                     </td>
                     <td className="p-3 text-center">
                       {driver.isLinked ? (
-                        <button
-                          onClick={() => unlinkDriver(driver.driverName)}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors"
-                        >
-                          Desvincular
-                        </button>
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            onClick={() => openPrivilegesModal(driver)}
+                            className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs transition-colors"
+                            title="Editar roles y privilegios"
+                          >
+                            🎯 Privilegios
+                          </button>
+                          <button
+                            onClick={() => unlinkDriver(driver.driverName)}
+                            className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors"
+                          >
+                            Desvincular
+                          </button>
+                        </div>
                       ) : (
                         <button
                           onClick={() => setSelectedDriver(driver)}
@@ -689,6 +762,113 @@ export default function DriversAdminPage() {
                   className="w-full px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-lg transition-colors"
                 >
                   Continuar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Privileges Edit Modal */}
+        {editingPrivileges && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 max-w-md w-full border-2 border-purple-400 shadow-2xl">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">🎯</span>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Editar Privilegios
+                </h2>
+                <p className="text-gray-400 text-sm">
+                  {editingPrivileges.driver?.driverName}
+                </p>
+                {editingPrivileges.driver?.webUser && (
+                  <p className="text-cyan-400 text-sm mt-1">
+                    {editingPrivileges.driver.webUser.email}
+                  </p>
+                )}
+              </div>
+
+              {/* Role Selection */}
+              <div className="mb-6">
+                <div className="space-y-4">
+                  <label className="flex items-start gap-3 cursor-pointer group bg-gray-700/50 p-4 rounded-lg hover:bg-gray-700 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={editingPrivileges.roles.isCoach}
+                      onChange={(e) => setEditingPrivileges({
+                        ...editingPrivileges,
+                        roles: { ...editingPrivileges.roles, isCoach: e.target.checked }
+                      })}
+                      className="mt-1 w-5 h-5 text-yellow-600 bg-gray-600 border-gray-500 rounded focus:ring-yellow-500 focus:ring-2"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-white group-hover:text-yellow-400 transition-colors">
+                        🏎️ Coach
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Acceso a panel de análisis y métricas de rendimiento
+                      </div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 cursor-pointer group bg-gray-700/50 p-4 rounded-lg hover:bg-gray-700 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={editingPrivileges.roles.isOrganizer}
+                      onChange={(e) => setEditingPrivileges({
+                        ...editingPrivileges,
+                        roles: { ...editingPrivileges.roles, isOrganizer: e.target.checked }
+                      })}
+                      className="mt-1 w-5 h-5 text-purple-600 bg-gray-600 border-gray-500 rounded focus:ring-purple-500 focus:ring-2"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-white group-hover:text-purple-400 transition-colors">
+                        🎯 Organizador
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Puede crear y administrar campeonatos (incluye permisos de Coach)
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                {(editingPrivileges.roles.isCoach || editingPrivileges.roles.isOrganizer) && (
+                  <div className="mt-4 p-3 bg-purple-900/30 border border-purple-400/30 rounded-lg">
+                    <div className="text-xs text-purple-300 font-medium">
+                      ℹ️ Rol que se asignará:
+                    </div>
+                    <div className="text-sm text-white mt-1 font-bold">
+                      {editingPrivileges.roles.isOrganizer && '🎯 Organizador (acceso completo)'}
+                      {!editingPrivileges.roles.isOrganizer && editingPrivileges.roles.isCoach && '🏎️ Coach (análisis y métricas)'}
+                    </div>
+                  </div>
+                )}
+
+                {!editingPrivileges.roles.isCoach && !editingPrivileges.roles.isOrganizer && (
+                  <div className="mt-4 p-3 bg-gray-700/50 border border-gray-600 rounded-lg">
+                    <div className="text-xs text-gray-400">
+                      ⚠️ Sin roles seleccionados, se asignará rol de usuario estándar
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEditingPrivileges(null)}
+                  disabled={isSavingRoles}
+                  className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={savePrivileges}
+                  disabled={isSavingRoles}
+                  className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isSavingRoles ? '⏳ Guardando...' : '✅ Guardar'}
                 </button>
               </div>
             </div>

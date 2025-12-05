@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
                   'profile.lastName': 1,
                   'profile.alias': 1,
                   email: 1,
-                  role: 1
+                  role: 1,   // ← Legacy field (backward compatibility)
+                  roles: 1   // ← New array field
                 }
               }
             ],
@@ -126,6 +127,12 @@ export async function GET(request: NextRequest) {
       // 🔍 DEBUG: Log de los primeros 3 drivers para ver estructura
       console.log('📊 Sample drivers data:', JSON.stringify(filteredDrivers.slice(0, 3), null, 2));
       console.log(`📊 Total drivers: ${filteredDrivers.length}, Linked: ${filteredDrivers.filter(d => d.isLinked).length}`);
+
+      // 🔍 DEBUG: Log del driver vinculado específicamente
+      const linkedDriver = filteredDrivers.find(d => d.isLinked);
+      if (linkedDriver) {
+        console.log('🔗 LINKED DRIVER DATA:', JSON.stringify(linkedDriver, null, 2));
+      }
 
       return NextResponse.json({
         success: true,
@@ -249,22 +256,34 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      // 🆕 Determinar rol basado en selección
-      let userRole = user.role || 'user';
+      // 🆕 Determinar roles basado en selección (puede tener múltiples)
+      let userRoles: string[] = [];
       if (roles) {
+        if (roles.isCoach) {
+          userRoles.push('coach');
+        }
         if (roles.isOrganizer) {
-          userRole = 'organizer'; // Organizador tiene más permisos
-        } else if (roles.isCoach) {
-          userRole = 'coach';
+          userRoles.push('organizer');
         }
       }
+      // Si no tiene roles especiales, asignar 'user' por defecto
+      if (userRoles.length === 0) {
+        userRoles = ['user'];
+      }
 
-      // Actualizar estado del usuario + rol
+      // Determinar rol "principal" para respuesta (el de mayor jerarquía)
+      const primaryRole = userRoles.includes('organizer') ? 'organizer' :
+                         userRoles.includes('coach') ? 'coach' : 'user';
+
+      // Actualizar estado del usuario + roles (migrar de role → roles)
       await WebUser.findByIdAndUpdate(webUserId, {
-        'kartingLink.status': 'linked',
-        'kartingLink.driverName': driverName,
-        'kartingLink.linkedAt': new Date(),
-        role: userRole
+        $set: {
+          'kartingLink.status': 'linked',
+          'kartingLink.driverName': driverName,
+          'kartingLink.linkedAt': new Date(),
+          roles: userRoles  // ← Multiple roles
+        },
+        $unset: { role: 1 }  // ← Eliminar campo legacy
       });
       
       // Crear o actualizar identidad del corredor
@@ -297,13 +316,14 @@ export async function POST(request: NextRequest) {
         { upsert: true, new: true }
       );
       
-      console.log(`✅ Driver linked: ${driverName} -> ${user.email} (${updateResult.modifiedCount} V0 sessions updated, role: ${userRole})`);
+      console.log(`✅ Driver linked: ${driverName} -> ${user.email} (${updateResult.modifiedCount} V0 sessions updated, roles: ${userRoles.join(', ')})`);
 
       return NextResponse.json({
         success: true,
-        message: `Driver ${driverName} linked to ${user.email}${userRole !== 'user' ? ` with role: ${userRole}` : ''}`,
+        message: `Driver ${driverName} linked to ${user.email}${userRoles.length > 0 ? ` with roles: ${userRoles.join(', ')}` : ''}`,
         recordsUpdated: updateResult.modifiedCount,
-        assignedRole: userRole
+        assignedRole: primaryRole,
+        assignedRoles: userRoles
       });
     }
     
@@ -336,7 +356,7 @@ export async function POST(request: NextRequest) {
           linkingMethod: 'exact_match'
         }
       );
-      
+
       // Actualizar identidad del corredor
       await DriverIdentity.findOneAndUpdate(
         { primaryName: { $regex: new RegExp(`^${driverName}$`, 'i') } },
@@ -347,16 +367,89 @@ export async function POST(request: NextRequest) {
           manuallyVerified: false
         }
       );
-      
+
       console.log(`✅ Driver unlinked: ${driverName} (${updateResult.modifiedCount} records updated)`);
-      
+
       return NextResponse.json({
         success: true,
         message: `Driver ${driverName} unlinked`,
         recordsUpdated: updateResult.modifiedCount
       });
     }
-    
+
+    if (action === 'update_roles' && webUserId && roles) {
+      console.log(`🎯 Updating roles for user ${webUserId}:`, roles);
+
+      // Verificar que el usuario existe
+      const user = await WebUser.findById(webUserId);
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Usuario no encontrado' },
+          { status: 404 }
+        );
+      }
+
+      // Determinar roles basado en selección (puede tener múltiples)
+      let userRoles: string[] = [];
+      if (roles.isCoach) {
+        userRoles.push('coach');
+      }
+      if (roles.isOrganizer) {
+        userRoles.push('organizer');
+      }
+      // Si no tiene roles especiales, asignar 'user' por defecto
+      if (userRoles.length === 0) {
+        userRoles = ['user'];
+      }
+
+      // Determinar rol "principal" para respuesta (el de mayor jerarquía)
+      const primaryRole = userRoles.includes('organizer') ? 'organizer' :
+                         userRoles.includes('coach') ? 'coach' : 'user';
+
+      // Preparar actualización del usuario
+      const updateData: any = {
+        $set: { roles: userRoles },
+        $unset: { role: 1 }  // ← Eliminar campo legacy
+      };
+
+      // Si es organizador, habilitar permisos completos
+      if (userRoles.includes('organizer')) {
+        updateData.$set['organizerProfile.permissions.canCreateChampionships'] = true;
+        updateData.$set['organizerProfile.permissions.canApproveSquadrons'] = true;
+        updateData.$set['organizerProfile.permissions.canLinkRaces'] = true;
+        updateData.$set['organizerProfile.permissions.canModifyStandings'] = true;
+      } else {
+        // Si NO es organizador, remover todos los permisos de organizador
+        updateData.$set['organizerProfile.permissions.canCreateChampionships'] = false;
+        updateData.$set['organizerProfile.permissions.canApproveSquadrons'] = false;
+        updateData.$set['organizerProfile.permissions.canLinkRaces'] = false;
+        updateData.$set['organizerProfile.permissions.canModifyStandings'] = false;
+      }
+
+      // Actualizar roles del usuario + permisos de organizador
+      const updateResult = await WebUser.findByIdAndUpdate(
+        webUserId,
+        updateData,
+        { new: true }  // ← Devolver documento actualizado
+      );
+
+      console.log(`✅ Roles updated for ${user.email}: ${userRoles.join(', ')}`);
+      console.log(`🔍 User after update:`, JSON.stringify({
+        _id: updateResult?._id,
+        email: updateResult?.email,
+        role: (updateResult as any)?.role,
+        roles: (updateResult as any)?.roles,
+        organizerPermissions: (updateResult as any)?.organizerProfile?.permissions
+      }, null, 2));
+
+      return NextResponse.json({
+        success: true,
+        message: `Roles actualizados para ${user.email}`,
+        assignedRole: primaryRole,
+        assignedRoles: userRoles
+      });
+    }
+
     return NextResponse.json(
       { error: 'Invalid action or missing parameters' },
       { status: 400 }
