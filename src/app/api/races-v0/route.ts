@@ -18,12 +18,10 @@ export async function GET(request: Request) {
     let dateFilter: any = {};
 
     if (dateParam) {
-      // Crear rango para el día completo
-      const startDate = new Date(dateParam);
-      startDate.setHours(0, 0, 0, 0);
-
-      const endDate = new Date(dateParam);
-      endDate.setHours(23, 59, 59, 999);
+      // Parsear fecha como local (evitar UTC shift)
+      const [year, month, day] = dateParam.split('-').map(Number);
+      const startDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+      const endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
 
       dateFilter = {
         sessionDate: {
@@ -32,7 +30,7 @@ export async function GET(request: Request) {
         }
       };
 
-      console.log(`🏁 [RACES-V0] Fetching races for date: ${dateParam}`);
+      console.log(`🏁 [RACES-V0] Fetching races for date: ${dateParam} (${startDate.toString()} to ${endDate.toString()})`);
     } else {
       console.log(`🏁 [RACES-V0] Fetching all races`);
     }

@@ -36,11 +36,14 @@ export class RaceSessionServiceV0 {
 
       await connectDB();
 
-      // 1. Generar sessionId único (nombre + fecha)
-      const sessionDate = new Date();
+      // 1. Generar sessionId único (nombre + fecha) - usando timezone de Chile
+      const now = new Date();
+      // Convertir a timezone de Chile (America/Santiago)
+      const chileTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+      const sessionDate = chileTime;
       const sessionId = this.generateSessionId(smsData.N, sessionDate);
 
-      console.log(`📝 [V0-SERVICE] SessionId: ${sessionId}`);
+      console.log(`📝 [V0-SERVICE] SessionId: ${sessionId}, Chile time: ${sessionDate.toString()}`);
 
       // 2. Determinar tipo de sesión
       const sessionType = this.determineSessionType(smsData.N);
@@ -186,12 +189,15 @@ export class RaceSessionServiceV0 {
     // Determinar si es personal best
     const isPersonalBest = (driverData.B === driverData.T) && driverData.T > 0;
 
-    // Crear nueva vuelta
+    // Crear nueva vuelta con timestamp en hora de Chile
+    const now = new Date();
+    const chileTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+
     const newLap: ILapV0 = {
       lapNumber,
       time: driverData.T,
       position: driverData.P,
-      timestamp: new Date(),
+      timestamp: chileTime,
       gapToLeader: driverData.G,
       isPersonalBest
     };
