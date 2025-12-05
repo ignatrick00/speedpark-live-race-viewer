@@ -43,16 +43,16 @@ export function useWebSocket() {
             setError(null)
             console.log('🏆 Datos actualizados:', parsedData.activeDrivers, 'pilotos')
             
-            // 🆕 GUARDAR EN BASE DE DATOS - Enviar al API lap-capture
+            // 🆕 GUARDAR EN BASE DE DATOS V0 - Nueva estructura centrada en carreras
             try {
-              console.log('💾 Enviando datos al API lap-capture para guardar...')
+              console.log('💾 [V0] Enviando datos al API lap-capture para guardar en race_sessions_v0...')
               const response = await fetch('/api/lap-capture', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  action: 'process_lap_data',
+                  action: 'process_race_data_v0', // ← NUEVA ACCIÓN V0
                   sessionData: {
                     N: parsedData.sessionName || 'Live Session',
                     D: parsedData.drivers?.map(driver => ({
@@ -68,14 +68,14 @@ export function useWebSocket() {
                   }
                 })
               })
-              
+
               if (response.ok) {
-                console.log('✅ Datos guardados en base de datos exitosamente')
+                console.log('✅ [V0] Datos guardados en race_sessions_v0 exitosamente')
               } else {
-                console.warn('⚠️ Error guardando datos en BD:', response.status)
+                console.warn('⚠️ [V0] Error guardando datos en BD:', response.status)
               }
             } catch (dbError) {
-              console.error('❌ Error enviando datos al API lap-capture:', dbError)
+              console.error('❌ [V0] Error enviando datos al API lap-capture:', dbError)
             }
           }
         } catch (parseError) {
