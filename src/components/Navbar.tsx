@@ -58,10 +58,10 @@ export default function Navbar() {
   return (
     <>
       <nav className="relative z-20 border-b border-blue-800/30 bg-black/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-2 sm:px-2 py-3 sm:py-4">
+        <div className="w-full pr-2 sm:pr-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink-0">
+            {/* Logo - Clickable */}
+            <a href="/" className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink-0 hover:opacity-80 transition-opacity">
               <Image
                 src="/images/Friendly-races/logo karteando.png"
                 alt="Karteando.cl"
@@ -69,10 +69,15 @@ export default function Navbar() {
                 height={140}
                 className="h-24 w-auto sm:h-[140px] rounded-xl object-contain"
               />
-              <div className="min-w-0">
-                <p className="text-blue-300 text-sm sm:text-base font-medium">Racing Platform</p>
+              <div className="min-w-0 flex flex-col">
+                <p className="text-sm sm:text-lg font-racing italic tracking-wider uppercase bg-gradient-to-r from-electric-blue to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(0,212,255,0.5)] leading-tight">
+                  Racing Platform
+                </p>
+                <p className="text-xs sm:text-sm font-racing tracking-wide uppercase text-sky-blue/70 leading-tight">
+                  Competitive Karting
+                </p>
               </div>
-            </div>
+            </a>
 
             {/* Navigation Links & Auth */}
             <div className="flex items-center space-x-2 sm:space-x-6 min-w-0">
