@@ -141,39 +141,6 @@ export default function Navbar() {
                     <span className="hidden sm:inline">🏆 Dashboard</span>
                   </a>
 
-                  {/* Coach button */}
-                  {isCoach && (
-                    <a
-                      href="/coach"
-                      className="px-2 sm:px-4 py-1.5 sm:py-2 text-gold hover:text-white transition-all border border-gold/30 rounded-lg hover:bg-gold/10 hover:shadow-lg hover:shadow-gold/20 font-medium text-xs sm:text-sm"
-                    >
-                      <span className="sm:hidden">🏎️</span>
-                      <span className="hidden sm:inline">🏎️ Coach</span>
-                    </a>
-                  )}
-
-                  {/* Organizer button */}
-                  {isOrganizer && (
-                    <a
-                      href="/organizador"
-                      className="px-2 sm:px-4 py-1.5 sm:py-2 text-purple-400 hover:text-white transition-all border border-purple-400/30 rounded-lg hover:bg-purple-400/10 hover:shadow-lg hover:shadow-purple-400/20 font-medium text-xs sm:text-sm"
-                    >
-                      <span className="sm:hidden">🎯</span>
-                      <span className="hidden sm:inline">🎯 Organizador</span>
-                    </a>
-                  )}
-
-                  {/* Admin button */}
-                  {user.email === 'icabreraquezada@gmail.com' && (
-                    <a
-                      href="/admin"
-                      className="px-2 sm:px-4 py-1.5 sm:py-2 text-red-400 hover:text-white transition-all border border-red-400/30 rounded-lg hover:bg-red-400/10 hover:shadow-lg hover:shadow-red-400/20 font-medium text-xs sm:text-sm"
-                    >
-                      <span className="sm:hidden">👑</span>
-                      <span className="hidden sm:inline">👑 Admin</span>
-                    </a>
-                  )}
-
                   {/* User avatar */}
                   <div className="w-8 h-8 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full flex items-center justify-center border border-cyan-400/50">
                     <span className="text-cyan-400 font-bold text-xs">

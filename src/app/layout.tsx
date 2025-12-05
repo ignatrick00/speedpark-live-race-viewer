@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Bebas_Neue, Orbitron } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
+import RoleSidebar from '@/components/RoleSidebar'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const bebasNeue = Bebas_Neue({ 
@@ -33,6 +34,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           {children}
+          <RoleSidebar />
         </AuthProvider>
       </body>
     </html>
