@@ -21,11 +21,19 @@ export default function TrackRecordsCard() {
   const fetchTrackRecords = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/lap-capture?action=get_track_records');
+      // 🆕 Usar race_sessions_v0 - obtener mejores tiempos por kart
+      const response = await fetch('/api/best-times-v0?period=all&type=karts');
       const data = await response.json();
 
       if (data.success) {
-        setRecords(data.records);
+        // Convertir formato de V0 a formato esperado
+        const formattedRecords = data.bestTimes.map((item: any) => ({
+          kartNumber: item.kart,
+          bestTime: parseTime(item.time), // Convertir string "M:SS.mmm" a milisegundos
+          driverName: item.driver,
+          sessionDate: new Date(item.date)
+        }));
+        setRecords(formattedRecords);
         setError(null);
       } else {
         setError('Error cargando récords');
@@ -36,6 +44,18 @@ export default function TrackRecordsCard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper: Convertir tiempo "M:SS.mmm" a milisegundos
+  const parseTime = (timeString: string): number => {
+    if (!timeString || timeString === '--:--.---') return 0;
+    const parts = timeString.split(':');
+    if (parts.length !== 2) return 0;
+    const minutes = parseInt(parts[0]);
+    const secondsParts = parts[1].split('.');
+    const seconds = parseInt(secondsParts[0]);
+    const milliseconds = parseInt(secondsParts[1] || '0');
+    return (minutes * 60000) + (seconds * 1000) + milliseconds;
   };
 
   const formatTime = (timeMs: number) => {

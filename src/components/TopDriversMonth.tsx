@@ -29,11 +29,12 @@ export default function TopDriversMonth() {
       if (isFirstLoad) {
         setLoading(true);
       }
-      const response = await fetch('/api/best-times-v2?filter=month');
+      // 🆕 Usar race_sessions_v0
+      const response = await fetch('/api/best-times-v0?period=month&type=drivers');
       const data = await response.json();
 
       if (data.success) {
-        setBestTimes(data.bestTimesNew || []);
+        setBestTimes(data.bestTimes || []);
       }
     } catch (error) {
       console.error('Error fetching best times:', error);

@@ -29,11 +29,12 @@ export default function TopDriversDay() {
       if (isFirstLoad) {
         setLoading(true);
       }
-      const response = await fetch('/api/best-times-v2?filter=day');
+      // 🆕 Usar race_sessions_v0
+      const response = await fetch('/api/best-times-v0?period=day&type=drivers');
       const data = await response.json();
 
       if (data.success) {
-        setBestTimes(data.bestTimesNew || []);
+        setBestTimes(data.bestTimes || []);
       }
     } catch (error) {
       console.error('Error fetching best times:', error);
