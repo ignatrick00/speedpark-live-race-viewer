@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import DatePicker from './DatePicker';
 
 interface Race {
   sessionId: string;
@@ -128,19 +129,14 @@ export default function RaceBrowserV0() {
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <label className="text-white font-semibold">Fecha:</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => {
-                setSelectedDate(e.target.value);
-                setSelectedRace(null);
-                setSelectedDriver(null);
-              }}
-              className="bg-racing-black border-2 border-electric-blue/30 text-white px-4 py-2 rounded-lg font-bold hover:border-electric-blue transition-all focus:outline-none focus:ring-2 focus:ring-electric-blue"
-            />
-          </div>
+          <DatePicker
+            value={selectedDate}
+            onChange={(date) => {
+              setSelectedDate(date);
+              setSelectedRace(null);
+              setSelectedDriver(null);
+            }}
+          />
         </div>
       </div>
 
