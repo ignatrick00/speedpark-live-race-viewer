@@ -79,6 +79,15 @@ export class LapCaptureService {
     this.pendingUpdate = null;
 
     try {
+      // Check if lap capture is enabled
+      const toggleStatus = await fetch('http://localhost:3000/api/lap-capture/toggle').then(r => r.json()).catch(() => ({ enabled: true }));
+
+      if (!toggleStatus.enabled) {
+        console.log(`⏸️ [LAP CAPTURE DISABLED] Skipping data processing for: ${smsData.N}`);
+        console.log(`   Session: ${smsData.N}, Drivers: ${smsData.D.length}`);
+        return; // Exit early - don't save anything
+      }
+
       console.log(`🔍 [PROCESSING] Starting processLapData for: ${smsData.N}`);
 
       await connectDB();
