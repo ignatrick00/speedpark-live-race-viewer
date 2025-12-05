@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import RaceBrowser from '@/components/RaceBrowser';
+import RaceBrowserV0 from '@/components/RaceBrowserV0';
 
 export default function RankingPage() {
   const [lapCaptureEnabled, setLapCaptureEnabled] = useState(true);
@@ -116,8 +116,8 @@ export default function RankingPage() {
             )}
           </div>
 
-          {/* Race Browser Component */}
-          <RaceBrowser />
+          {/* Race Browser V0 Component - Uses new race-centered structure */}
+          <RaceBrowserV0 />
         </div>
       </div>
     </>

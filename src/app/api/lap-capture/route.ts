@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import LapCaptureService from '@/lib/lapCaptureService';
 import DriverRaceDataService from '@/lib/driverRaceDataService';
+import { RaceSessionServiceV0 } from '@/lib/raceSessionServiceV0';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,20 +32,36 @@ export async function POST(request: NextRequest) {
       });
     }
     
+    // ACCIÓN VIEJA: process_lap_data (estructura por piloto)
     if (action === 'process_lap_data' && sessionData) {
-      console.log('📥 Received lap data processing request:', {
+      console.log('📥 [OLD] Received lap data processing request:', {
         sessionName: sessionData.N,
         driversCount: sessionData.D?.length || 0
       });
-      
-      // REACTIVATED: Processing enabled with new real-time records system
-      console.log('✅ PROCESSING ENABLED: Calling LapCaptureService with real-time records');
-      
+
       await LapCaptureService.processLapData(sessionData);
-      
+
       return NextResponse.json({
         success: true,
-        message: 'Data processed successfully with real-time records system',
+        message: 'Data processed with OLD structure (driver_race_data)',
+        sessionName: sessionData.N,
+        driversCount: sessionData.D?.length || 0,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // ACCIÓN NUEVA: process_race_data_v0 (estructura por carrera)
+    if (action === 'process_race_data_v0' && sessionData) {
+      console.log('📥 [V0] Received race data processing request:', {
+        sessionName: sessionData.N,
+        driversCount: sessionData.D?.length || 0
+      });
+
+      await RaceSessionServiceV0.processRaceData(sessionData);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Data processed with NEW V0 structure (race_sessions_v0)',
         sessionName: sessionData.N,
         driversCount: sessionData.D?.length || 0,
         timestamp: new Date().toISOString()
