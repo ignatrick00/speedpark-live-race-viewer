@@ -7,7 +7,7 @@ import TopDriversV0Day from '@/components/TopDriversDayV0';
 import TopDriversV0Week from '@/components/TopDriversWeekV0';
 import TopDriversV0Month from '@/components/TopDriversMonthV0';
 import TopDriversV0AllTime from '@/components/TopDriversAllTimeV0';
-import TopKartsV0 from '@/components/TopKartsV0';
+import KartRecordsSelectorV0 from '@/components/KartRecordsSelectorV0';
 
 export default function RankingPage() {
   const [lapCaptureEnabled, setLapCaptureEnabled] = useState(true);
@@ -132,13 +132,10 @@ export default function RankingPage() {
               <TopDriversV0AllTime />
             </div>
 
-            {/* Right Column: Karts */}
+            {/* Right Column: Karts - Selector para elegir kart específico */}
             <div className="space-y-6">
-              <h2 className="text-2xl font-racing text-gold">🏎️ Mejores Karts</h2>
-              <TopKartsV0 period="day" title="Top 10 del Día" subtitle="Se resetea cada medianoche" />
-              <TopKartsV0 period="week" title="Top 10 de la Semana" subtitle="Últimos 7 días" />
-              <TopKartsV0 period="month" title="Top 10 del Mes" subtitle="Últimos 30 días" />
-              <TopKartsV0 period="all" title="Top 10 de Todos los Tiempos" subtitle="Desde el inicio de los registros" />
+              <h2 className="text-2xl font-racing text-gold">🏎️ Records por Kart</h2>
+              <KartRecordsSelectorV0 />
             </div>
           </div>
 
