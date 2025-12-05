@@ -38,7 +38,10 @@ interface Lap {
 export default function RaceBrowserV0() {
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date();
-    return today.toISOString().split('T')[0]; // YYYY-MM-DD
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`; // YYYY-MM-DD local time
   });
   const [races, setRaces] = useState<Race[]>([]);
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
@@ -144,7 +147,11 @@ export default function RaceBrowserV0() {
       {!selectedRace && (
         <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-6">
           <h3 className="text-xl font-bold text-electric-blue mb-4">
-            Carreras del {new Date(selectedDate).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })}
+            Carreras del {(() => {
+              const [year, month, day] = selectedDate.split('-').map(Number);
+              const date = new Date(year, month - 1, day);
+              return date.toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+            })()}
           </h3>
 
           {loading && (
