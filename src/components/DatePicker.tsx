@@ -9,7 +9,12 @@ interface DatePickerProps {
 
 export default function DatePicker({ value, onChange }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date(value));
+  // Parse as local date to avoid timezone issues
+  const parseLocalDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+  const [currentMonth, setCurrentMonth] = useState(parseLocalDate(value));
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close calendar when clicking outside
@@ -30,7 +35,7 @@ export default function DatePicker({ value, onChange }: DatePickerProps) {
   }, [isOpen]);
 
   const formatDisplayDate = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00');
+    const date = parseLocalDate(dateStr);
     return date.toLocaleDateString('es-CL', {
       weekday: 'short',
       day: '2-digit',
@@ -100,7 +105,7 @@ export default function DatePicker({ value, onChange }: DatePickerProps) {
 
   const isSelected = (date: Date | null) => {
     if (!date) return false;
-    const selected = new Date(value + 'T00:00:00');
+    const selected = parseLocalDate(value);
     return (
       date.getDate() === selected.getDate() &&
       date.getMonth() === selected.getMonth() &&
