@@ -17,130 +17,28 @@ interface DriverData {
 export class StatsService {
   
   /**
-   * Record a new session in both JSON and MongoDB
+   * Record a new session ONLY in JSON (for billing/stats)
+   * MongoDB saving is now handled by race_sessions_v0 via /api/lap-capture
    */
   static async recordSession(sessionName: string, drivers: string[], smsData?: any) {
     try {
-      console.log(`📊 Recording session: ${sessionName} with ${drivers.length} drivers`);
-      
-      // 1. Record in JSON system (existing functionality)
+      console.log(`📊 [STATS] Recording session for billing: ${sessionName} with ${drivers.length} drivers`);
+
+      // Record in JSON system ONLY (for billing dashboard)
       const tracker = await getStatsTracker();
       const jsonSession = await tracker.recordSession(sessionName, drivers);
       if (jsonSession) {
-        console.log(`✅ JSON session recorded: ${jsonSession.id}`);
+        console.log(`✅ [STATS] JSON session recorded for billing: ${jsonSession.id}`);
       }
-      
-      // 2. Connect to MongoDB
-      await connectDB();
-      
-      // 3. Create session data for MongoDB
-      const sessionId = `session_${Date.now()}_${sessionName.replace(/\s/g, '_')}`;
-      const sessionTimestamp = new Date();
-      
-      // Parse SMS-Timing data with FULL REAL DETAILS
-      const driversData: any[] = [];
-      if (smsData && smsData.D && Array.isArray(smsData.D)) {
-        console.log(`📊 Processing ${smsData.D.length} drivers with REAL SMS-Timing data`);
-        
-        smsData.D.forEach((driver: any, index: number) => {
-          const driverDetails = {
-            name: driver.N || drivers[index] || `Driver_${index + 1}`,
-            position: driver.P || index + 1,
-            kartNumber: driver.K || 0,
-            lapCount: driver.L || 0,
-            bestTime: driver.B || 0, // REAL best time from SMS
-            lastTime: driver.T || 0, // REAL last lap time
-            averageTime: driver.A || 0, // REAL average time
-            gapToLeader: driver.G || '0.000', // REAL gap
-            
-            // ADDITIONAL REAL DATA if available
-            sector1: driver.S1 || null,
-            sector2: driver.S2 || null, 
-            sector3: driver.S3 || null,
-            totalTime: driver.TT || null,
-            penalties: driver.PE || 0,
-            
-            // PERFORMANCE METRICS calculated from real data
-            consistency: 0, // TODO: implement calculateConsistency
-            pace: 0, // TODO: implement calculatePace
-            isRealData: true, // Mark as official SMS data
-            
-            // RAW SMS DATA for full traceability
-            rawSMSData: driver
-          };
-          
-          driversData.push(driverDetails);
-          console.log(`👤 ${driverDetails.name}: P${driverDetails.position}, Kart #${driverDetails.kartNumber}, Best: ${driverDetails.bestTime}ms`);
-        });
-      } else {
-        // Fallback if no SMS data
-        drivers.forEach((driverName, index) => {
-          driversData.push({
-            name: driverName,
-            position: index + 1,
-            kartNumber: 0,
-            lapCount: 0,
-            bestTime: 0,
-            lastTime: 0,
-            averageTime: 0,
-            gapToLeader: '0.000',
-          });
-        });
-      }
-      
-      // 4. Check if session already exists (duplicate prevention)
-      const existingSession = await RaceSession.findOne({ 
-        sessionId: { $regex: new RegExp(sessionName.replace(/\s/g, '_'), 'i') },
-        timestamp: {
-          $gte: new Date(sessionTimestamp.getTime() - 5 * 60 * 1000), // Last 5 minutes
-        }
-      });
-      
-      if (existingSession) {
-        console.log(`⏭️ MongoDB session already exists: ${sessionName}`);
-        return { 
-          success: true, 
-          jsonSession, 
-          mongoSession: existingSession,
-          message: 'Session already recorded in MongoDB'
-        };
-      }
-      
-      // 5. Create new MongoDB session
-      const mongoSession = await RaceSession.create({
-        sessionId,
-        sessionName,
-        sessionType: sessionName.toLowerCase().includes('clasificacion') ? 'classification' : 'practice',
-        drivers: driversData,
-        revenue: sessionName.toLowerCase().includes('clasificacion') ? drivers.length * 17000 : 0,
-        timestamp: sessionTimestamp,
-        venue: 'Speed Park',
-        source: 'sms_timing',
-        processed: false,
-        linkedUsers: [],
-      });
-      
-      console.log(`✅ MongoDB session created: ${mongoSession.sessionId}`);
-      
-      // 6. Process user linking (in background, don't await)
-      if (smsData) {
-        this.processUserLinkingAsync(smsData, sessionTimestamp).catch(error => {
-          console.error('❌ Background user linking failed:', error);
-        });
-      }
-      
+
+      // MongoDB is now handled by /api/lap-capture → race_sessions_v0
+      // This prevents duplicate writes and version conflicts
+
       return {
         success: true,
         jsonSession,
-        mongoSession: {
-          id: mongoSession._id,
-          sessionId: mongoSession.sessionId,
-          sessionName: mongoSession.sessionName,
-          driversCount: mongoSession.drivers.length,
-          revenue: mongoSession.revenue,
-          timestamp: mongoSession.timestamp,
-        },
-        message: 'Session recorded in both JSON and MongoDB'
+        mongoSession: null, // No longer saving to MongoDB from here
+        message: 'Session recorded in JSON for billing. MongoDB handled by /api/lap-capture'
       };
       
     } catch (error) {
@@ -283,31 +181,133 @@ export class StatsService {
   }
   
   /**
-   * Get recent MongoDB sessions
+   * Get recent MongoDB sessions from race_sessions_v0 (NEW)
    */
   static async getRecentSessions(limit = 10) {
     try {
       await connectDB();
-      
-      const sessions = await RaceSession.find()
-        .sort({ timestamp: -1 })
+
+      // Importar modelo V0 dinámicamente para evitar problemas de importación circular
+      const RaceSessionV0 = (await import('@/models/RaceSessionV0')).default;
+
+      const sessions = await RaceSessionV0.find()
+        .sort({ sessionDate: -1 })
         .limit(limit)
-        .select('sessionId sessionName drivers revenue timestamp processed linkedUsers')
         .lean();
-      
-      return sessions.map(session => ({
+
+      return sessions.map((session: any) => ({
         id: session.sessionId,
         name: session.sessionName,
-        driversCount: session.drivers.length,
-        revenue: session.revenue,
-        timestamp: session.timestamp,
-        processed: session.processed,
-        linkedUsersCount: session.linkedUsers?.filter((lu: any) => lu.webUserId).length || 0,
+        driversCount: session.drivers?.length || 0,
+        revenue: session.sessionName.toLowerCase().includes('clasificacion')
+          ? (session.drivers?.length || 0) * 17000
+          : 0,
+        timestamp: session.sessionDate,
+        processed: session.processed || false,
+        linkedUsersCount: session.drivers?.filter((d: any) => d.linkedUserId).length || 0,
       }));
-      
+
     } catch (error) {
-      console.error('❌ Error getting recent sessions:', error);
+      console.error('❌ Error getting recent sessions from V0:', error);
       return [];
+    }
+  }
+
+  /**
+   * Get combined stats from race_sessions_v0
+   */
+  static async getCombinedStatsFromV0() {
+    try {
+      await connectDB();
+      const RaceSessionV0 = (await import('@/models/RaceSessionV0')).default;
+
+      // Obtener todas las sesiones de clasificación
+      const sessions = await RaceSessionV0.find({
+        sessionName: { $regex: /clasificacion/i }
+      }).lean();
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Calcular estadísticas
+      const totalRaces = sessions.length;
+      const sessionsToday = sessions.filter((s: any) => {
+        const sessionDate = new Date(s.sessionDate);
+        sessionDate.setHours(0, 0, 0, 0);
+        return sessionDate.getTime() === today.getTime();
+      });
+
+      const driversToday = sessionsToday.reduce((acc: number, s: any) =>
+        acc + (s.drivers?.length || 0), 0
+      );
+
+      const totalDrivers = sessions.reduce((acc: number, s: any) =>
+        acc + (s.drivers?.length || 0), 0
+      );
+
+      const revenueToday = driversToday * 17000;
+      const revenueTotal = totalDrivers * 17000;
+      const averageDriversPerRace = totalRaces > 0 ? totalDrivers / totalRaces : 0;
+
+      // Ganancias por hora (hoy)
+      const hourlyRevenue = new Array(24).fill(0).map((_, hour) => ({
+        hour,
+        revenue: 0,
+        sessions: 0
+      }));
+
+      sessionsToday.forEach((s: any) => {
+        const sessionDate = new Date(s.sessionDate);
+        const hour = sessionDate.getHours();
+        const drivers = s.drivers?.length || 0;
+        hourlyRevenue[hour].revenue += drivers * 17000;
+        hourlyRevenue[hour].sessions += 1;
+      });
+
+      // Top drivers este mes
+      const thisMonth = new Date();
+      thisMonth.setDate(1);
+      thisMonth.setHours(0, 0, 0, 0);
+
+      const sessionsThisMonth = sessions.filter((s: any) =>
+        new Date(s.sessionDate) >= thisMonth
+      );
+
+      const driverStats = new Map<string, {count: number, spent: number}>();
+
+      sessionsThisMonth.forEach((s: any) => {
+        s.drivers?.forEach((d: any) => {
+          const current = driverStats.get(d.driverName) || {count: 0, spent: 0};
+          current.count += 1;
+          current.spent += 17000;
+          driverStats.set(d.driverName, current);
+        });
+      });
+
+      const topDriversThisMonth = Array.from(driverStats.entries())
+        .map(([name, stats]) => ({
+          driverName: name,
+          classificationsCount: stats.count,
+          totalSpent: stats.spent
+        }))
+        .sort((a, b) => b.totalSpent - a.totalSpent)
+        .slice(0, 10);
+
+      return {
+        totalRaces,
+        totalDrivers,
+        driversToday,
+        revenueToday,
+        revenueTotal,
+        averageDriversPerRace,
+        hourlyRevenue: hourlyRevenue.filter(h => h.revenue > 0 || h.sessions > 0),
+        topDriversThisMonth,
+        lastUpdate: new Date().toLocaleString('es-CL')
+      };
+
+    } catch (error) {
+      console.error('❌ Error getting combined stats from V0:', error);
+      throw error;
     }
   }
 }

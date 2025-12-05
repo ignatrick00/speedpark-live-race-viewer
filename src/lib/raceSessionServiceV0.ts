@@ -29,9 +29,17 @@ export class RaceSessionServiceV0 {
 
   /**
    * Función principal: Procesar datos de carrera desde WebSocket
+   * Con retry logic para manejar conflictos de versión
    */
-  static async processRaceData(smsData: SMSData): Promise<void> {
+  static async processRaceData(smsData: SMSData, retryCount = 0): Promise<void> {
+    const MAX_RETRIES = 3;
     try {
+      // Pequeño delay aleatorio para reducir colisiones en requests concurrentes
+      if (retryCount === 0) {
+        const randomDelay = Math.random() * 50; // 0-50ms
+        await new Promise(resolve => setTimeout(resolve, randomDelay));
+      }
+
       console.log(`🏁 [V0-SERVICE] Processing race: ${smsData.N}, Drivers: ${smsData.D.length}`);
 
       await connectDB();
@@ -84,7 +92,21 @@ export class RaceSessionServiceV0 {
 
       console.log(`✅ [V0-SERVICE] Race saved: ${sessionId}, Total laps: ${raceSession.totalLaps}`);
 
-    } catch (error) {
+    } catch (error: any) {
+      // Retry en caso de VersionError (concurrencia)
+      if (error.name === 'VersionError' && retryCount < MAX_RETRIES) {
+        const waitTime = (retryCount + 1) * 100; // 100ms, 200ms, 300ms
+        console.log(`⚠️ [V0-SERVICE] Version conflict detected, retrying in ${waitTime}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        return this.processRaceData(smsData, retryCount + 1);
+      }
+
+      // Si es un error de duplicado de sessionId, ignorar (ya existe)
+      if (error.code === 11000 && error.message.includes('sessionId')) {
+        console.log(`⚠️ [V0-SERVICE] Session ${smsData.N} already exists, continuing...`);
+        return; // No lanzar error, simplemente continuar
+      }
+
       console.error('❌ [V0-SERVICE] Error processing race data:', error);
       throw error;
     }

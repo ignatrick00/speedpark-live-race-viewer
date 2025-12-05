@@ -6,47 +6,58 @@ import { verifyAdminAccess } from '@/middleware/adminAuth'
 export async function GET(request: NextRequest) {
   // Check admin access
   const adminCheck = await verifyAdminAccess(request);
-  
+
   if (!adminCheck.isValid) {
     return NextResponse.json(
-      { 
+      {
         error: 'Access denied. Admin privileges required.',
-        details: adminCheck.error 
+        details: adminCheck.error
       },
       { status: 401 }
     );
   }
   try {
-    // Always start with JSON stats to maintain compatibility
-    const tracker = await getStatsTracker()
-    const jsonStats = await tracker.getStats()
-    
-    // Try to enhance with MongoDB data
-    let mongoStats = null
+    // Get stats from race_sessions_v0 (NEW)
+    let v0Stats = null
+    let recentSessions = []
     let error = null
-    
+
     try {
-      const combinedStats = await StatsService.getCombinedStats()
-      mongoStats = combinedStats.mongo
-    } catch (mongoError) {
-      console.warn('⚠️ MongoDB stats unavailable:', mongoError)
-      error = 'MongoDB stats unavailable'
+      v0Stats = await StatsService.getCombinedStatsFromV0()
+      recentSessions = await StatsService.getRecentSessions(20)
+    } catch (v0Error) {
+      console.warn('⚠️ V0 stats unavailable:', v0Error)
+      error = 'V0 stats unavailable'
+
+      // Fallback to JSON stats
+      const tracker = await getStatsTracker()
+      const jsonStats = await tracker.getStats()
+      return NextResponse.json({
+        ...jsonStats,
+        sources: {
+          v0: 'failed',
+          json: 'available'
+        },
+        error
+      })
     }
-    
-    // Return JSON stats as base, enhanced with MongoDB info
+
+    // Return V0 stats with recent sessions
     return NextResponse.json({
-      // Core stats from JSON (ensures compatibility)
-      ...jsonStats,
-      
-      // Enhanced info
+      ...v0Stats,
+      recentSessions: recentSessions.map(s => ({
+        id: s.id,
+        name: s.name,
+        drivers: s.driversCount,
+        revenue: s.revenue,
+        timestamp: new Date(s.timestamp).toLocaleString('es-CL')
+      })),
       sources: {
-        json: 'available',
-        mongo: mongoStats ? 'available' : 'failed',
-      },
-      mongoStats,
-      error
+        v0: 'available',
+        json: 'deprecated'
+      }
     })
-    
+
   } catch (error) {
     console.error('❌ Error en API de estadísticas:', error)
     return NextResponse.json(
