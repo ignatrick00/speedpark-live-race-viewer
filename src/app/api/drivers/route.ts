@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
         // 1. Descomponer array de drivers
         { $unwind: '$drivers' },
 
-        // 2. Agrupar por nombre de driver
+        // 2. Ordenar por fecha descendente (más reciente primero)
+        { $sort: { sessionDate: -1 } },
+
+        // 3. Agrupar por nombre de driver
         {
           $group: {
             _id: '$drivers.driverName',
@@ -29,9 +32,9 @@ export async function GET(request: NextRequest) {
             bestTime: { $min: { $cond: [{ $gt: ['$drivers.bestTime', 0] }, '$drivers.bestTime', null] } },
             lastRace: { $max: '$sessionDate' },
             firstRace: { $min: '$sessionDate' },
-            // Obtener linkedUserId y personId (usar $max para obtener valores no nulos)
-            linkedUserId: { $max: '$drivers.linkedUserId' },
-            personId: { $max: '$drivers.personId' }
+            // Obtener linkedUserId y personId (usar $first para obtener el más reciente después de ordenar)
+            linkedUserId: { $first: '$drivers.linkedUserId' },
+            personId: { $first: '$drivers.personId' }
           }
         },
 
@@ -330,13 +333,47 @@ export async function POST(request: NextRequest) {
     if (action === 'unlink_driver' && driverName) {
       console.log(`🔓 Unlinking driver "${driverName}"`);
 
-      // 🆕 Remover linking de race_sessions_v0
-      const updateResult = await RaceSessionV0.updateMany(
+      // 1️⃣ Buscar el WebUser vinculado a este driver
+      const aggregationResult = await RaceSessionV0.aggregate([
+        { $unwind: '$drivers' },
+        { $match: {
+          'drivers.driverName': driverName,
+          'drivers.linkedUserId': { $exists: true, $ne: null }
+        }},
+        { $limit: 1 },
+        { $project: { 'drivers.linkedUserId': 1 } }
+      ]);
+
+      let webUserId = null;
+      if (aggregationResult.length > 0 && aggregationResult[0].drivers?.linkedUserId) {
+        webUserId = aggregationResult[0].drivers.linkedUserId;
+        console.log(`🔍 Found linked user: ${webUserId}`);
+      } else {
+        console.log(`⚠️ No linked user found for driver: ${driverName}`);
+      }
+
+      // 2️⃣ Desvincular el WebUser (limpiar kartingLink)
+      if (webUserId) {
+        await WebUser.findByIdAndUpdate(webUserId, {
+          $set: {
+            'kartingLink.status': 'pending_first_race',
+            'kartingLink.driverName': null,
+            'kartingLink.linkedAt': null
+          }
+        });
+        console.log(`✅ WebUser ${webUserId} unlinked from driver`);
+      }
+
+      // 3️⃣ Remover linking de race_sessions_v0 (usando operación directa en MongoDB)
+      // Usar colección nativa de MongoDB (bypass Mongoose para evitar problemas de caché)
+      const collection = RaceSessionV0.collection;
+
+      const updateResult = await collection.updateMany(
         { 'drivers.driverName': driverName },
         {
           $unset: {
-            'drivers.$[elem].linkedUserId': 1,
-            'drivers.$[elem].personId': 1
+            'drivers.$[elem].linkedUserId': '',
+            'drivers.$[elem].personId': ''
           }
         },
         {
@@ -344,7 +381,7 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      // También remover de LapRecord (compatibilidad)
+      // 4️⃣ También remover de LapRecord (compatibilidad)
       await LapRecord.updateMany(
         { driverName: { $regex: new RegExp(`^${driverName}$`, 'i') } },
         {
@@ -357,7 +394,7 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      // Actualizar identidad del corredor
+      // 5️⃣ Actualizar identidad del corredor
       await DriverIdentity.findOneAndUpdate(
         { primaryName: { $regex: new RegExp(`^${driverName}$`, 'i') } },
         {
@@ -372,8 +409,9 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Driver ${driverName} unlinked`,
-        recordsUpdated: updateResult.modifiedCount
+        message: `Driver ${driverName} desvinculado exitosamente`,
+        recordsUpdated: updateResult.modifiedCount,
+        webUserUnlinked: !!webUserId
       });
     }
 
