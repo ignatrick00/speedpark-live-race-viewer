@@ -91,8 +91,16 @@ export default function DriversAdminPage() {
     try {
       const response = await fetch(`/api/drivers?action=list_all&search=${search}`);
       const data = await response.json();
-      
+
       if (data.success) {
+        console.log('🔍 FRONTEND - Total drivers recibidos:', data.drivers.length);
+        console.log('🔍 FRONTEND - Drivers vinculados:', data.drivers.filter((d: Driver) => d.isLinked).length);
+        console.log('🔍 FRONTEND - Primeros 3 drivers:', data.drivers.slice(0, 3));
+
+        // Buscar drivers con linkedUserId
+        const linked = data.drivers.filter((d: Driver) => d.linkedUserId);
+        console.log('🔍 FRONTEND - Drivers con linkedUserId:', linked);
+
         setDrivers(data.drivers);
       }
     } catch (error) {
@@ -135,6 +143,8 @@ export default function DriversAdminPage() {
       const data = await response.json();
 
       if (data.success) {
+        console.log('✅ FRONTEND - Vinculación exitosa:', data);
+
         // Mostrar modal de éxito personalizado
         setSuccessMessage({
           driverName: selectedDriver.driverName,
@@ -149,7 +159,12 @@ export default function DriversAdminPage() {
         setUserSearch('');
         setUsers([]);
         setSelectedRoles({ isCoach: false, isOrganizer: false });
-        fetchDrivers(); // Refresh list
+
+        // Esperar un momento antes de refrescar para que la DB se actualice
+        setTimeout(() => {
+          console.log('🔄 FRONTEND - Refrescando lista de drivers...');
+          fetchDrivers();
+        }, 500);
       } else {
         alert(`❌ Error: ${data.error}`);
       }

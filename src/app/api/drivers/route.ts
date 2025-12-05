@@ -174,6 +174,7 @@ export async function POST(request: NextRequest) {
     const { action, driverName, webUserId, personId, roles } = await request.json();
     
     if (action === 'link_driver' && driverName && webUserId) {
+      console.log('🚨🚨🚨 CÓDIGO NUEVO CARGADO - VERSIÓN 2.0 🚨🚨🚨');
       console.log(`🔗 Linking driver "${driverName}" to user ${webUserId}`, roles ? `with roles: ${JSON.stringify(roles)}` : '');
 
       // Verificar que el usuario existe
@@ -194,14 +195,25 @@ export async function POST(request: NextRequest) {
         console.log(`🔍 Estado del driver ANTES: linkedUserId=${driver?.linkedUserId}, personId=${driver?.personId}`);
       }
 
-      const updateResult = await RaceSessionV0.updateMany(
+      // Construir el objeto $set dinámicamente (sin undefined)
+      const setFields: any = {
+        'drivers.$[elem].linkedUserId': webUserId
+      };
+      if (personId) {
+        setFields['drivers.$[elem].personId'] = personId;
+      }
+
+      console.log(`🔧 webUserId a guardar: "${webUserId}" (type: ${typeof webUserId})`);
+      console.log(`🔧 setFields:`, JSON.stringify(setFields, null, 2));
+
+      // Agregar timestamp manualmente para evitar conflicto con Mongoose
+      setFields['updatedAt'] = new Date();
+
+      // Usar la colección directa de MongoDB en vez del modelo de Mongoose
+      // para evitar que Mongoose sobrescriba nuestro $set
+      const updateResult = await RaceSessionV0.collection.updateMany(
         { 'drivers.driverName': driverName },
-        {
-          $set: {
-            'drivers.$[elem].linkedUserId': webUserId,
-            'drivers.$[elem].personId': personId || undefined
-          }
-        },
+        { $set: setFields },
         {
           arrayFilters: [{ 'elem.driverName': driverName }]
         }
