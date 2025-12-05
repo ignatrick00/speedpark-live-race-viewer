@@ -69,7 +69,6 @@ export default function RaceBrowserV0() {
 
       if (data.success) {
         setRaces(data.races);
-        console.log(`📊 [V0] Loaded ${data.races.length} races for ${selectedDate}`);
       }
     } catch (error) {
       console.error('Error fetching races:', error);
@@ -88,7 +87,6 @@ export default function RaceBrowserV0() {
 
       if (data.success) {
         setRaceResults(data.race.drivers);
-        console.log(`🏁 [V0] Loaded results for ${selectedRace.sessionName}`);
       }
     } catch (error) {
       console.error('Error fetching race results:', error);

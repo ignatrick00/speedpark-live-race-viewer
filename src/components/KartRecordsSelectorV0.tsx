@@ -48,13 +48,6 @@ export default function KartRecordsSelectorV0() {
       if (week.success) setWeekRecords(week.records);
       if (month.success) setMonthRecords(month.records);
       if (alltime.success) setAlltimeRecords(alltime.records);
-
-      console.log(`📊 Loaded records for Kart #${selectedKart}:`, {
-        day: day.records?.length || 0,
-        week: week.records?.length || 0,
-        month: month.records?.length || 0,
-        alltime: alltime.records?.length || 0
-      });
     } catch (error) {
       console.error('Error fetching kart records:', error);
     } finally {
