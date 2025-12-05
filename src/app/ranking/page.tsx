@@ -67,64 +67,10 @@ export default function RankingPage() {
             </p>
           </div>
 
-          {/* Lap Capture Control Panel */}
-          <div className={`mb-6 p-6 rounded-xl border-2 transition-all ${
-            lapCaptureEnabled
-              ? 'bg-green-900/20 border-green-500/50'
-              : 'bg-red-900/20 border-red-500/50'
-          }`}>
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-3xl">
-                    {lapCaptureEnabled ? '✅' : '⏸️'}
-                  </span>
-                  <h2 className={`text-2xl font-racing ${
-                    lapCaptureEnabled ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {lapCaptureEnabled ? 'GUARDADO ACTIVO' : 'GUARDADO PAUSADO'}
-                  </h2>
-                </div>
-                <p className={`text-sm ${
-                  lapCaptureEnabled ? 'text-green-300/70' : 'text-red-300/70'
-                }`}>
-                  {lapCaptureEnabled
-                    ? 'Las vueltas de carreras se están guardando automáticamente en la base de datos'
-                    : '⚠️ ATENCIÓN: Las vueltas NO se están guardando. Activa el guardado para registrar carreras.'}
-                </p>
-              </div>
-
-              <button
-                onClick={handleToggle}
-                disabled={loading}
-                className={`px-6 py-3 rounded-lg font-racing text-lg transition-all disabled:opacity-50 ${
-                  lapCaptureEnabled
-                    ? 'bg-red-600/30 border-2 border-red-500/50 text-red-300 hover:bg-red-600/40'
-                    : 'bg-green-600/30 border-2 border-green-500/50 text-green-300 hover:bg-green-600/40'
-                }`}
-              >
-                {loading ? '⏳ CARGANDO...' : lapCaptureEnabled ? '⏸️ PAUSAR GUARDADO' : '▶️ ACTIVAR GUARDADO'}
-              </button>
-            </div>
-
-            {/* Additional Info */}
-            {!lapCaptureEnabled && (
-              <div className="mt-4 p-4 bg-red-950/50 border border-red-500/30 rounded-lg">
-                <p className="text-red-300 text-sm font-semibold mb-2">
-                  💡 Modo de Prueba Activo
-                </p>
-                <p className="text-red-300/70 text-xs">
-                  Útil para monitorear carreras sin guardar datos o para testing.
-                  Las carreras seguirán apareciendo en tiempo real pero no se almacenarán en la base de datos.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Driver Best Times - Horizontal Grid (4 columns) */}
+          {/* Driver Best Times - 2 columns */}
           <div className="mb-8">
             <h2 className="text-2xl font-racing text-gold mb-4">👤 Mejores Pilotos</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <TopDriversV0Day />
               <TopDriversV0Week />
               <TopDriversV0Month />
@@ -132,15 +78,15 @@ export default function RankingPage() {
             </div>
           </div>
 
+          {/* Kart Records - Selector */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-racing text-gold mb-4">🏎️ Records por Kart</h2>
+            <KartRecordsSelectorV0 />
+          </div>
+
           {/* Race Browser V0 Component - Uses new race-centered structure */}
           <div className="mb-8">
             <RaceBrowserV0 />
-          </div>
-
-          {/* Kart Records - Selector at bottom */}
-          <div>
-            <h2 className="text-2xl font-racing text-gold mb-4">🏎️ Records por Kart</h2>
-            <KartRecordsSelectorV0 />
           </div>
         </div>
       </div>
