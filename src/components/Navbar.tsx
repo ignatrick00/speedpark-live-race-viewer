@@ -86,6 +86,9 @@ export default function Navbar() {
                 <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   En Vivo
                 </a>
+                <a href="/ranking" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                  Ranking
+                </a>
                 <a href="/squadron" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Escuderías
                 </a>
@@ -187,6 +190,9 @@ export default function Navbar() {
               <div className="flex flex-col space-y-3">
                 <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   En Vivo
+                </a>
+                <a href="/ranking" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                  Ranking
                 </a>
                 <a href="/squadron" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Escuderías
