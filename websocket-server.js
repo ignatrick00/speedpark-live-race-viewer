@@ -52,11 +52,13 @@ function connectToSMSTiming() {
           if (testData.N && testData.D && Array.isArray(testData.D)) {
             console.log('🏁 DATOS ACTUALIZADOS:', testData.N, '- Pilotos:', testData.D?.length || 0)
             lastSMSData = event.data
-            
-            // 📊 REGISTRAR ESTADÍSTICAS AUTOMÁTICAMENTE - USAR DATOS PARSEADOS
-            await recordSessionStats(testData)
-            
-            // 🏁 CAPTURAR DATOS LAP-BY-LAP VUELTA POR VUELTA
+
+            // ❌ DESHABILITADO: recordSessionStats ahora solo guarda JSON local (billing)
+            // MongoDB se maneja completamente por captureLapByLapData → race_sessions_v0
+            // Esto previene escrituras duplicadas y conflictos de versión
+            // await recordSessionStats(testData)
+
+            // ✅ ÚNICO GUARDADO: race_sessions_v0 con estructura V0 completa
             await captureLapByLapData(testData)
             
             // Enviar a todos los clientes conectados
@@ -227,42 +229,43 @@ async function recordSessionStats(smsData) {
   }
 }
 
-// 🏁 FUNCIÓN PARA CAPTURAR DATOS VUELTA POR VUELTA
+// 🏁 FUNCIÓN PARA CAPTURAR DATOS EN RACE_SESSIONS_V0
 async function captureLapByLapData(smsData) {
   try {
-    console.log(`🏁 Capturando datos lap-by-lap: "${smsData.N}" - ${smsData.D.length} pilotos`);
-    
+    console.log(`🏁 [V0] Capturando datos en race_sessions_v0: "${smsData.N}" - ${smsData.D.length} pilotos`);
+
     // Verificar que fetch esté disponible
     if (!fetch) {
       console.log('⚠️ Fetch no disponible para lap capture, esperando...');
       return;
     }
-    
-    // Llamar a la API para procesar datos lap-by-lap (usar producción)
+
+    // Llamar a la API con acción V0 (nueva estructura race_sessions_v0)
     const response = await fetch('https://karteando.cl/api/lap-capture', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        action: 'process_lap_data',
+        action: 'process_race_data_v0',  // ← CAMBIO CLAVE: usar V0
         sessionData: smsData
       })
     });
     
     if (response.ok) {
       const result = await response.json();
-      console.log(`✅ Lap data processed: ${result.recordsCreated || 0} records created`);
+      console.log(`✅ [V0] Race data processed successfully in race_sessions_v0`);
     } else {
       const errorText = await response.text();
-      console.log('⚠️ Error processing lap data:', response.status, errorText);
+      console.log('⚠️ Error processing race data V0:', response.status, errorText);
     }
-    
+
   } catch (error) {
     console.log('⚠️ Error en captureLapByLapData:', error.message);
   }
 }
 
 console.log('🎯 WebSocket Server listo para conexiones')
-console.log('💰 MODO FINAL: SOLO Clasificaciones (se cobran) - Carreras son gratis/incluidas')
-console.log('🏁 NUEVO: Captura lap-by-lap VUELTA POR VUELTA con datos reales SMS-Timing')
+console.log('💰 MODO: Clasificaciones se cobran - Carreras incluidas')
+console.log('🏁 V0: Guardando en race_sessions_v0 (estructura unificada)')
+console.log('✅ SIN DUPLICACIÓN: Una sola escritura por sesión')
