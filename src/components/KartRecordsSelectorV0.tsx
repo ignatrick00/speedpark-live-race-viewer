@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface KartRecord {
   position: number;
@@ -20,14 +20,33 @@ interface KartRecordsResponse {
 
 export default function KartRecordsSelectorV0() {
   const [selectedKart, setSelectedKart] = useState<number>(18); // Default kart
+  const [isOpen, setIsOpen] = useState(false);
   const [dayRecords, setDayRecords] = useState<KartRecord[]>([]);
   const [weekRecords, setWeekRecords] = useState<KartRecord[]>([]);
   const [monthRecords, setMonthRecords] = useState<KartRecord[]>([]);
   const [alltimeRecords, setAlltimeRecords] = useState<KartRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Available karts (1-22 for SpeedPark)
   const availableKarts = Array.from({ length: 22 }, (_, i) => i + 1);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     fetchAllRecords();
@@ -142,9 +161,9 @@ export default function KartRecordsSelectorV0() {
 
   return (
     <div className="space-y-6">
-      {/* Kart Selector */}
+      {/* Kart Selector with Custom Dropdown */}
       <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h2 className="text-2xl font-bold text-electric-blue mb-2">
               📊 Récords por Kart
@@ -154,19 +173,46 @@ export default function KartRecordsSelectorV0() {
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <label className="text-white font-semibold">Kart:</label>
-            <select
-              value={selectedKart}
-              onChange={(e) => setSelectedKart(parseInt(e.target.value))}
-              className="bg-racing-black border-2 border-electric-blue/30 text-white px-6 py-3 rounded-lg font-bold text-lg hover:border-electric-blue transition-all focus:outline-none focus:ring-2 focus:ring-electric-blue"
+          {/* Custom Dropdown */}
+          <div ref={dropdownRef} className="relative">
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="bg-racing-black border-2 border-electric-blue/30 text-white px-6 py-3 rounded-lg font-bold hover:border-electric-blue hover:shadow-lg hover:shadow-electric-blue/20 transition-all focus:outline-none focus:ring-2 focus:ring-electric-blue flex items-center gap-3 min-w-[180px]"
             >
-              {availableKarts.map(kart => (
-                <option key={kart} value={kart}>
-                  #{kart.toString().padStart(2, '0')}
-                </option>
-              ))}
-            </select>
+              <span className="text-electric-blue text-xl">🏎️</span>
+              <span className="flex-1 text-left font-racing text-lg tracking-wide">
+                Kart #{selectedKart.toString().padStart(2, '0')}
+              </span>
+              <span className={`text-sky-blue transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </button>
+
+            {/* Dropdown Menu */}
+            {isOpen && (
+              <div className="absolute top-full mt-2 right-0 bg-midnight border-2 border-electric-blue/40 rounded-xl shadow-2xl shadow-electric-blue/10 p-3 z-50 animate-in fade-in duration-200 max-h-[400px] overflow-y-auto">
+                <div className="grid grid-cols-4 gap-2">
+                  {availableKarts.map(kart => (
+                    <button
+                      key={kart}
+                      onClick={() => {
+                        setSelectedKart(kart);
+                        setIsOpen(false);
+                      }}
+                      className={`
+                        px-4 py-3 rounded-lg font-bold text-center transition-all
+                        ${selectedKart === kart
+                          ? 'bg-karting-gold text-midnight shadow-lg shadow-karting-gold/30'
+                          : 'bg-racing-black/40 text-white border border-electric-blue/20 hover:bg-sky-blue/20 hover:text-sky-blue hover:border-sky-blue/50'
+                        }
+                      `}
+                    >
+                      #{kart.toString().padStart(2, '0')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
