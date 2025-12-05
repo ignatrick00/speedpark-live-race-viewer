@@ -29,21 +29,20 @@ export default function LeaderboardCard({ currentUserId }: LeaderboardCardProps)
     try {
       setLoading(true);
 
-      // Fetch top 10 + user position if not in top 10
-      const [leaderboardRes, userPositionRes] = await Promise.all([
-        fetch('/api/lap-capture?action=get_leaderboard&limit=10'),
-        currentUserId ? fetch(`/api/lap-capture?action=get_user_leaderboard_position&webUserId=${currentUserId}`) : Promise.resolve(null)
-      ]);
+      // 🆕 Usar race_sessions_v0 con endpoint nuevo
+      const url = currentUserId
+        ? `/api/leaderboard-v0?limit=10&userId=${currentUserId}`
+        : '/api/leaderboard-v0?limit=10';
 
-      const leaderboardData = await leaderboardRes.json();
-      const userPositionData = userPositionRes ? await userPositionRes.json() : null;
+      const response = await fetch(url);
+      const data = await response.json();
 
-      if (leaderboardData.success) {
-        let finalLeaderboard = leaderboardData.leaderboard;
+      if (data.success) {
+        let finalLeaderboard = data.leaderboard;
 
-        // If user has a position and is NOT in the top 10, add them at the end with divider
-        if (userPositionData?.success && userPositionData.userEntry && userPositionData.position > 10) {
-          finalLeaderboard = [...leaderboardData.leaderboard, userPositionData.userEntry];
+        // If user has a position and is NOT in the top 10, add them at the end
+        if (data.userEntry && data.userPosition && data.userPosition > 10) {
+          finalLeaderboard = [...data.leaderboard, data.userEntry];
         }
 
         setLeaderboard(finalLeaderboard);
