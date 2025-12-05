@@ -96,7 +96,7 @@ export default function Navbar() {
                   Clases
                 </a>
                 <a href="/races" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Carreras
+                  Competir
                 </a>
                 {user && (
                   <a href="/invitaciones" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm relative">
@@ -201,7 +201,7 @@ export default function Navbar() {
                   Clases
                 </a>
                 <a href="/races" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Carreras
+                  Competir
                 </a>
                 {user && (
                   <a href="/invitaciones" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm flex items-center gap-2">
