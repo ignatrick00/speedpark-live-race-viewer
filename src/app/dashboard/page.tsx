@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [userSquadronId, setUserSquadronId] = useState<string | undefined>();
+  const [linkedDriverName, setLinkedDriverName] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -88,49 +89,62 @@ export default function DashboardPage() {
   const loadRealUserStats = async () => {
     try {
       setLoading(true);
-      
+
 
       if (!user || !user.id) {
         setStats(null);
         return;
       }
-      
-      // STEP 1: Get user's recent sessions using NEW driver-centric structure
-      const sessionsResponse = await fetch(`/api/lap-capture?action=get_recent_sessions&webUserId=${user.id}&limit=20`);
-      const sessionsData = await sessionsResponse.json();
-      
-      // STEP 2: Get driver summary with aggregate stats from DriverRaceData
-      const summaryResponse = await fetch(`/api/lap-capture?action=get_driver_summary&webUserId=${user.id}`);
-      const summaryData = await summaryResponse.json();
-      
-      // PRIORITY: Use DriverRaceData if user is linked
-      if (summaryData.success && summaryData.driverData) {
-        
-        // Convert DriverRaceData to dashboard format
-        const realStats = convertDriverRaceDataToPersonalStats(summaryData, user);
-        setStats(realStats);
-        
-      } else if (sessionsData.success && sessionsData.sessions.length > 0) {
-        
-        // Check if we have lap-by-lap data in new structure
-        const hasLapByLapData = sessionsData.sessions.some((s: any) => s.lapByLapData && s.lapByLapData.length > 0);
-        
-        if (hasLapByLapData) {
-          const realStats = convertEnhancedLapDataToPersonalStats(sessionsData.sessions, summaryData.stats || null, user);
-          setStats(realStats);
-        } else {
-          const realStats = convertLapDataToPersonalStats(sessionsData.sessions, user);
-          setStats(realStats);
+
+      // 🆕 USAR NUEVO ENDPOINT CON race_sessions_v0
+      const statsResponse = await fetch(`/api/user-stats?webUserId=${user.id}`);
+      const statsData = await statsResponse.json();
+
+      console.log('📊 [DASHBOARD] Stats from V0:', statsData);
+
+      if (statsData.success && statsData.stats) {
+        // Guardar nombre del driver vinculado
+        if (statsData.stats.driverName) {
+          setLinkedDriverName(statsData.stats.driverName);
         }
+
+        // Convertir stats de race_sessions_v0 a formato del dashboard
+        const personalStats: PersonalStats = {
+          totalRaces: statsData.stats.totalRaces,
+          totalSpent: statsData.stats.totalSpent,
+          bestTime: statsData.stats.bestTime,
+          averageTime: statsData.stats.avgTime,
+          bestPosition: statsData.stats.bestPosition,
+          podiumFinishes: statsData.stats.podiumFinishes,
+          favoriteKart: statsData.stats.favoriteKart,
+          totalLaps: statsData.stats.totalLaps,
+          firstRace: new Date(statsData.stats.firstRace),
+          lastRace: new Date(statsData.stats.lastRace),
+          monthlyProgression: statsData.stats.monthlyProgression,
+          recentRaces: statsData.stats.recentRaces.map((race: any) => ({
+            date: new Date(race.date),
+            sessionName: race.sessionName,
+            position: race.position,
+            kartNumber: race.kartNumber,
+            bestTime: race.bestTime,
+            totalLaps: race.totalLaps,
+            lapByLapProgression: race.laps || [],
+            sessionType: race.sessionType,
+            finalPosition: race.position
+          }))
+        };
+
+        console.log('✅ [DASHBOARD] Stats converted:', personalStats);
+        setStats(personalStats);
       } else {
         // No data found - user not linked yet
-        // Don't show demo stats, let the banner show instead
+        console.log('⚠️ [DASHBOARD] No stats found for user');
+        setLinkedDriverName(null);
         setStats(null);
       }
 
     } catch (error) {
-      console.error('Error loading real stats:', error);
-      // On error, also don't show demo stats
+      console.error('❌ [DASHBOARD] Error loading stats:', error);
       setStats(null);
     } finally {
       setLoading(false);
@@ -616,32 +630,46 @@ export default function DashboardPage() {
           </p>
 
           {/* Enhanced Data Source Indicator */}
-          {stats && (
-            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium">
-              {stats.totalRaces > 0 && stats.recentRaces.length > 0 ? (
-                // Check if we have lap-by-lap data from linked driver
-                stats.recentRaces.some((race: any) => race.lapByLapProgression?.length > 0) ? (
-                  <div className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-3 py-1 rounded-full flex items-center gap-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                    👑 CORREDOR VINCULADO - DATOS VUELTA POR VUELTA
-                  </div>
-                ) : stats.totalRaces >= 1 ? (
-                  <div className="bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-full flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    ✅ CORREDOR VINCULADO - DATOS REALES
-                  </div>
+          {stats && linkedDriverName && (
+            <div className="mt-3 flex flex-col items-center gap-2">
+              {/* Driver Name Badge */}
+              <div className="bg-gradient-to-r from-electric-blue/20 to-purple-500/20 border border-electric-blue/40 px-4 py-2 rounded-full flex items-center gap-2">
+                <div className="w-2 h-2 bg-electric-blue rounded-full animate-pulse"></div>
+                <span className="text-electric-blue font-bold">🏎️ {linkedDriverName}</span>
+              </div>
+
+              {/* Data Status */}
+              <div className="text-xs font-medium">
+                {stats.totalRaces > 0 && stats.recentRaces.length > 0 ? (
+                  // Check if we have lap-by-lap data from linked driver
+                  stats.recentRaces.some((race: any) => race.lapByLapProgression?.length > 0) ? (
+                    <div className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-3 py-1 rounded-full flex items-center gap-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                      👑 DATOS VUELTA POR VUELTA
+                    </div>
+                  ) : (
+                    <div className="bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-full flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      ✅ DATOS REALES - {stats.totalRaces} {stats.totalRaces === 1 ? 'CARRERA' : 'CARRERAS'}
+                    </div>
+                  )
                 ) : (
                   <div className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full flex items-center gap-2">
                     <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
-                    🏁 DATOS REALES DE CARRERAS
+                    🏁 CORREDOR VINCULADO
                   </div>
-                )
-              ) : (
-                <div className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded-full flex items-center gap-2">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  DATOS DEMO - SOLICITA VINCULACIÓN DE TU CORREDOR AL ADMIN
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Show warning if not linked */}
+          {stats && !linkedDriverName && (
+            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium">
+              <div className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded-full flex items-center gap-2">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                ⚠️ DATOS SIN VINCULAR - SOLICITA VINCULACIÓN AL ADMIN
+              </div>
             </div>
           )}
         </header>
