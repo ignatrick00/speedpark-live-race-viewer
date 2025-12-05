@@ -256,7 +256,7 @@ export default function LiveRaceViewer() {
           </div>
 
           <div className="bg-black/30 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 text-center relative hover:border-blue-400/50 transition-colors">
-            <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Mejor Vuelta Global</p>
+            <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Mejor Vuelta Carrera</p>
             <p className="font-digital text-2xl text-white font-bold mb-2">{bestLap}</p>
             <p className="text-blue-300 text-xs uppercase tracking-wider">M:SS.mmm</p>
           </div>
