@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import RaceBrowserV0 from '@/components/RaceBrowserV0';
+import TopDriversV0Day from '@/components/TopDriversDayV0';
+import TopDriversV0Week from '@/components/TopDriversWeekV0';
+import TopDriversV0Month from '@/components/TopDriversMonthV0';
+import TopDriversV0AllTime from '@/components/TopDriversAllTimeV0';
+import TopKartsV0 from '@/components/TopKartsV0';
 
 export default function RankingPage() {
   const [lapCaptureEnabled, setLapCaptureEnabled] = useState(true);
@@ -114,6 +119,27 @@ export default function RankingPage() {
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Best Times Tables - 8 tables total */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Left Column: Drivers */}
+            <div className="space-y-6">
+              <h2 className="text-2xl font-racing text-gold">👤 Mejores Pilotos</h2>
+              <TopDriversV0Day />
+              <TopDriversV0Week />
+              <TopDriversV0Month />
+              <TopDriversV0AllTime />
+            </div>
+
+            {/* Right Column: Karts */}
+            <div className="space-y-6">
+              <h2 className="text-2xl font-racing text-gold">🏎️ Mejores Karts</h2>
+              <TopKartsV0 period="day" title="Top 10 del Día" subtitle="Se resetea cada medianoche" />
+              <TopKartsV0 period="week" title="Top 10 de la Semana" subtitle="Últimos 7 días" />
+              <TopKartsV0 period="month" title="Top 10 del Mes" subtitle="Últimos 30 días" />
+              <TopKartsV0 period="all" title="Top 10 de Todos los Tiempos" subtitle="Desde el inicio de los registros" />
+            </div>
           </div>
 
           {/* Race Browser V0 Component - Uses new race-centered structure */}
