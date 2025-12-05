@@ -188,29 +188,30 @@ export default function KartRecordsSelectorV0() {
               </span>
             </button>
 
-            {/* Dropdown Menu */}
+            {/* Dropdown Menu - Vertical List */}
             {isOpen && (
-              <div className="absolute top-full mt-2 right-0 bg-midnight border-2 border-electric-blue/40 rounded-xl shadow-2xl shadow-electric-blue/10 p-3 z-50 animate-in fade-in duration-200 max-h-[400px] overflow-y-auto">
-                <div className="grid grid-cols-4 gap-2">
-                  {availableKarts.map(kart => (
-                    <button
-                      key={kart}
-                      onClick={() => {
-                        setSelectedKart(kart);
-                        setIsOpen(false);
-                      }}
-                      className={`
-                        px-4 py-3 rounded-lg font-bold text-center transition-all
-                        ${selectedKart === kart
-                          ? 'bg-karting-gold text-midnight shadow-lg shadow-karting-gold/30'
-                          : 'bg-racing-black/40 text-white border border-electric-blue/20 hover:bg-sky-blue/20 hover:text-sky-blue hover:border-sky-blue/50'
-                        }
-                      `}
-                    >
-                      #{kart.toString().padStart(2, '0')}
-                    </button>
-                  ))}
-                </div>
+              <div className="absolute top-full mt-2 right-0 bg-midnight border-2 border-electric-blue/40 rounded-xl shadow-2xl shadow-electric-blue/10 p-2 z-50 animate-in fade-in duration-200 max-h-[400px] overflow-y-auto min-w-[160px]">
+                {availableKarts.map(kart => (
+                  <button
+                    key={kart}
+                    onClick={() => {
+                      setSelectedKart(kart);
+                      setIsOpen(false);
+                    }}
+                    className={`
+                      w-full px-4 py-3 rounded-lg font-bold text-left transition-all mb-1 flex items-center gap-3
+                      ${selectedKart === kart
+                        ? 'bg-karting-gold text-midnight shadow-lg shadow-karting-gold/30'
+                        : 'text-white hover:bg-sky-blue/20 hover:text-sky-blue'
+                      }
+                    `}
+                  >
+                    <span className="text-lg">🏎️</span>
+                    <span className="font-racing text-lg">
+                      Kart #{kart.toString().padStart(2, '0')}
+                    </span>
+                  </button>
+                ))}
               </div>
             )}
           </div>
