@@ -121,26 +121,27 @@ export default function RankingPage() {
             )}
           </div>
 
-          {/* Best Times Tables - 8 tables total */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Left Column: Drivers */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-racing text-gold">👤 Mejores Pilotos</h2>
+          {/* Driver Best Times - Horizontal Grid (4 columns) */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-racing text-gold mb-4">👤 Mejores Pilotos</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
               <TopDriversV0Day />
               <TopDriversV0Week />
               <TopDriversV0Month />
               <TopDriversV0AllTime />
             </div>
-
-            {/* Right Column: Karts - Selector para elegir kart específico */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-racing text-gold">🏎️ Records por Kart</h2>
-              <KartRecordsSelectorV0 />
-            </div>
           </div>
 
           {/* Race Browser V0 Component - Uses new race-centered structure */}
-          <RaceBrowserV0 />
+          <div className="mb-8">
+            <RaceBrowserV0 />
+          </div>
+
+          {/* Kart Records - Selector at bottom */}
+          <div>
+            <h2 className="text-2xl font-racing text-gold mb-4">🏎️ Records por Kart</h2>
+            <KartRecordsSelectorV0 />
+          </div>
         </div>
       </div>
     </>
