@@ -17,19 +17,25 @@ export default function TopDriversV0Day() {
   const [bestTimes, setBestTimes] = useState<BestTime[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    // Default: hoy en formato YYYY-MM-DD
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
 
   useEffect(() => {
     fetchBestTimes();
     const interval = setInterval(fetchBestTimes, 10000); // Auto-refresh every 10s
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedDate]); // Re-fetch cuando cambia la fecha
 
   const fetchBestTimes = async () => {
     try {
       if (isFirstLoad) {
         setLoading(true);
       }
-      const response = await fetch('/api/best-times-v0?period=day&type=drivers');
+      // Enviar fecha seleccionada al API
+      const response = await fetch(`/api/best-times-v0?period=day&type=drivers&date=${selectedDate}`);
       const data = await response.json();
 
       if (data.success) {
@@ -66,7 +72,29 @@ export default function TopDriversV0Day() {
         <h3 className="text-xl font-bold text-electric-blue flex items-center gap-2">
           🏆 Top 10 del Día (V0)
         </h3>
-        <p className="text-xs text-sky-blue/50 mt-1">Se resetea cada medianoche</p>
+
+        {/* Date Selector */}
+        <div className="mt-3 flex items-center gap-2">
+          <label htmlFor="date-selector" className="text-sm text-sky-blue/70">
+            📅 Seleccionar fecha:
+          </label>
+          <input
+            id="date-selector"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            max={new Date().toISOString().split('T')[0]} // No permitir fechas futuras
+            className="px-3 py-1.5 bg-racing-black/60 border border-electric-blue/30 rounded text-white text-sm focus:outline-none focus:border-electric-blue/60 transition-colors"
+          />
+          {selectedDate !== new Date().toISOString().split('T')[0] && (
+            <button
+              onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+              className="px-3 py-1.5 bg-electric-blue/20 hover:bg-electric-blue/30 border border-electric-blue/40 rounded text-xs text-electric-blue transition-colors"
+            >
+              Hoy
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Loading State - ONLY on first load when no data yet */}
