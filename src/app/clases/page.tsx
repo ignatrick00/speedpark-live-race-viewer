@@ -374,6 +374,7 @@ export default function ClasesPage() {
   }
 
   const getSlotStatus = (bloque: ClaseBloque) => {
+    // Individual booking - slot completely reserved
     if (bloque.individualBooking?.isBooked && bloque.individualBooking?.studentName) {
       return {
         type: 'individual' as const,
@@ -381,15 +382,22 @@ export default function ClasesPage() {
         message: 'Reservado',
         color: 'text-red-400'
       }
-    } else if (bloque.groupBookings && bloque.groupBookings.length > 0) {
+    }
+    // Group bookings
+    else if (bloque.groupBookings && bloque.groupBookings.length > 0) {
+      // Check if group is full
+      const isFull = bloque.groupBookings.length >= bloque.maxGroupCapacity;
+
       return {
         type: 'group' as const,
-        status: 'partial',
-        message: `Grupo: ${bloque.groupBookings.length}/${bloque.maxGroupCapacity} cupos`,
-        color: 'text-orange-400',
+        status: isFull ? 'occupied' : 'partial',
+        message: isFull ? 'Reservado' : `Grupo: ${bloque.groupBookings.length}/${bloque.maxGroupCapacity} cupos`,
+        color: isFull ? 'text-red-400' : 'text-orange-400',
         students: bloque.groupBookings.map(b => b.studentName)
       }
-    } else {
+    }
+    // Available slot
+    else {
       return {
         type: 'available' as const,
         status: 'free',
