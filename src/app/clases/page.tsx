@@ -378,7 +378,7 @@ export default function ClasesPage() {
       return {
         type: 'individual' as const,
         status: 'occupied',
-        message: `Reservado por ${bloque.individualBooking.studentName}`,
+        message: 'Reservado',
         color: 'text-red-400'
       }
     } else if (bloque.groupBookings && bloque.groupBookings.length > 0) {
@@ -649,13 +649,6 @@ export default function ClasesPage() {
                                   {slotStatus.message}
                                 </span>
                               </div>
-                              
-                              {/* Group members if any */}
-                              {slotStatus.students && slotStatus.students.length > 0 && (
-                                <div className="text-xs text-orange-300 mb-3">
-                                  👥 {slotStatus.students.join(', ')}
-                                </div>
-                              )}
                             </div>
                             
                             {/* Reservation Panel */}
