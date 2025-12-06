@@ -18,23 +18,31 @@ export async function GET(request: Request) {
 
     // Calcular filtro de fecha según período (usando timezone de Chile)
     let dateFilter: any = {};
-
-    // Obtener fecha actual en timezone de Chile
-    const nowChile = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+    const now = new Date();
 
     if (period === 'day') {
-      // Medianoche de HOY en Chile
-      const startOfDay = new Date(nowChile);
-      startOfDay.setHours(0, 0, 0, 0);
-      dateFilter = { sessionDate: { $gte: startOfDay } };
-      console.log(`📅 [DAY FILTER] Chile now: ${nowChile.toISOString()}, Start of day: ${startOfDay.toISOString()}`);
+      // Obtener medianoche de HOY en Chile (UTC-3 o UTC-4 según DST)
+      // Chile está en UTC-3 en horario de verano (Oct-Abr)
+      const chileOffset = -3 * 60; // -3 horas en minutos
+      const utcNow = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const chileNow = new Date(utcNow + (chileOffset * 60000));
+
+      // Medianoche de hoy en Chile
+      const startOfDayChile = new Date(chileNow);
+      startOfDayChile.setHours(0, 0, 0, 0);
+
+      // Convertir de vuelta a UTC para MongoDB
+      const startOfDayUTC = new Date(startOfDayChile.getTime() - (chileOffset * 60000));
+
+      dateFilter = { sessionDate: { $gte: startOfDayUTC } };
+      console.log(`📅 [DAY FILTER] Chile now: ${chileNow.toISOString()}, Start of day UTC: ${startOfDayUTC.toISOString()}`);
     } else if (period === 'week') {
-      const startOfWeek = new Date(nowChile);
-      startOfWeek.setDate(nowChile.getDate() - 7);
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - 7);
       dateFilter = { sessionDate: { $gte: startOfWeek } };
     } else if (period === 'month') {
-      const startOfMonth = new Date(nowChile);
-      startOfMonth.setDate(nowChile.getDate() - 30);
+      const startOfMonth = new Date(now);
+      startOfMonth.setDate(now.getDate() - 30);
       dateFilter = { sessionDate: { $gte: startOfMonth } };
     }
     // 'all' no tiene filtro de fecha
