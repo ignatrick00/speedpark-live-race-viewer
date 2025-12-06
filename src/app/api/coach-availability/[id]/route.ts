@@ -29,9 +29,18 @@ export async function PUT(
       email: string;
     };
 
-    // Find user
+    // Find user and verify they are a coach
     const user = await WebUser.findById(decoded.userId);
-    if (!user || user.role !== 'coach') {
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user is a coach (support both legacy 'role' and new 'roles' array)
+    const isCoach = (user as any).roles?.includes('coach') || (user as any).role === 'coach';
+    if (!isCoach) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -71,6 +80,10 @@ export async function PUT(
 
     // Update fields
     console.log('🔧 Before update - blockDurationMinutes:', availability.blockDurationMinutes);
+
+    // Always update coachName to reflect current user name
+    availability.coachName = `${user.profile.firstName} ${user.profile.lastName}`;
+
     if (dayOfWeek !== undefined) availability.dayOfWeek = dayOfWeek;
     if (startTime) availability.startTime = startTime;
     if (endTime) availability.endTime = endTime;
@@ -133,9 +146,18 @@ export async function DELETE(
       email: string;
     };
 
-    // Find user
+    // Find user and verify they are a coach
     const user = await WebUser.findById(decoded.userId);
-    if (!user || user.role !== 'coach') {
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user is a coach (support both legacy 'role' and new 'roles' array)
+    const isCoach = (user as any).roles?.includes('coach') || (user as any).role === 'coach';
+    if (!isCoach) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }

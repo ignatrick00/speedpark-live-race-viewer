@@ -68,7 +68,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.role !== 'coach') {
+    // Check if user is a coach (support both legacy 'role' and new 'roles' array)
+    const isCoach = (user as any).roles?.includes('coach') || (user as any).role === 'coach';
+    if (!isCoach) {
       return NextResponse.json(
         { error: 'Only coaches can create availability' },
         { status: 403 }
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
     // Create availability
     const availability = await CoachAvailability.create({
       coachId: user._id,
-      coachName: user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`,
+      coachName: `${user.profile.firstName} ${user.profile.lastName}`,
       dayOfWeek,
       startTime,
       endTime,
