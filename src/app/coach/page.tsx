@@ -112,9 +112,21 @@ export default function CoachPage() {
 
     setLoadingClasses(true);
     try {
-      const response = await fetch(`/api/training-classes?coachId=${user.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      // Get today's date and 30 days from now
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endDate = new Date(today);
+      endDate.setDate(endDate.getDate() + 30);
+
+      const startDateStr = today.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      const response = await fetch(
+        `/api/training-classes?coachId=${user.id}&startDate=${startDateStr}&endDate=${endDateStr}`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` },
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
