@@ -68,6 +68,11 @@ export async function GET(request: Request) {
         { $limit: 10 }
       ]);
 
+      console.log(`✅ [BEST-TIMES-V0] Found ${bestTimes.length} drivers for period: ${period}`);
+      if (period === 'day' && bestTimes.length > 0) {
+        console.log(`📊 [SAMPLE] First result: ${bestTimes[0]._id} - ${bestTimes[0].sessionName} - Date: ${new Date(bestTimes[0].sessionDate).toLocaleString('es-CL', { timeZone: 'America/Santiago' })}`);
+      }
+
       // Formatear para frontend (mismo formato que best-times-v2)
       const formattedTimes = bestTimes.map((item, idx) => ({
         position: idx + 1,
