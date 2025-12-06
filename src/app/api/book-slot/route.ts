@@ -98,7 +98,10 @@ export async function POST(request: NextRequest) {
     // Now book the class
     if (bookingType === 'individual') {
       // Check availability
-      if ((trainingClass.individualBooking && trainingClass.individualBooking.studentId) || trainingClass.groupBookings.length > 0) {
+      const hasIndividualBooking = trainingClass.individualBooking?.studentId != null;
+      const hasGroupBookings = trainingClass.groupBookings && trainingClass.groupBookings.length > 0;
+
+      if (hasIndividualBooking || hasGroupBookings) {
         return NextResponse.json(
           { error: 'Class is not available for individual booking' },
           { status: 400 }
@@ -128,7 +131,9 @@ export async function POST(request: NextRequest) {
     // Handle group booking
     if (bookingType === 'group') {
       // Check availability
-      if (trainingClass.individualBooking && trainingClass.individualBooking.studentId) {
+      const hasIndividualBooking = trainingClass.individualBooking?.studentId != null;
+
+      if (hasIndividualBooking) {
         return NextResponse.json(
           { error: 'Class is booked for individual session' },
           { status: 400 }
