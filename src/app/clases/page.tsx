@@ -165,6 +165,7 @@ export default function ClasesPage() {
       const data = await response.json()
 
       if (response.ok) {
+        console.log('✅ Booking successful, refreshing slots...');
         setNotificationMessage(`¡Reserva exitosa! Precio: $${data.price.toLocaleString('es-CL')}`)
         setNotificationType('success')
         setShowNotification(true)
@@ -172,27 +173,57 @@ export default function ClasesPage() {
         const slotsResponse = await fetch('/api/available-slots')
         if (slotsResponse.ok) {
           const slotsData = await slotsResponse.json()
-          const transformedBloques: ClaseBloque[] = slotsData.slots.map((slot: any) => ({
-            id: slot.existingClassId || `slot-${slot.date}-${slot.startTime}`,
-            instructorId: typeof slot.coachId === 'string' ? slot.coachId : slot.coachId,
-            instructor: slot.coachName,
-            date: slot.date,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            individualBooking: (slot.individualBooking && slot.individualBooking.studentName) ? {
-              isBooked: true,
-              studentName: slot.individualBooking.studentName
-            } : undefined,
-            groupBookings: slot.groupBookings?.map((booking: any) => ({
-              studentName: booking.studentName,
-              bookedAt: new Date(booking.bookedAt)
-            })) || [],
-            maxGroupCapacity: slot.maxGroupCapacity,
-            individualPrice: slot.individualPrice,
-            groupPricePerPerson: slot.groupPricePerPerson,
-            availabilityId: slot.availabilityId,
-            status: slot.status
-          }))
+          console.log('📊 Received slots after booking:', slotsData.slots.length);
+
+          // Find the slot we just booked to debug
+          const bookedSlot = slotsData.slots.find((s: any) =>
+            s.date === bloque.date && s.startTime === bloque.startTime
+          );
+          console.log('🔍 Booked slot data:', {
+            date: bookedSlot?.date,
+            time: bookedSlot?.startTime,
+            individualBooking: bookedSlot?.individualBooking,
+            groupBookings: bookedSlot?.groupBookings,
+            status: bookedSlot?.status
+          });
+
+          const transformedBloques: ClaseBloque[] = slotsData.slots.map((slot: any) => {
+            const hasIndividualBooking = slot.individualBooking && slot.individualBooking.studentName;
+
+            const transformed = {
+              id: slot.existingClassId || `slot-${slot.date}-${slot.startTime}`,
+              instructorId: typeof slot.coachId === 'string' ? slot.coachId : slot.coachId,
+              instructor: slot.coachName,
+              date: slot.date,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              individualBooking: hasIndividualBooking ? {
+                isBooked: true,
+                studentName: slot.individualBooking.studentName
+              } : undefined,
+              groupBookings: slot.groupBookings?.map((booking: any) => ({
+                studentName: booking.studentName,
+                bookedAt: new Date(booking.bookedAt)
+              })) || [],
+              maxGroupCapacity: slot.maxGroupCapacity,
+              individualPrice: slot.individualPrice,
+              groupPricePerPerson: slot.groupPricePerPerson,
+              availabilityId: slot.availabilityId,
+              status: slot.status
+            };
+
+            // Debug the transformed booked slot
+            if (slot.date === bloque.date && slot.startTime === bloque.startTime) {
+              console.log('🔄 Transformed booked slot:', {
+                hasIndividualBooking,
+                individualBooking: transformed.individualBooking,
+                groupBookingsCount: transformed.groupBookings.length
+              });
+            }
+
+            return transformed;
+          })
+          console.log('📦 Setting', transformedBloques.length, 'bloques to state');
           setBloques(transformedBloques)
         }
       } else {

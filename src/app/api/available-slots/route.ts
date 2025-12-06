@@ -35,10 +35,13 @@ export async function GET(request: NextRequest) {
     endDate.setDate(endDate.getDate() + (weeksAhead * 7));
 
     // Get existing classes in this date range to check what's booked
-    const existingClasses = await TrainingClass.find({
-      coachId,
+    const classQuery: any = {
       date: { $gte: today, $lte: endDate },
-    });
+    };
+    if (coachId) {
+      classQuery.coachId = coachId;
+    }
+    const existingClasses = await TrainingClass.find(classQuery);
 
     // Create a map of existing classes by date + time
     const existingClassesMap = new Map();
