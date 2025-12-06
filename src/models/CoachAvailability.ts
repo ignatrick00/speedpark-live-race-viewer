@@ -5,8 +5,14 @@ export interface ICoachAvailability extends Document {
   coachId: mongoose.Types.ObjectId;
   coachName: string;
 
-  // Day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-  dayOfWeek: number;
+  // Availability type: 'recurring' for weekly or 'specific' for one-time date
+  availabilityType: 'recurring' | 'specific';
+
+  // Day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday) - for recurring
+  dayOfWeek?: number;
+
+  // Specific date - for one-time availability
+  specificDate?: Date;
 
   // Time range
   startTime: string; // Format: "14:00"
@@ -40,12 +46,24 @@ const CoachAvailabilitySchema: Schema = new Schema({
     required: true,
   },
 
-  // Day of week
+  // Availability type
+  availabilityType: {
+    type: String,
+    enum: ['recurring', 'specific'],
+    default: 'recurring',
+    required: true,
+  },
+
+  // Day of week (for recurring)
   dayOfWeek: {
     type: Number,
-    required: true,
     min: 0,
     max: 6,
+  },
+
+  // Specific date (for one-time availability)
+  specificDate: {
+    type: Date,
   },
 
   // Time range

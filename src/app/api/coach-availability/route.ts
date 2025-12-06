@@ -80,7 +80,9 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body = await request.json();
     const {
+      availabilityType,
       dayOfWeek,
+      specificDate,
       startTime,
       endTime,
       blockDurationMinutes,
@@ -90,25 +92,43 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validation
-    if (dayOfWeek === undefined || !startTime || !endTime) {
+    const type = availabilityType || 'recurring';
+
+    if (!startTime || !endTime) {
       return NextResponse.json(
-        { error: 'Missing required fields: dayOfWeek, startTime, endTime' },
+        { error: 'Missing required fields: startTime, endTime' },
         { status: 400 }
       );
     }
 
-    if (dayOfWeek < 0 || dayOfWeek > 6) {
-      return NextResponse.json(
-        { error: 'dayOfWeek must be between 0 (Sunday) and 6 (Saturday)' },
-        { status: 400 }
-      );
+    // Validate based on type
+    if (type === 'recurring') {
+      if (dayOfWeek === undefined) {
+        return NextResponse.json(
+          { error: 'dayOfWeek is required for recurring availability' },
+          { status: 400 }
+        );
+      }
+      if (dayOfWeek < 0 || dayOfWeek > 6) {
+        return NextResponse.json(
+          { error: 'dayOfWeek must be between 0 (Sunday) and 6 (Saturday)' },
+          { status: 400 }
+        );
+      }
+    } else if (type === 'specific') {
+      if (!specificDate) {
+        return NextResponse.json(
+          { error: 'specificDate is required for specific-day availability' },
+          { status: 400 }
+        );
+      }
     }
 
     // Check for overlapping availability
-    const overlapping = await CoachAvailability.findOne({
+    const overlapQuery: any = {
       coachId: user._id,
-      dayOfWeek,
       isActive: true,
+      availabilityType: type,
       $or: [
         // New slot starts during existing slot
         { startTime: { $lte: startTime }, endTime: { $gt: startTime } },
@@ -117,7 +137,16 @@ export async function POST(request: NextRequest) {
         // New slot completely encompasses existing slot
         { startTime: { $gte: startTime }, endTime: { $lte: endTime } },
       ],
-    });
+    };
+
+    // Add type-specific overlap check
+    if (type === 'recurring') {
+      overlapQuery.dayOfWeek = dayOfWeek;
+    } else if (type === 'specific') {
+      overlapQuery.specificDate = new Date(specificDate);
+    }
+
+    const overlapping = await CoachAvailability.findOne(overlapQuery);
 
     if (overlapping) {
       return NextResponse.json(
@@ -127,10 +156,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Create availability
-    const availability = await CoachAvailability.create({
+    const availabilityData: any = {
       coachId: user._id,
       coachName: `${user.profile.firstName} ${user.profile.lastName}`,
-      dayOfWeek,
+      availabilityType: type,
       startTime,
       endTime,
       blockDurationMinutes: blockDurationMinutes || 45,
@@ -138,7 +167,16 @@ export async function POST(request: NextRequest) {
       groupPricePerPerson: groupPricePerPerson || 25000,
       maxGroupCapacity: maxGroupCapacity || 4,
       isActive: true,
-    });
+    };
+
+    // Add type-specific fields
+    if (type === 'recurring') {
+      availabilityData.dayOfWeek = dayOfWeek;
+    } else if (type === 'specific') {
+      availabilityData.specificDate = new Date(specificDate);
+    }
+
+    const availability = await CoachAvailability.create(availabilityData);
 
     return NextResponse.json({
       success: true,

@@ -6,7 +6,9 @@ import Navbar from '@/components/Navbar';
 
 interface CoachAvailability {
   _id: string;
-  dayOfWeek: number;
+  availabilityType: 'recurring' | 'specific';
+  dayOfWeek?: number;
+  specificDate?: string;
   startTime: string;
   endTime: string;
   blockDurationMinutes: number;
@@ -59,7 +61,9 @@ export default function CoachPage() {
 
   // Availability form state
   const [availabilityForm, setAvailabilityForm] = useState({
+    availabilityType: 'recurring' as 'recurring' | 'specific',
     dayOfWeek: 1, // Monday by default
+    specificDate: '',
     startTime: '14:00',
     endTime: '18:00',
     blockDurationMinutes: 45,
@@ -139,7 +143,9 @@ export default function CoachPage() {
   const handleOpenCreateModal = () => {
     setEditingAvailability(null);
     setAvailabilityForm({
+      availabilityType: 'recurring',
       dayOfWeek: 1,
+      specificDate: '',
       startTime: '14:00',
       endTime: '18:00',
       blockDurationMinutes: 45,
@@ -156,7 +162,9 @@ export default function CoachPage() {
     console.log('📊 Current blockDurationMinutes:', avail.blockDurationMinutes);
     setEditingAvailability(avail);
     setAvailabilityForm({
-      dayOfWeek: avail.dayOfWeek,
+      availabilityType: avail.availabilityType || 'recurring',
+      dayOfWeek: avail.dayOfWeek || 1,
+      specificDate: avail.specificDate ? new Date(avail.specificDate).toISOString().split('T')[0] : '',
       startTime: avail.startTime,
       endTime: avail.endTime,
       blockDurationMinutes: avail.blockDurationMinutes || 45,
@@ -203,7 +211,9 @@ export default function CoachPage() {
         fetchAvailabilities();
         // Reset form
         setAvailabilityForm({
+          availabilityType: 'recurring',
           dayOfWeek: 1,
+          specificDate: '',
           startTime: '14:00',
           endTime: '18:00',
           blockDurationMinutes: 45,
@@ -350,14 +360,28 @@ export default function CoachPage() {
                     >
                       <div>
                         <p className="text-white font-medium">
-                          {DAYS_OF_WEEK[avail.dayOfWeek]}
+                          {avail.availabilityType === 'specific' && avail.specificDate
+                            ? new Date(avail.specificDate).toLocaleDateString('es-CL', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })
+                            : DAYS_OF_WEEK[avail.dayOfWeek || 0]}
                         </p>
                         <p className="text-sm text-sky-blue/70">
                           {avail.startTime} - {avail.endTime}
                         </p>
-                        <p className="text-xs text-orange-400">
-                          ⏱️ Bloques de {avail.blockDurationMinutes || 45} minutos
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-orange-400">
+                            ⏱️ Bloques de {avail.blockDurationMinutes || 45} minutos
+                          </p>
+                          {avail.availabilityType === 'specific' && (
+                            <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">
+                              Día específico
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -551,26 +575,80 @@ export default function CoachPage() {
               {editingAvailability ? 'EDITAR DISPONIBILIDAD' : 'AGREGAR DISPONIBILIDAD'}
             </h2>
             <p className="text-slate-400 mb-6">
-              Define un horario recurrente semanal en el que puedes dar clases
+              {availabilityForm.availabilityType === 'recurring'
+                ? 'Define un horario recurrente semanal en el que puedes dar clases'
+                : 'Define un horario para un día específico'}
             </p>
 
             <form onSubmit={handleSaveAvailability} className="space-y-6">
-              {/* Day of week */}
+              {/* Availability Type Selector */}
               <div>
-                <label className="block text-electric-blue font-racing mb-2">
-                  DÍA DE LA SEMANA *
+                <label className="block text-gold font-racing mb-3">
+                  TIPO DE DISPONIBILIDAD *
                 </label>
-                <select
-                  value={availabilityForm.dayOfWeek}
-                  onChange={(e) => setAvailabilityForm({ ...availabilityForm, dayOfWeek: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
-                  required
-                >
-                  {DAYS_OF_WEEK.map((day, idx) => (
-                    <option key={idx} value={idx}>{day}</option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setAvailabilityForm({ ...availabilityForm, availabilityType: 'recurring' })}
+                    className={`px-4 py-3 rounded-lg border-2 font-racing transition-all ${
+                      availabilityForm.availabilityType === 'recurring'
+                        ? 'bg-electric-blue/20 border-electric-blue text-electric-blue'
+                        : 'bg-midnight/30 border-slate-600 text-slate-400 hover:border-slate-500'
+                    }`}
+                  >
+                    📅 RECURRENTE
+                    <p className="text-xs font-normal mt-1">Todos los {DAYS_OF_WEEK[availabilityForm.dayOfWeek]?.toLowerCase() || 'lunes'}</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAvailabilityForm({ ...availabilityForm, availabilityType: 'specific' })}
+                    className={`px-4 py-3 rounded-lg border-2 font-racing transition-all ${
+                      availabilityForm.availabilityType === 'specific'
+                        ? 'bg-electric-blue/20 border-electric-blue text-electric-blue'
+                        : 'bg-midnight/30 border-slate-600 text-slate-400 hover:border-slate-500'
+                    }`}
+                  >
+                    📆 DÍA ESPECÍFICO
+                    <p className="text-xs font-normal mt-1">Solo una fecha</p>
+                  </button>
+                </div>
               </div>
+
+              {/* Day of week OR Specific date */}
+              {availabilityForm.availabilityType === 'recurring' ? (
+                <div>
+                  <label className="block text-electric-blue font-racing mb-2">
+                    DÍA DE LA SEMANA *
+                  </label>
+                  <select
+                    value={availabilityForm.dayOfWeek}
+                    onChange={(e) => setAvailabilityForm({ ...availabilityForm, dayOfWeek: parseInt(e.target.value) })}
+                    className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
+                    required
+                  >
+                    {DAYS_OF_WEEK.map((day, idx) => (
+                      <option key={idx} value={idx}>{day}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-electric-blue font-racing mb-2">
+                    FECHA ESPECÍFICA *
+                  </label>
+                  <input
+                    type="date"
+                    value={availabilityForm.specificDate}
+                    onChange={(e) => setAvailabilityForm({ ...availabilityForm, specificDate: e.target.value })}
+                    className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
+                    required
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                  <p className="text-sky-blue/50 text-sm mt-1">
+                    Esta disponibilidad solo estará activa para la fecha seleccionada
+                  </p>
+                </div>
+              )}
 
               {/* Time range */}
               <div className="grid md:grid-cols-2 gap-4">

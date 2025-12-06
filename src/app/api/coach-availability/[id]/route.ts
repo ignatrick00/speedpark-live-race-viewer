@@ -68,7 +68,9 @@ export async function PUT(
     const body = await request.json();
     console.log('📨 PUT request received with body:', body);
     const {
+      availabilityType,
       dayOfWeek,
+      specificDate,
       startTime,
       endTime,
       blockDurationMinutes,
@@ -84,7 +86,22 @@ export async function PUT(
     // Always update coachName to reflect current user name
     availability.coachName = `${user.profile.firstName} ${user.profile.lastName}`;
 
-    if (dayOfWeek !== undefined) availability.dayOfWeek = dayOfWeek;
+    // Update availability type and related fields
+    if (availabilityType) {
+      availability.availabilityType = availabilityType;
+      if (availabilityType === 'recurring') {
+        if (dayOfWeek !== undefined) availability.dayOfWeek = dayOfWeek;
+        availability.specificDate = undefined;
+      } else if (availabilityType === 'specific') {
+        if (specificDate) availability.specificDate = new Date(specificDate);
+        availability.dayOfWeek = undefined;
+      }
+    } else {
+      // Legacy support - if no type specified, update fields as before
+      if (dayOfWeek !== undefined) availability.dayOfWeek = dayOfWeek;
+      if (specificDate) availability.specificDate = new Date(specificDate);
+    }
+
     if (startTime) availability.startTime = startTime;
     if (endTime) availability.endTime = endTime;
     if (blockDurationMinutes !== undefined) {

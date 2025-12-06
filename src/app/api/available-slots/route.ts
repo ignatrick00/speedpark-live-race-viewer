@@ -53,9 +53,22 @@ export async function GET(request: NextRequest) {
     // Iterate through each day in the date range
     for (let d = new Date(today); d <= endDate; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay();
+      const currentDateStr = d.toISOString().split('T')[0];
 
-      // Find availabilities for this day of week
-      const dayAvailabilities = availabilities.filter(a => a.dayOfWeek === dayOfWeek);
+      // Find availabilities for this day:
+      // 1. Recurring availabilities matching dayOfWeek
+      // 2. Specific date availabilities matching this exact date
+      const dayAvailabilities = availabilities.filter(a => {
+        if (a.availabilityType === 'specific') {
+          // For specific dates, check if the date matches
+          if (!a.specificDate) return false;
+          const specificDateStr = new Date(a.specificDate).toISOString().split('T')[0];
+          return specificDateStr === currentDateStr;
+        } else {
+          // For recurring (or legacy without type), check dayOfWeek
+          return a.dayOfWeek === dayOfWeek;
+        }
+      });
 
       for (const availability of dayAvailabilities) {
         // Generate slots based on block duration
@@ -128,6 +141,9 @@ export async function GET(request: NextRequest) {
             // Coach info
             coachId: availability.coachId._id || availability.coachId,
             coachName: availability.coachName,
+
+            // Availability type
+            availabilityType: availability.availabilityType || 'recurring',
 
             // Block duration
             durationMinutes: availability.blockDurationMinutes || 45,
