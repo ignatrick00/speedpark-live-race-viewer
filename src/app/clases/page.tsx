@@ -83,7 +83,7 @@ export default function ClasesPage() {
               date: slot.date,
               startTime: slot.startTime,
               endTime: slot.endTime,
-              individualBooking: slot.individualBooking ? {
+              individualBooking: (slot.individualBooking && slot.individualBooking.studentName) ? {
                 isBooked: true,
                 studentName: slot.individualBooking.studentName
               } : undefined,
