@@ -101,7 +101,18 @@ export async function POST(request: NextRequest) {
       const hasIndividualBooking = trainingClass.individualBooking?.studentId != null;
       const hasGroupBookings = trainingClass.groupBookings && trainingClass.groupBookings.length > 0;
 
+      // DEBUG: Log the current state
+      console.log('🔍 [BOOK-INDIVIDUAL] Checking availability:', {
+        hasIndividualBooking,
+        hasGroupBookings,
+        individualBooking: trainingClass.individualBooking,
+        groupBookingsCount: trainingClass.groupBookings?.length || 0,
+        groupBookings: trainingClass.groupBookings,
+        trainingClassId: trainingClass._id
+      });
+
       if (hasIndividualBooking || hasGroupBookings) {
+        console.log('❌ [BOOK-INDIVIDUAL] Slot not available');
         return NextResponse.json(
           { error: 'Class is not available for individual booking' },
           { status: 400 }
