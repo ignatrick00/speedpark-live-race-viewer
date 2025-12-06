@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import DatePicker from './DatePicker';
 
 interface BestTime {
   position: number;
@@ -69,32 +70,17 @@ export default function TopDriversV0Day() {
     <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-6">
       {/* Header */}
       <div className="mb-4">
-        <h3 className="text-xl font-bold text-electric-blue flex items-center gap-2">
-          🏆 Top 10 del Día (V0)
-        </h3>
-
-        {/* Date Selector */}
-        <div className="mt-3 flex items-center gap-2">
-          <label htmlFor="date-selector" className="text-sm text-sky-blue/70">
-            📅 Seleccionar fecha:
-          </label>
-          <input
-            id="date-selector"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            max={new Date().toISOString().split('T')[0]} // No permitir fechas futuras
-            className="px-3 py-1.5 bg-racing-black/60 border border-electric-blue/30 rounded text-white text-sm focus:outline-none focus:border-electric-blue/60 transition-colors"
-          />
-          {selectedDate !== new Date().toISOString().split('T')[0] && (
-            <button
-              onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
-              className="px-3 py-1.5 bg-electric-blue/20 hover:bg-electric-blue/30 border border-electric-blue/40 rounded text-xs text-electric-blue transition-colors"
-            >
-              Hoy
-            </button>
-          )}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-bold text-electric-blue flex items-center gap-2">
+            🏆 Top 10 del Día (V0)
+          </h3>
         </div>
+
+        {/* Date Picker */}
+        <DatePicker
+          value={selectedDate}
+          onChange={setSelectedDate}
+        />
       </div>
 
       {/* Loading State - ONLY on first load when no data yet */}
