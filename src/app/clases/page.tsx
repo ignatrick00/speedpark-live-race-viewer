@@ -65,6 +65,9 @@ export default function ClasesPage() {
   const [inviteeEmail, setInviteeEmail] = useState('')
   const [sendingInvitation, setSendingInvitation] = useState(false)
 
+  // WhatsApp field for booking
+  const [whatsappNumber, setWhatsappNumber] = useState('')
+
   // Fetch available slots from API
   useEffect(() => {
     const fetchClasses = async () => {
@@ -145,6 +148,14 @@ export default function ClasesPage() {
       return
     }
 
+    // Validate WhatsApp number
+    if (!whatsappNumber.trim()) {
+      setNotificationMessage('Por favor ingresa tu número de WhatsApp')
+      setNotificationType('error')
+      setShowNotification(true)
+      return
+    }
+
     setBookingInProgress(bloqueId)
     try {
       const response = await fetch('/api/book-slot', {
@@ -158,7 +169,8 @@ export default function ClasesPage() {
           date: bloque.date,
           startTime: bloque.startTime,
           endTime: bloque.endTime,
-          bookingType
+          bookingType,
+          whatsappNumber: whatsappNumber.trim()
         })
       })
 
@@ -731,7 +743,22 @@ export default function ClasesPage() {
                                       `$25.000 por persona • Máx. ${bloque.maxGroupCapacity} estudiantes`
                                     )}
                                   </div>
-                                  
+
+                                  {/* WhatsApp field */}
+                                  <div className="mb-3">
+                                    <label className="block text-xs text-blue-300 mb-1">
+                                      📱 WhatsApp *
+                                    </label>
+                                    <input
+                                      type="tel"
+                                      value={whatsappNumber}
+                                      onChange={(e) => setWhatsappNumber(e.target.value)}
+                                      placeholder="+56 9 1234 5678"
+                                      className="w-full px-3 py-2 bg-blue-900/30 border border-blue-700/50 rounded-lg text-white placeholder-blue-400/50 focus:border-cyan-400 focus:outline-none text-sm"
+                                      required
+                                    />
+                                  </div>
+
                                   {/* Reserve button */}
                                   <button
                                     className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -971,7 +998,22 @@ export default function ClasesPage() {
                                   `$25.000 por persona • Máx. ${bloque.maxGroupCapacity} estudiantes`
                                 )}
                               </div>
-                              
+
+                              {/* WhatsApp field */}
+                              <div className="mb-3">
+                                <label className="block text-xs text-blue-300 mb-1">
+                                  📱 WhatsApp *
+                                </label>
+                                <input
+                                  type="tel"
+                                  value={whatsappNumber}
+                                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                                  placeholder="+56 9 1234 5678"
+                                  className="w-full px-3 py-2 bg-blue-900/30 border border-blue-700/50 rounded-lg text-white placeholder-blue-400/50 focus:border-cyan-400 focus:outline-none text-sm"
+                                  required
+                                />
+                              </div>
+
                               {/* Reserve button */}
                               <button
                                 className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${

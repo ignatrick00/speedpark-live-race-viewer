@@ -32,11 +32,13 @@ interface TrainingClass {
   groupPricePerPerson: number;
   individualBooking?: {
     studentName: string;
+    whatsappNumber: string;
     bookedAt: Date;
     status: string;
   };
   groupBookings: Array<{
     studentName: string;
+    whatsappNumber: string;
     bookedAt: Date;
     status: string;
   }>;
@@ -58,6 +60,10 @@ export default function CoachPage() {
   const [showMyClasses, setShowMyClasses] = useState(false);
   const [myClasses, setMyClasses] = useState<TrainingClass[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
+
+  // Calendar state
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Availability form state
   const [availabilityForm, setAvailabilityForm] = useState({
@@ -150,6 +156,46 @@ export default function CoachPage() {
       fetchMyClasses();
     }
   }, [showMyClasses, token, user]);
+
+  // Calendar helper functions
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    return { daysInMonth, startingDayOfWeek, year, month };
+  };
+
+  const getClassesForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return myClasses.filter(clase => {
+      const claseDate = new Date(clase.date).toISOString().split('T')[0];
+      return claseDate === dateStr;
+    });
+  };
+
+  const hasClassesOnDate = (date: Date) => {
+    return getClassesForDate(date).length > 0;
+  };
+
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date);
+  };
+
+  const previousMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+  };
+
+  const filteredClasses = selectedDate
+    ? getClassesForDate(selectedDate)
+    : myClasses;
 
   // Open modal for creating new availability
   const handleOpenCreateModal = () => {
@@ -282,6 +328,45 @@ export default function CoachPage() {
       } catch (error) {
         console.error('Error deleting availability:', error);
         setNotificationMessage('Error al eliminar');
+        setNotificationType('error');
+        setShowNotification(true);
+      }
+    });
+    setShowConfirm(true);
+  };
+
+  // Delete training class
+  const handleDeleteClass = async (date: Date, startTime: string, endTime: string) => {
+    setConfirmMessage('¿Estás seguro de eliminar esta clase? Se eliminará el bloque completo.');
+    setConfirmAction(() => async () => {
+      try {
+        const response = await fetch('/api/training-classes', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            date: date.toISOString().split('T')[0],
+            startTime,
+            endTime
+          })
+        });
+
+        if (response.ok) {
+          setNotificationMessage('Clase eliminada exitosamente');
+          setNotificationType('success');
+          setShowNotification(true);
+          fetchMyClasses();
+        } else {
+          const data = await response.json();
+          setNotificationMessage(data.error || 'Error al eliminar clase');
+          setNotificationType('error');
+          setShowNotification(true);
+        }
+      } catch (error) {
+        console.error('Error deleting class:', error);
+        setNotificationMessage('Error al eliminar clase');
         setNotificationType('error');
         setShowNotification(true);
       }
@@ -447,52 +532,177 @@ export default function CoachPage() {
             </div>
           </div>
 
+          {/* Calendar View */}
+          {showMyClasses && (
+            <div className="mt-6">
+              <div className="bg-gradient-to-br from-midnight via-racing-black to-midnight border border-electric-blue/50 rounded-lg p-4 max-w-md mx-auto">
+                <div className="flex items-center justify-between mb-3">
+                  <button
+                    onClick={previousMonth}
+                    className="px-2 py-1 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded hover:bg-electric-blue/30 transition-all text-sm"
+                  >
+                    ◀
+                  </button>
+                  <h3 className="text-lg font-racing text-electric-blue">
+                    {currentMonth.toLocaleDateString('es-CL', { month: 'short', year: 'numeric' }).toUpperCase()}
+                  </h3>
+                  <button
+                    onClick={nextMonth}
+                    className="px-2 py-1 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded hover:bg-electric-blue/30 transition-all text-sm"
+                  >
+                    ▶
+                  </button>
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-1">
+                  {/* Day headers */}
+                  {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((day, idx) => (
+                    <div key={idx} className="text-center text-sky-blue/70 font-racing text-xs py-1">
+                      {day}
+                    </div>
+                  ))}
+
+                  {/* Calendar days */}
+                  {(() => {
+                    const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth);
+                    const days = [];
+
+                    // Empty cells for days before month starts
+                    for (let i = 0; i < startingDayOfWeek; i++) {
+                      days.push(
+                        <div key={`empty-${i}`} className="aspect-square"></div>
+                      );
+                    }
+
+                    // Actual days of the month
+                    for (let day = 1; day <= daysInMonth; day++) {
+                      const date = new Date(year, month, day);
+                      const hasClasses = hasClassesOnDate(date);
+                      const isSelected = selectedDate &&
+                        selectedDate.toISOString().split('T')[0] === date.toISOString().split('T')[0];
+                      const isToday = new Date().toISOString().split('T')[0] === date.toISOString().split('T')[0];
+
+                      days.push(
+                        <button
+                          key={day}
+                          onClick={() => handleDateClick(date)}
+                          className={`
+                            aspect-square rounded relative transition-all text-xs
+                            ${isSelected
+                              ? 'bg-electric-blue text-racing-black font-bold ring-1 ring-electric-blue'
+                              : hasClasses
+                              ? 'bg-gold/20 text-gold border border-gold/50 hover:bg-gold/30'
+                              : 'bg-slate-800/30 text-slate-400 hover:bg-slate-700/50'
+                            }
+                            ${isToday && !isSelected ? 'ring-1 ring-sky-blue' : ''}
+                          `}
+                        >
+                          <span>{day}</span>
+                          {hasClasses && (
+                            <div className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2">
+                              <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-racing-black' : 'bg-gold'}`}></div>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    }
+
+                    return days;
+                  })()}
+                </div>
+
+                {/* Selected date info */}
+                {selectedDate && (
+                  <div className="mt-3 p-2 bg-electric-blue/10 border border-electric-blue/30 rounded">
+                    <div className="flex items-center justify-between text-sm">
+                      <p className="text-sky-blue font-digital">
+                        📅 {selectedDate.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
+                      </p>
+                      <button
+                        onClick={() => setSelectedDate(null)}
+                        className="px-2 py-0.5 text-xs bg-slate-700/50 text-slate-300 rounded hover:bg-slate-600/50 transition-all"
+                      >
+                        Ver todas
+                      </button>
+                    </div>
+                    <p className="text-gold text-xs mt-1">
+                      {getClassesForDate(selectedDate).length} clase(s)
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* My Classes List */}
           {showMyClasses && (
             <div className="mt-8">
               <div className="bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-sm border-2 border-slate-700/50 rounded-xl p-6">
-                <h2 className="text-2xl font-racing text-white mb-6">CLASES CON RESERVAS</h2>
+                <h2 className="text-2xl font-racing text-white mb-6">
+                  {selectedDate
+                    ? `CLASES - ${selectedDate.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }).toUpperCase()}`
+                    : 'CLASES CON RESERVAS'
+                  }
+                </h2>
 
                 {loadingClasses ? (
                   <div className="text-center py-12">
                     <div className="animate-spin text-4xl mb-2">⚙️</div>
                     <p className="text-sky-blue/70">Cargando clases...</p>
                   </div>
-                ) : myClasses.length === 0 ? (
+                ) : filteredClasses.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="text-6xl mb-4">📭</div>
-                    <p className="text-slate-400 text-lg">No tienes clases reservadas aún</p>
+                    <p className="text-slate-400 text-lg">
+                      {selectedDate
+                        ? 'No hay clases programadas para esta fecha'
+                        : 'No tienes clases reservadas aún'
+                      }
+                    </p>
                     <p className="text-slate-500 text-sm mt-2">
-                      Las clases aparecerán aquí cuando los estudiantes hagan reservas
+                      {selectedDate
+                        ? 'Selecciona otra fecha en el calendario o ver todas las clases'
+                        : 'Las clases aparecerán aquí cuando los estudiantes hagan reservas'
+                      }
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {myClasses.map((clase) => (
+                    {filteredClasses.map((clase) => (
                       <div
                         key={clase._id}
                         className="bg-midnight/50 border border-slate-700/30 rounded-lg p-6"
                       >
                         <div className="flex justify-between items-start mb-4">
-                          <div>
+                          <div className="flex-1">
                             <h3 className="text-xl font-racing text-gold mb-2">{clase.title}</h3>
                             {clase.description && (
                               <p className="text-slate-400 mb-2">{clase.description}</p>
                             )}
                           </div>
-                          <span
-                            className={`px-4 py-2 rounded-lg text-sm font-racing ${
-                              clase.status === 'available'
-                                ? 'bg-green-500/20 text-green-400 border border-green-500/50'
-                                : clase.status === 'partially_booked'
-                                ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50'
-                                : 'bg-red-500/20 text-red-400 border border-red-500/50'
-                            }`}
-                          >
-                            {clase.status === 'available' ? 'Disponible' :
-                             clase.status === 'partially_booked' ? 'Parcialmente Reservado' :
-                             'Completo'}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`px-4 py-2 rounded-lg text-sm font-racing ${
+                                clase.status === 'available'
+                                  ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                                  : clase.status === 'partially_booked'
+                                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50'
+                                  : 'bg-red-500/20 text-red-400 border border-red-500/50'
+                              }`}
+                            >
+                              {clase.status === 'available' ? 'Disponible' :
+                               clase.status === 'partially_booked' ? 'Parcialmente Reservado' :
+                               'Completo'}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteClass(clase.date, clase.startTime, clase.endTime)}
+                              className="px-3 py-2 bg-red-500/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-500/30 transition-all text-sm font-racing"
+                              title="Eliminar clase"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-4 mb-4">
@@ -533,6 +743,9 @@ export default function CoachPage() {
                               <p className="text-purple-400 font-medium">
                                 👤 Clase Individual: {clase.individualBooking.studentName}
                               </p>
+                              <p className="text-sm text-electric-blue mt-2">
+                                📱 WhatsApp: {clase.individualBooking.whatsappNumber || 'No disponible'}
+                              </p>
                               <p className="text-xs text-slate-500 mt-1">
                                 Reservado: {clase.individualBooking.bookedAt ?
                                   new Date(clase.individualBooking.bookedAt).toLocaleString('es-CL', {
@@ -555,7 +768,10 @@ export default function CoachPage() {
                                   className="bg-green-500/10 border border-green-500/30 rounded-lg p-3"
                                 >
                                   <p className="text-green-400 font-medium">{booking.studentName}</p>
-                                  <p className="text-xs text-slate-500">
+                                  <p className="text-sm text-electric-blue mt-1">
+                                    📱 WhatsApp: {booking.whatsappNumber || 'No disponible'}
+                                  </p>
+                                  <p className="text-xs text-slate-500 mt-1">
                                     Reservado: {booking.bookedAt ?
                                       new Date(booking.bookedAt).toLocaleString('es-CL', {
                                         day: '2-digit',

@@ -157,3 +157,88 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// DELETE - Delete training class by block (date, startTime, endTime)
+export async function DELETE(request: NextRequest) {
+  try {
+    await connectDB();
+
+    // Get token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'No valid authorization token provided' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+
+    // Verify JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      userId: string;
+      email: string;
+    };
+
+    // Find user and verify they are a coach
+    const user = await WebUser.findById(decoded.userId);
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    if (user.role !== 'coach') {
+      return NextResponse.json(
+        { error: 'Only coaches can delete training classes' },
+        { status: 403 }
+      );
+    }
+
+    // Parse request body
+    const body = await request.json();
+    const { date, startTime, endTime } = body;
+
+    if (!date || !startTime || !endTime) {
+      return NextResponse.json(
+        { error: 'Missing required fields: date, startTime, endTime' },
+        { status: 400 }
+      );
+    }
+
+    // Find and delete the class
+    const slotDate = new Date(date);
+    const result = await TrainingClass.findOneAndDelete({
+      coachId: user._id,
+      date: slotDate,
+      startTime,
+      endTime,
+    });
+
+    if (!result) {
+      return NextResponse.json(
+        { error: 'Class not found or you do not have permission to delete it' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Training class deleted successfully',
+    });
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      return NextResponse.json(
+        { error: 'Invalid or expired token' },
+        { status: 401 }
+      );
+    }
+
+    console.error('Error deleting training class:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

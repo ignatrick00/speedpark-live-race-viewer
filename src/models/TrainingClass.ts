@@ -28,6 +28,7 @@ export interface ITrainingClass extends Document {
   individualBooking?: {
     studentId: mongoose.Types.ObjectId;
     studentName: string;
+    whatsappNumber: string;
     bookedAt: Date;
     status: 'pending' | 'confirmed' | 'cancelled';
   };
@@ -36,6 +37,7 @@ export interface ITrainingClass extends Document {
   groupBookings: Array<{
     studentId: mongoose.Types.ObjectId;
     studentName: string;
+    whatsappNumber: string;
     bookedAt: Date;
     status: 'pending' | 'confirmed' | 'cancelled';
   }>;
@@ -125,6 +127,7 @@ const TrainingClassSchema: Schema = new Schema({
       ref: 'WebUser',
     },
     studentName: String,
+    whatsappNumber: String,
     bookedAt: Date,
     status: {
       type: String,
@@ -140,6 +143,10 @@ const TrainingClassSchema: Schema = new Schema({
       required: true,
     },
     studentName: {
+      type: String,
+      required: true,
+    },
+    whatsappNumber: {
       type: String,
       required: true,
     },

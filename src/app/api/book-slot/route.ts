@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { availabilityId, date, startTime, endTime, bookingType } = body;
+    const { availabilityId, date, startTime, endTime, bookingType, whatsappNumber } = body;
 
-    if (!availabilityId || !date || !startTime || !endTime || !bookingType) {
+    if (!availabilityId || !date || !startTime || !endTime || !bookingType || !whatsappNumber) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
       trainingClass.individualBooking = {
         studentId: user._id,
         studentName,
+        whatsappNumber,
         bookedAt: new Date(),
         status: 'confirmed',
       };
@@ -174,6 +175,7 @@ export async function POST(request: NextRequest) {
       trainingClass.groupBookings.push({
         studentId: user._id,
         studentName,
+        whatsappNumber,
         bookedAt: new Date(),
         status: 'confirmed',
       });
