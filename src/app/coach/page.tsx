@@ -181,6 +181,16 @@ export default function CoachPage() {
 
     console.log('🔍 Saving availability with form:', availabilityForm);
 
+    // Prepare data: remove unused fields based on type
+    const dataToSend: any = { ...availabilityForm };
+    if (availabilityForm.availabilityType === 'recurring') {
+      delete dataToSend.specificDate;
+    } else if (availabilityForm.availabilityType === 'specific') {
+      delete dataToSend.dayOfWeek;
+    }
+
+    console.log('📤 Sending to server:', dataToSend);
+
     setIsCreatingAvailability(true);
     try {
       const isEditing = !!editingAvailability;
@@ -195,7 +205,7 @@ export default function CoachPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(availabilityForm),
+        body: JSON.stringify(dataToSend),
       });
 
       const data = await response.json();

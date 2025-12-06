@@ -111,9 +111,24 @@ const CoachAvailabilitySchema: Schema = new Schema({
   timestamps: true,
 });
 
+// Custom validation: dayOfWeek required for recurring, specificDate required for specific
+CoachAvailabilitySchema.pre('validate', function(next) {
+  if (this.availabilityType === 'recurring') {
+    if (this.dayOfWeek === undefined || this.dayOfWeek === null) {
+      this.invalidate('dayOfWeek', 'dayOfWeek is required for recurring availability');
+    }
+  } else if (this.availabilityType === 'specific') {
+    if (!this.specificDate) {
+      this.invalidate('specificDate', 'specificDate is required for specific availability');
+    }
+  }
+  next();
+});
+
 // Indexes for performance
 CoachAvailabilitySchema.index({ coachId: 1, dayOfWeek: 1 });
 CoachAvailabilitySchema.index({ coachId: 1, isActive: 1 });
+CoachAvailabilitySchema.index({ coachId: 1, specificDate: 1 });
 
 // Method to generate time slots (in hours) within the availability window
 CoachAvailabilitySchema.methods.generateTimeSlots = function(this: ICoachAvailability): string[] {
