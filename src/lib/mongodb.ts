@@ -31,6 +31,7 @@ async function connectDB(): Promise<typeof mongoose> {
       bufferCommands: false,
       maxPoolSize: 50, // Increased from 10 to handle concurrent requests
       minPoolSize: 5,  // Increased from 2 for better performance
+      maxIdleTimeMS: 60000, // CRITICAL: Close idle connections after 60s (was infinite)
       serverSelectionTimeoutMS: 10000, // Increased from 5000 to reduce timeouts
       socketTimeoutMS: 45000,
       family: 4, // Use IPv4, skip IPv6 to avoid delays
