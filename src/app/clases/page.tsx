@@ -35,9 +35,27 @@ interface ClaseBloque {
   status?: string
 }
 
+interface StudentBooking {
+  classId: string
+  coachName: string
+  title: string
+  description?: string
+  date: string
+  startTime: string
+  endTime: string
+  bookingType: 'individual' | 'group'
+  price: number
+  bookedAt: Date
+  status: string
+  groupInfo?: {
+    currentStudents: number
+    maxCapacity: number
+  }
+}
+
 export default function ClasesPage() {
   const { token, user } = useAuth()
-  const [searchMode, setSearchMode] = useState<'instructor' | 'day'>('instructor')
+  const [searchMode, setSearchMode] = useState<'instructor' | 'day' | 'my-bookings'>('instructor')
   const [selectedInstructor, setSelectedInstructor] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [selectedBloque, setSelectedBloque] = useState<ClaseBloque | null>(null)
@@ -68,12 +86,47 @@ export default function ClasesPage() {
   // WhatsApp field for booking
   const [whatsappNumber, setWhatsappNumber] = useState('')
 
+  // My bookings state
+  const [myBookings, setMyBookings] = useState<StudentBooking[]>([])
+  const [loadingBookings, setLoadingBookings] = useState(false)
+  const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
+
   // Load saved WhatsApp number from user profile
   useEffect(() => {
     if (user?.profile?.whatsappNumber) {
       setWhatsappNumber(user.profile.whatsappNumber)
     }
   }, [user])
+
+  // Fetch my bookings
+  const fetchMyBookings = async () => {
+    if (!token) return
+
+    setLoadingBookings(true)
+    try {
+      const response = await fetch('/api/my-bookings', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setMyBookings(data.bookings || [])
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error)
+    } finally {
+      setLoadingBookings(false)
+    }
+  }
+
+  // Load bookings when viewing My Bookings tab
+  useEffect(() => {
+    if (searchMode === 'my-bookings') {
+      fetchMyBookings()
+    }
+  }, [searchMode, token])
 
   // Fetch available slots from API
   useEffect(() => {
@@ -257,6 +310,48 @@ export default function ClasesPage() {
       setShowNotification(true)
     } finally {
       setBookingInProgress(null)
+    }
+  }
+
+  const handleCancelBooking = async (classId: string) => {
+    if (!token) {
+      setNotificationMessage('Debes iniciar sesión para cancelar reservas')
+      setNotificationType('error')
+      setShowNotification(true)
+      return
+    }
+
+    setCancellingBooking(classId)
+    try {
+      const response = await fetch('/api/cancel-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ classId })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setNotificationMessage('¡Reserva cancelada exitosamente!')
+        setNotificationType('success')
+        setShowNotification(true)
+        // Refresh bookings list
+        fetchMyBookings()
+      } else {
+        setNotificationMessage(data.error || 'Error al cancelar la reserva')
+        setNotificationType('error')
+        setShowNotification(true)
+      }
+    } catch (error) {
+      console.error('Error cancelling booking:', error)
+      setNotificationMessage('Error al cancelar la reserva')
+      setNotificationType('error')
+      setShowNotification(true)
+    } finally {
+      setCancellingBooking(null)
     }
   }
 
@@ -500,6 +595,18 @@ export default function ClasesPage() {
             >
               📅 Buscar por Día
             </button>
+            {token && (
+              <button
+                onClick={() => setSearchMode('my-bookings')}
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  searchMode === 'my-bookings'
+                    ? 'bg-cyan-400 text-black shadow-lg shadow-cyan-400/25'
+                    : 'text-blue-300 hover:text-cyan-400'
+                }`}
+              >
+                📋 Mis Reservas
+              </button>
+            )}
           </div>
         </div>
 
@@ -509,6 +616,105 @@ export default function ClasesPage() {
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin text-6xl mb-4">🏁</div>
             <p className="text-cyan-400 text-xl font-racing">CARGANDO CLASES...</p>
+          </div>
+        ) : searchMode === 'my-bookings' ? (
+          /* My Bookings View */
+          <div className="space-y-8">
+            <div className="bg-blue-900/20 border border-blue-400/20 rounded-xl p-6">
+              <h2 className="text-2xl font-bold text-cyan-400 mb-6">
+                Mis Reservas Próximas
+              </h2>
+
+              {loadingBookings ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin text-6xl mb-4">🏁</div>
+                  <p className="text-blue-300 text-lg">Cargando reservas...</p>
+                </div>
+              ) : myBookings.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📭</div>
+                  <p className="text-blue-300 text-lg mb-2">No tienes reservas próximas</p>
+                  <p className="text-blue-400 text-sm">¡Reserva tu primera clase ahora!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {myBookings.map((booking) => (
+                    <div
+                      key={booking.classId}
+                      className="bg-black/30 border border-blue-400/20 rounded-lg p-6 hover:border-cyan-400/40 transition-all"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+                        {/* Booking Info */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+                              booking.bookingType === 'individual'
+                                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                                : 'bg-green-500/20 text-green-400 border border-green-500/50'
+                            }`}>
+                              {booking.bookingType === 'individual' ? '👤 Individual' : '👥 Grupal'}
+                            </span>
+                          </div>
+
+                          <h3 className="text-xl font-bold text-cyan-400 mb-2">
+                            {booking.title}
+                          </h3>
+
+                          <p className="text-blue-300 mb-3">
+                            Coach: {booking.coachName}
+                          </p>
+
+                          <div className="grid md:grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-sm text-blue-400">📅 Fecha</p>
+                              <p className="text-white font-medium">
+                                {new Date(booking.date).toLocaleDateString('es-CL', {
+                                  weekday: 'long',
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-blue-400">🕐 Horario</p>
+                              <p className="text-white font-medium">
+                                {booking.startTime} - {booking.endTime}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-blue-400">💵 Precio</p>
+                              <p className="text-cyan-400 font-medium">
+                                ${booking.price.toLocaleString('es-CL')}
+                              </p>
+                            </div>
+                            {booking.groupInfo && (
+                              <div>
+                                <p className="text-sm text-blue-400">👥 Cupos</p>
+                                <p className="text-white font-medium">
+                                  {booking.groupInfo.currentStudents}/{booking.groupInfo.maxCapacity} ocupados
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="lg:ml-6">
+                          <button
+                            onClick={() => handleCancelBooking(booking.classId)}
+                            disabled={cancellingBooking === booking.classId}
+                            className="w-full lg:w-auto px-6 py-3 bg-red-500/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-500/30 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {cancellingBooking === booking.classId ? 'Cancelando...' : '🗑️ Cancelar Reserva'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ) : searchMode === 'instructor' ? (
           <div className="space-y-8">
