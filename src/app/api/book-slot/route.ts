@@ -65,6 +65,12 @@ export async function POST(request: NextRequest) {
 
     const studentName = user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`;
 
+    // Save WhatsApp number to user profile if not already saved
+    if (!user.profile.whatsappNumber || user.profile.whatsappNumber !== whatsappNumber) {
+      user.profile.whatsappNumber = whatsappNumber;
+      await user.save();
+    }
+
     // Check if a training class already exists for this slot
     const slotDate = new Date(date);
     let trainingClass = await TrainingClass.findOne({

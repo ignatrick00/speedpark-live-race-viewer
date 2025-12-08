@@ -18,6 +18,7 @@ export interface IWebUser extends Document {
     firstName: string;
     lastName: string;
     alias?: string;
+    whatsappNumber?: string;
   };
   
   // Karting link system
@@ -121,6 +122,11 @@ const WebUserSchema: Schema = new Schema({
       trim: true,
     },
     alias: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    whatsappNumber: {
       type: String,
       trim: true,
       default: null,

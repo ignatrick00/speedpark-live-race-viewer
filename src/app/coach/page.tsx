@@ -740,22 +740,36 @@ export default function CoachPage() {
 
                           {clase.individualBooking ? (
                             <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
-                              <p className="text-purple-400 font-medium">
-                                👤 Clase Individual: {clase.individualBooking.studentName}
-                              </p>
-                              <p className="text-sm text-electric-blue mt-2">
-                                📱 WhatsApp: {clase.individualBooking.whatsappNumber || 'No disponible'}
-                              </p>
-                              <p className="text-xs text-slate-500 mt-1">
-                                Reservado: {clase.individualBooking.bookedAt ?
-                                  new Date(clase.individualBooking.bookedAt).toLocaleString('es-CL', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  }) : 'Fecha no disponible'}
-                              </p>
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <p className="text-purple-400 font-medium">
+                                    👤 Clase Individual: {clase.individualBooking.studentName}
+                                  </p>
+                                  <p className="text-sm text-electric-blue mt-2">
+                                    📱 WhatsApp: {clase.individualBooking.whatsappNumber || 'No disponible'}
+                                  </p>
+                                  <p className="text-xs text-slate-500 mt-1">
+                                    Reservado: {clase.individualBooking.bookedAt ?
+                                      new Date(clase.individualBooking.bookedAt).toLocaleString('es-CL', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      }) : 'Fecha no disponible'}
+                                  </p>
+                                </div>
+                                {clase.individualBooking.whatsappNumber && (
+                                  <a
+                                    href={`https://wa.me/${clase.individualBooking.whatsappNumber.replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="ml-3 px-4 py-2 bg-green-500/20 border border-green-500/50 text-green-400 rounded-lg hover:bg-green-500/30 transition-all font-racing text-sm flex items-center gap-2"
+                                  >
+                                    💬 WhatsApp
+                                  </a>
+                                )}
+                              </div>
                             </div>
                           ) : clase.groupBookings.length > 0 ? (
                             <div className="space-y-2">
@@ -767,20 +781,34 @@ export default function CoachPage() {
                                   key={idx}
                                   className="bg-green-500/10 border border-green-500/30 rounded-lg p-3"
                                 >
-                                  <p className="text-green-400 font-medium">{booking.studentName}</p>
-                                  <p className="text-sm text-electric-blue mt-1">
-                                    📱 WhatsApp: {booking.whatsappNumber || 'No disponible'}
-                                  </p>
-                                  <p className="text-xs text-slate-500 mt-1">
-                                    Reservado: {booking.bookedAt ?
-                                      new Date(booking.bookedAt).toLocaleString('es-CL', {
-                                        day: '2-digit',
-                                        month: '2-digit',
-                                        year: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      }) : 'Fecha no disponible'}
-                                  </p>
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                      <p className="text-green-400 font-medium">{booking.studentName}</p>
+                                      <p className="text-sm text-electric-blue mt-1">
+                                        📱 WhatsApp: {booking.whatsappNumber || 'No disponible'}
+                                      </p>
+                                      <p className="text-xs text-slate-500 mt-1">
+                                        Reservado: {booking.bookedAt ?
+                                          new Date(booking.bookedAt).toLocaleString('es-CL', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          }) : 'Fecha no disponible'}
+                                      </p>
+                                    </div>
+                                    {booking.whatsappNumber && (
+                                      <a
+                                        href={`https://wa.me/${booking.whatsappNumber.replace(/\D/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="ml-3 px-4 py-2 bg-green-500/20 border border-green-500/50 text-green-400 rounded-lg hover:bg-green-500/30 transition-all font-racing text-sm flex items-center gap-2"
+                                      >
+                                        💬 WhatsApp
+                                      </a>
+                                    )}
+                                  </div>
                                 </div>
                               ))}
                             </div>

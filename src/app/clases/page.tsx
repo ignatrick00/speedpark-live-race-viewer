@@ -36,7 +36,7 @@ interface ClaseBloque {
 }
 
 export default function ClasesPage() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const [searchMode, setSearchMode] = useState<'instructor' | 'day'>('instructor')
   const [selectedInstructor, setSelectedInstructor] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
@@ -67,6 +67,13 @@ export default function ClasesPage() {
 
   // WhatsApp field for booking
   const [whatsappNumber, setWhatsappNumber] = useState('')
+
+  // Load saved WhatsApp number from user profile
+  useEffect(() => {
+    if (user?.profile?.whatsappNumber) {
+      setWhatsappNumber(user.profile.whatsappNumber)
+    }
+  }, [user])
 
   // Fetch available slots from API
   useEffect(() => {
