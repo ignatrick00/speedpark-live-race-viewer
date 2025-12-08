@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import emailService from '@/lib/emailService';
 
 export async function GET(request: NextRequest) {
+  // ❌ DISABLED IN PRODUCTION - Security measure to prevent spam
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({
+      success: false,
+      error: 'Test endpoint disabled in production for security'
+    }, { status: 403 });
+  }
+
   try {
     // Check if email service is configured
     const isReady = emailService.isReady();
