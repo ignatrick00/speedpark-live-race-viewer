@@ -75,13 +75,16 @@ export async function GET(request: Request) {
         { $match: dateFilter },
         { $unwind: '$drivers' },
         { $match: { 'drivers.bestTime': { $gt: 0 } } },
+        // ✅ FIX: Ordenar por bestTime ANTES de agrupar
+        { $sort: { 'drivers.bestTime': 1 } },
         {
           $group: {
             _id: '$drivers.driverName',
-            bestTime: { $min: '$drivers.bestTime' },
+            // ✅ FIX: Ahora $first tomará el mejor tiempo (ya ordenado)
+            bestTime: { $first: '$drivers.bestTime' },
+            kartNumber: { $first: '$drivers.kartNumber' },  // Kart del mejor tiempo
             sessionName: { $first: '$sessionName' },
-            sessionDate: { $first: '$sessionDate' },
-            kartNumber: { $first: '$drivers.kartNumber' }
+            sessionDate: { $first: '$sessionDate' }
           }
         },
         { $sort: { bestTime: 1 } },
@@ -120,11 +123,14 @@ export async function GET(request: Request) {
         { $match: dateFilter },
         { $unwind: '$drivers' },
         { $match: { 'drivers.bestTime': { $gt: 0 } } },
+        // ✅ FIX: Ordenar por bestTime ANTES de agrupar
+        { $sort: { 'drivers.bestTime': 1 } },
         {
           $group: {
             _id: '$drivers.kartNumber',
-            bestTime: { $min: '$drivers.bestTime' },
-            driverName: { $first: '$drivers.driverName' },
+            // ✅ FIX: Ahora $first tomará el mejor tiempo (ya ordenado)
+            bestTime: { $first: '$drivers.bestTime' },
+            driverName: { $first: '$drivers.driverName' },  // Piloto del mejor tiempo
             sessionName: { $first: '$sessionName' },
             sessionDate: { $first: '$sessionDate' }
           }
