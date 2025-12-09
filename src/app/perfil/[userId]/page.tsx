@@ -74,21 +74,61 @@ export default function UserProfilePage() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/users/${userId}/stats`, {
+      // First check if users are friends
+      const friendshipResponse = await fetch(`/api/users/${userId}/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      const data = await response.json();
+      const friendshipData = await friendshipResponse.json();
 
-      if (!response.ok) {
-        setError(data.error || 'Error al cargar estadísticas');
+      if (!friendshipResponse.ok) {
+        setError(friendshipData.error || 'Error al cargar estadísticas');
         return;
       }
 
-      setUserProfile(data.user);
-      setStats(data.stats);
+      setUserProfile(friendshipData.user);
+
+      // Now fetch real stats using the same endpoint as dashboard
+      const statsResponse = await fetch(`/api/user-stats?webUserId=${userId}`);
+      const statsData = await statsResponse.json();
+
+      if (statsData.success && statsData.stats) {
+        // Convert from race_sessions_v0 format to our format
+        setStats({
+          totalRaces: statsData.stats.totalRaces || 0,
+          totalRevenue: statsData.stats.totalSpent || 0,
+          bestTime: statsData.stats.bestTime || null,
+          averageTime: statsData.stats.avgTime || null,
+          totalLaps: statsData.stats.totalLaps || 0,
+          firstPlaces: 0, // Not in V0 stats
+          secondPlaces: 0,
+          thirdPlaces: 0,
+          podiumFinishes: statsData.stats.podiumFinishes || 0,
+          firstRaceAt: statsData.stats.firstRace ? new Date(statsData.stats.firstRace) : null,
+          lastRaceAt: statsData.stats.lastRace ? new Date(statsData.stats.lastRace) : null,
+          racesThisMonth: 0,
+          recentSessions: statsData.stats.recentRaces?.map((race: any) => ({
+            sessionId: '',
+            sessionName: race.sessionName,
+            position: race.position,
+            bestTime: race.bestTime,
+            timestamp: new Date(race.date),
+            revenue: 0
+          })) || [],
+          monthlyStats: statsData.stats.monthlyProgression?.map((m: any) => ({
+            year: parseInt(m.month.split('-')[0]),
+            month: parseInt(m.month.split('-')[1]),
+            races: m.races,
+            revenue: 0,
+            bestTime: m.bestTime,
+            podiums: 0
+          })) || []
+        });
+      } else {
+        setStats(null);
+      }
     } catch (error) {
       console.error('Error loading user stats:', error);
       setError('Error al cargar estadísticas del usuario');
