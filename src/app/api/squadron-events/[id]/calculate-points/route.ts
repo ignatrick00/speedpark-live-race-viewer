@@ -63,8 +63,11 @@ export async function POST(
     console.log(`🏁 Carrera: ${raceSession.sessionName}`);
     console.log(`👥 Pilotos en carrera: ${raceSession.drivers.length}`);
 
-    // Guardar linkedRaceSessionId en el evento
+    // Guardar linkedRaceSessionId y cambiar status a in_review
     event.linkedRaceSessionId = raceSessionId;
+    event.raceStatus = 'in_review';
+
+    console.log(`🔍 Estado de carrera: in_review (esperando aplicación de sanciones)`);
 
     // Tabla de puntos individuales (1° = 25pts ... 20° = 1pt)
     const getIndividualPoints = (position: number): number => {

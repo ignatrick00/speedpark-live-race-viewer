@@ -136,30 +136,11 @@ export async function POST(
 
     await event.save();
 
-    // Crear notificación para el piloto
-    await Notification.create({
-      userId: webUserId,
-      type: 'race_sanction',
-      title: '⚠️ Sanción aplicada en carrera',
-      message: `Se te ha aplicado una sanción en el evento "${event.name}": ${description}`,
-      metadata: {
-        eventId: event._id.toString(),
-        eventName: event.name,
-        raceSessionId: event.linkedRaceSessionId,
-        raceSessionName: raceSession.sessionName,
-        sanctionId: sanction._id.toString(),
-        sanctionType,
-        positionPenalty,
-        pointsPenalty,
-        description
-      },
-      read: false
-    });
-
     console.log(`⚠️  Sanción aplicada: ${driverName} - ${sanctionType} - ${description}`);
+    console.log(`📌 Notificación NO enviada (se enviará al finalizar resultados)`);
 
-    // TODO: Aquí se debería llamar automáticamente al endpoint de recálculo de puntos
-    // Por ahora retornamos la sanción creada
+    // NOTA: Las notificaciones se envían cuando se finaliza el evento (raceStatus = 'finalized')
+    // Esto evita spam al piloto mientras el organizador está revisando
 
     return NextResponse.json({
       success: true,

@@ -56,6 +56,8 @@ export interface ISquadronEvent extends Document {
 
   // Carrera vinculada (SMS-Timing)
   linkedRaceSessionId?: string; // sessionId de la carrera en race_sessions_v0
+  raceStatus?: 'pending' | 'in_review' | 'finalized'; // Estado de la carrera vinculada
+  finalizedAt?: Date; // Fecha cuando se finalizaron los resultados
 
   // Sanciones aplicadas
   sanctions?: Array<{
@@ -249,6 +251,15 @@ const SquadronEventSchema: Schema = new Schema({
   }],
   linkedRaceSessionId: {
     type: String,
+    default: null,
+  },
+  raceStatus: {
+    type: String,
+    enum: ['pending', 'in_review', 'finalized'],
+    default: 'pending',
+  },
+  finalizedAt: {
+    type: Date,
     default: null,
   },
   sanctions: [{

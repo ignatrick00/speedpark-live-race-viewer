@@ -40,6 +40,7 @@ export default function EventoDetallePage() {
     pointsPenalty: 0
   });
   const [applyingSanction, setApplyingSanction] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
 
   useEffect(() => {
     if (token && params.id) {
@@ -246,6 +247,51 @@ export default function EventoDetallePage() {
     } catch (error) {
       console.error('Error deleting sanction:', error);
       alert('Error al eliminar sanción');
+    }
+  };
+
+  const finalizeEvent = async () => {
+    if (!calculatedResults) {
+      alert('No hay resultados calculados');
+      return;
+    }
+
+    const confirmMessage = `¿Finalizar resultados y aplicar puntos?\n\nEsto hará:\n- Aplicará ${calculatedResults.squadrons.length} puntos a las escuderías\n- Enviará ${sanctions.length} notificaciones de sanciones\n- Bloqueará los resultados (no se podrán modificar)\n\n¿Continuar?`;
+
+    if (!confirm(confirmMessage)) return;
+
+    try {
+      setFinalizing(true);
+      const response = await fetch(`/api/squadron-events/${params.id}/finalize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ calculatedResults })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`✅ Resultados finalizados!\n\n` +
+              `Puntos aplicados: ${data.appliedPoints?.length || 0} escuderías\n` +
+              `Notificaciones enviadas: ${data.sanctionsNotified || 0} pilotos`);
+
+        // Recargar evento para ver estado actualizado
+        await fetchEvent();
+        setCalculatedResults(null);
+        setRaceDetails(null);
+        setSelectedRace(null);
+        setSanctions([]);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Error al finalizar resultados');
+      }
+    } catch (error) {
+      console.error('Error finalizing event:', error);
+      alert('Error al finalizar resultados');
+    } finally {
+      setFinalizing(false);
     }
   };
 
@@ -712,9 +758,25 @@ export default function EventoDetallePage() {
                 {calculatedResults && !calculating && (
                   <div>
                     <div className="mb-6">
-                      <h3 className="text-xl font-bold text-white mb-2">Resultados Calculados</h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold text-white">Resultados Calculados</h3>
+                        <div className={`px-4 py-2 rounded-lg font-bold ${
+                          event?.raceStatus === 'finalized' ? 'bg-green-500/20 text-green-400 border border-green-500/50' :
+                          event?.raceStatus === 'in_review' ? 'bg-yellow-600/20 text-yellow-400 border border-yellow-600/50' :
+                          'bg-slate-700/50 text-gray-400'
+                        }`}>
+                          {event?.raceStatus === 'finalized' ? '✅ Resultados Finales' :
+                           event?.raceStatus === 'in_review' ? '🔍 En Revisión' :
+                           '⏳ Pendiente'}
+                        </div>
+                      </div>
                       <p className="text-gray-400 text-sm">Carrera: {selectedRace?.sessionName}</p>
                       <p className="text-gray-400 text-sm">Categoría: {event.category} - {EventCategoryConfig[event.category]?.points} pts base</p>
+                      {event?.raceStatus === 'finalized' && event?.finalizedAt && (
+                        <p className="text-green-400 text-sm mt-2">
+                          Finalizado: {new Date(event.finalizedAt).toLocaleString('es-CL')}
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-3 mb-6">
@@ -761,23 +823,24 @@ export default function EventoDetallePage() {
                     </div>
 
                     {/* Seccián de Sanciones */}
-                    <div className="mb-6 bg-slate-800/50 border border-yellow-600/30 rounded-lg p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                          ⚠️ Sanciones
-                          {sanctions.length > 0 && (
-                            <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 text-xs font-bold rounded-full">
-                              {sanctions.length}
-                            </span>
-                          )}
-                        </h3>
-                        <button
-                          onClick={() => setShowSanctionForm(!showSanctionForm)}
-                          className="px-4 py-2 bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 rounded-lg hover:bg-yellow-600/30 transition-all font-bold text-sm"
-                        >
-                          {showSanctionForm ? '✕ Cancelar' : '+ Aplicar Sanción'}
-                        </button>
-                      </div>
+                    {event?.raceStatus !== 'finalized' && (
+                      <div className="mb-6 bg-slate-800/50 border border-yellow-600/30 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            ⚠️ Sanciones
+                            {sanctions.length > 0 && (
+                              <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 text-xs font-bold rounded-full">
+                                {sanctions.length}
+                              </span>
+                            )}
+                          </h3>
+                          <button
+                            onClick={() => setShowSanctionForm(!showSanctionForm)}
+                            className="px-4 py-2 bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 rounded-lg hover:bg-yellow-600/30 transition-all font-bold text-sm"
+                          >
+                            {showSanctionForm ? '✕ Cancelar' : '+ Aplicar Sanción'}
+                          </button>
+                        </div>
 
                       {/* Sanction Form */}
                       {showSanctionForm && (
@@ -903,7 +966,8 @@ export default function EventoDetallePage() {
                           No hay sanciones aplicadas a esta carrera
                         </p>
                       )}
-                    </div>
+                      </div>
+                    )}
 
                     <div className="flex gap-3">
                       <button
@@ -918,14 +982,13 @@ export default function EventoDetallePage() {
                         ← Buscar Otra Carrera
                       </button>
                       <button
-                        onClick={async () => {
-                          if (!confirm('¿Confirmar y aplicar estos puntos a las escuderías?')) return;
-                          // TODO: Implement finalization
-                          alert('Funcionalidad de aplicar puntos en desarrollo');
-                        }}
-                        className="flex-1 px-6 py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-all"
+                        onClick={finalizeEvent}
+                        disabled={finalizing || event?.raceStatus === 'finalized'}
+                        className="flex-1 px-6 py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        ✅ Confirmar y Aplicar
+                        {finalizing ? '⏳ Finalizando...' :
+                         event?.raceStatus === 'finalized' ? '✅ Resultados Finalizados' :
+                         '✅ Finalizar y Aplicar Puntos'}
                       </button>
                     </div>
                   </div>
