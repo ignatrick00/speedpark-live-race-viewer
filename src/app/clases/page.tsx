@@ -1147,7 +1147,7 @@ export default function ClasesPage() {
                                 👥 {slotStatus.students.join(', ')}
                               </div>
                               {/* Invite button if user is part of the group */}
-                              {user && token && bloque.groupBookings?.some(b => b.studentName === (user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`)) && (
+                              {user && token && bloque.groupBookings?.some(b => b.studentName === `${user.profile.firstName} ${user.profile.lastName}`) && (
                                 <button
                                   onClick={() => {
                                     setSelectedClassForInvite(bloque)

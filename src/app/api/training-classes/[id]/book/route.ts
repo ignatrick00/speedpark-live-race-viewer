@@ -66,7 +66,7 @@ export async function POST(
       );
     }
 
-    const studentName = user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`;
+    const studentName = `${user.profile.firstName} ${user.profile.lastName}`;
 
     // Handle individual booking
     if (bookingType === 'individual') {

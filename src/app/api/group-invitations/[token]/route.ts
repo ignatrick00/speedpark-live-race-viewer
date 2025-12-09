@@ -203,7 +203,7 @@ export async function POST(
     }
 
     // Add user to group bookings
-    const studentName = user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`;
+    const studentName = `${user.profile.firstName} ${user.profile.lastName}`;
 
     trainingClass.groupBookings.push({
       studentId: user._id,
