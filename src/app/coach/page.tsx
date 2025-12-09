@@ -61,6 +61,10 @@ export default function CoachPage() {
   const [myClasses, setMyClasses] = useState<TrainingClass[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
 
+  // Notifications state
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
+
   // Calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -113,6 +117,46 @@ export default function CoachPage() {
   };
 
   // Fetch classes
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    if (!token) return;
+
+    try {
+      const response = await fetch('/api/notifications?unreadOnly=true', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  // Mark notification as read and dismiss
+  const dismissNotification = async (notificationId: string) => {
+    if (!token) return;
+
+    try {
+      await fetch(`/api/notifications/${notificationId}/read`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      // Add to dismissed set and remove from list
+      setDismissedNotifications(prev => new Set(prev).add(notificationId));
+      setNotifications(prev => prev.filter(n => n._id !== notificationId));
+    } catch (error) {
+      console.error('Error dismissing notification:', error);
+    }
+  };
+
   const fetchMyClasses = async () => {
     if (!token || !user) return;
 
@@ -148,6 +192,7 @@ export default function CoachPage() {
   useEffect(() => {
     if (user && token) {
       fetchAvailabilities();
+      fetchNotifications();
     }
   }, [user, token]);
 
@@ -650,6 +695,46 @@ export default function CoachPage() {
                     : 'CLASES CON RESERVAS'
                   }
                 </h2>
+
+                {/* Notifications Banner */}
+                {notifications.filter(n => !dismissedNotifications.has(n._id)).length > 0 && (
+                  <div className="mb-6 space-y-3">
+                    {notifications
+                      .filter(n => !dismissedNotifications.has(n._id))
+                      .map((notification) => (
+                        <div
+                          key={notification._id}
+                          className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4 flex items-start gap-4"
+                        >
+                          <div className="text-3xl">📢</div>
+                          <div className="flex-1">
+                            <h3 className="text-cyan-400 font-bold text-lg mb-1">
+                              {notification.title}
+                            </h3>
+                            <p className="text-slate-300">
+                              {notification.message}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-2">
+                              {new Date(notification.createdAt).toLocaleString('es-CL', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => dismissNotification(notification._id)}
+                            className="text-slate-400 hover:text-cyan-400 transition-colors text-2xl"
+                            title="Marcar como leída"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
 
                 {loadingClasses ? (
                   <div className="text-center py-12">

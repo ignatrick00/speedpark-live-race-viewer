@@ -91,6 +91,10 @@ export default function ClasesPage() {
   const [loadingBookings, setLoadingBookings] = useState(false)
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
 
+  // Notifications state
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set())
+
   // Load saved WhatsApp number from user profile
   useEffect(() => {
     if (user?.profile?.whatsappNumber) {
@@ -121,10 +125,51 @@ export default function ClasesPage() {
     }
   }
 
-  // Load bookings when viewing My Bookings tab
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    if (!token) return
+
+    try {
+      const response = await fetch('/api/notifications?unreadOnly=true', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setNotifications(data.notifications || [])
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+    }
+  }
+
+  // Mark notification as read and dismiss
+  const dismissNotification = async (notificationId: string) => {
+    if (!token) return
+
+    try {
+      await fetch(`/api/notifications/${notificationId}/read`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      // Add to dismissed set and remove from list
+      setDismissedNotifications(prev => new Set(prev).add(notificationId))
+      setNotifications(prev => prev.filter(n => n._id !== notificationId))
+    } catch (error) {
+      console.error('Error dismissing notification:', error)
+    }
+  }
+
+  // Load bookings and notifications when viewing My Bookings tab
   useEffect(() => {
     if (searchMode === 'my-bookings') {
       fetchMyBookings()
+      fetchNotifications()
     }
   }, [searchMode, token])
 
@@ -624,6 +669,46 @@ export default function ClasesPage() {
               <h2 className="text-2xl font-bold text-cyan-400 mb-6">
                 Mis Reservas Próximas
               </h2>
+
+              {/* Notifications Banner */}
+              {notifications.filter(n => !dismissedNotifications.has(n._id)).length > 0 && (
+                <div className="mb-6 space-y-3">
+                  {notifications
+                    .filter(n => !dismissedNotifications.has(n._id))
+                    .map((notification) => (
+                      <div
+                        key={notification._id}
+                        className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-4"
+                      >
+                        <div className="text-3xl">⚠️</div>
+                        <div className="flex-1">
+                          <h3 className="text-red-400 font-bold text-lg mb-1">
+                            {notification.title}
+                          </h3>
+                          <p className="text-slate-300">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-2">
+                            {new Date(notification.createdAt).toLocaleString('es-CL', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => dismissNotification(notification._id)}
+                          className="text-slate-400 hover:text-red-400 transition-colors text-2xl"
+                          title="Marcar como leída"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
 
               {loadingBookings ? (
                 <div className="text-center py-12">
