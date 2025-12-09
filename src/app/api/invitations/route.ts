@@ -4,6 +4,7 @@ import connectDB from '@/lib/mongodb';
 import WebUser from '@/models/WebUser';
 import Squadron from '@/models/Squadron';
 import SquadronEvent from '@/models/SquadronEvent';
+import GroupClassInvitation from '@/models/GroupClassInvitation';
 import '@/models/Squadron';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -130,10 +131,44 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Get group class invitations
+    const classInvitations = await GroupClassInvitation.find({
+      inviteeEmail: user.email.toLowerCase(),
+      status: 'pending',
+      expiresAt: { $gt: new Date() }
+    })
+      .populate('classId')
+      .populate('inviterId', 'email profile');
+
+    const classInvites = classInvitations.map((invitation: any) => {
+      const trainingClass = invitation.classId;
+      return {
+        type: 'class',
+        invitationId: invitation._id,
+        token: invitation.token,
+        inviterName: invitation.inviterName,
+        invitedBy: invitation.inviterId,
+        invitedAt: invitation.createdAt,
+        expiresAt: invitation.expiresAt,
+        class: {
+          id: trainingClass._id,
+          coachName: trainingClass.coachName,
+          title: trainingClass.title,
+          date: trainingClass.date,
+          startTime: trainingClass.startTime,
+          endTime: trainingClass.endTime,
+          groupPricePerPerson: trainingClass.groupPricePerPerson,
+          currentParticipants: trainingClass.groupBookings.length,
+          maxCapacity: trainingClass.maxGroupCapacity,
+        }
+      };
+    });
+
     // Combine all invitations
     const allInvitations = [
       ...squadronInvites,
-      ...eventInvitations
+      ...eventInvitations,
+      ...classInvites
     ].sort((a, b) => new Date(b.invitedAt).getTime() - new Date(a.invitedAt).getTime());
 
     return NextResponse.json({

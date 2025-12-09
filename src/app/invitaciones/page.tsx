@@ -111,6 +111,36 @@ export default function InvitacionesPage() {
     }
   };
 
+  const handleRespondClassInvite = async (token: string, accept: boolean) => {
+    setResponding(token);
+    try {
+      const response = await fetch(`/api/group-invitations/${token}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: accept ? 'accept' : 'reject',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(accept ? '¡Invitación aceptada! Te has unido a la clase grupal.' : 'Invitación rechazada');
+        fetchInvitations();
+      } else {
+        alert(data.error || 'Error al responder invitación');
+      }
+    } catch (error) {
+      console.error('Error responding to class invitation:', error);
+      alert('Error al responder invitación');
+    } finally {
+      setResponding(null);
+    }
+  };
+
   const handleRespondEventInvite = async (eventId: string, accept: boolean) => {
     setResponding(eventId);
     try {
@@ -322,6 +352,90 @@ export default function InvitacionesPage() {
                           className="px-6 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 font-bold"
                         >
                           {responding === invitation.eventId ? '⏳' : '✕ Rechazar'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else if (invitation.type === 'class') {
+                // Group Class Invitation Card
+                return (
+                  <div
+                    key={`class-${invitation.token}`}
+                    className="bg-gradient-to-br from-cyan-900/20 via-slate-800/80 to-slate-900/90 border-2 border-cyan-500/30 rounded-xl p-6 hover:border-cyan-400/50 transition-all"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="text-3xl">📚</span>
+                          <div>
+                            <h3 className="text-2xl font-racing text-white">
+                              Invitación a Clase Grupal
+                            </h3>
+                            <p className="text-cyan-400 font-bold">{invitation.class.title}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 text-sm text-gray-400">
+                          <p>
+                            <span className="text-gray-500">Invitado por:</span>{' '}
+                            <span className="text-white">{invitation.inviterName}</span>
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Coach:</span>{' '}
+                            <span className="text-white">{invitation.class.coachName}</span>
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Fecha:</span>{' '}
+                            <span className="text-white">
+                              {new Date(invitation.class.date).toLocaleDateString('es-CL', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Horario:</span>{' '}
+                            <span className="text-white">
+                              {invitation.class.startTime} - {invitation.class.endTime}
+                            </span>
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Cupos:</span>{' '}
+                            <span className="text-white">
+                              {invitation.class.currentParticipants}/{invitation.class.maxCapacity} ocupados
+                              {' '}({invitation.class.maxCapacity - invitation.class.currentParticipants} disponibles)
+                            </span>
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Precio:</span>{' '}
+                            <span className="text-cyan-400 font-bold">
+                              ${invitation.class.groupPricePerPerson.toLocaleString('es-CL')}
+                            </span>
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Expira en:</span>{' '}
+                            <CountdownTimer expiresAt={invitation.expiresAt} />
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="ml-6 flex flex-col gap-3">
+                        <button
+                          onClick={() => handleRespondClassInvite(invitation.token, true)}
+                          disabled={responding === invitation.token}
+                          className="px-6 py-2 bg-green-500/20 text-green-400 border border-green-500/50 rounded-lg hover:bg-green-500/30 transition-all disabled:opacity-50 font-bold"
+                        >
+                          {responding === invitation.token ? '⏳' : '✓ Aceptar'}
+                        </button>
+                        <button
+                          onClick={() => handleRespondClassInvite(invitation.token, false)}
+                          disabled={responding === invitation.token}
+                          className="px-6 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 font-bold"
+                        >
+                          {responding === invitation.token ? '⏳' : '✕ Rechazar'}
                         </button>
                       </div>
                     </div>

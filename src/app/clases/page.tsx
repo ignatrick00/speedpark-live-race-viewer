@@ -1238,17 +1238,21 @@ export default function ClasesPage() {
                                 👥 {slotStatus.students.join(', ')}
                               </div>
                               {/* Invite button if user is part of the group */}
-                              {user && token && bloque.groupBookings?.some(b => b.studentName === `${user.profile.firstName} ${user.profile.lastName}`) && (
-                                <button
-                                  onClick={() => {
-                                    setSelectedClassForInvite(bloque)
-                                    setShowInvitationModal(true)
-                                  }}
-                                  className="text-xs px-3 py-1 bg-electric-blue/20 border border-electric-blue/40 text-electric-blue rounded-lg hover:bg-electric-blue/30 transition-all"
-                                >
-                                  ✉️ Invitar Corredor
-                                </button>
-                              )}
+                              {user && token && bloque.groupBookings?.some(b => b.studentName === `${user.profile.firstName} ${user.profile.lastName}`) && (() => {
+                                const spotsLeft = bloque.maxGroupCapacity - bloque.groupBookings.length;
+                                return (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedClassForInvite(bloque)
+                                      setShowInvitationModal(true)
+                                    }}
+                                    className="text-xs px-3 py-1 bg-electric-blue/20 border border-electric-blue/40 text-electric-blue rounded-lg hover:bg-electric-blue/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={spotsLeft === 0}
+                                  >
+                                    ✉️ Invitar Amigos ({spotsLeft} {spotsLeft === 1 ? 'cupo' : 'cupos'})
+                                  </button>
+                                );
+                              })()}
                             </div>
                           )}
                         </div>
