@@ -336,10 +336,15 @@ export default function CoachPage() {
   };
 
   // Delete training class
-  const handleDeleteClass = async (date: Date, startTime: string, endTime: string) => {
+  const handleDeleteClass = async (date: Date | string, startTime: string, endTime: string) => {
     setConfirmMessage('¿Estás seguro de eliminar esta clase? Se eliminará el bloque completo.');
     setConfirmAction(() => async () => {
       try {
+        // Handle both Date object and string
+        const dateString = typeof date === 'string'
+          ? date.split('T')[0]  // If already string, just get the date part
+          : date.toISOString().split('T')[0];  // If Date object, convert to string
+
         const response = await fetch('/api/training-classes', {
           method: 'DELETE',
           headers: {
@@ -347,7 +352,7 @@ export default function CoachPage() {
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            date: date.toISOString().split('T')[0],
+            date: dateString,
             startTime,
             endTime
           })
