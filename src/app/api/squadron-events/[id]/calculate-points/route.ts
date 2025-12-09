@@ -211,7 +211,14 @@ export async function POST(
       // Obtener posición ajustada del mapa
       const adjustment = positionAdjustments.get(driver.driverName.toLowerCase());
       const finalPosition = adjustment ? adjustment.adjustedPosition : driver.finalPosition;
-      const individualPoints = getIndividualPoints(finalPosition);
+
+      // Verificar si el piloto fue descalificado
+      const isDisqualified = sanctions.some(
+        (s: any) => s.driverName.toLowerCase() === driver.driverName.toLowerCase() && s.sanctionType === 'disqualification'
+      );
+
+      // Si está descalificado, 0 puntos. Si no, puntos según posición
+      const individualPoints = isDisqualified ? 0 : getIndividualPoints(finalPosition);
 
       if (!squadronMap.has(squadron._id.toString())) {
         squadronMap.set(squadron._id.toString(), {
@@ -232,12 +239,14 @@ export async function POST(
         kartNumber: driver.kartNumber
       });
 
-      const positionLabel = adjustment && adjustment.sanctionApplied
+      const positionLabel = isDisqualified
+        ? `DSQ (descalificado)`
+        : adjustment && adjustment.sanctionApplied
         ? `${finalPosition}° (sancionado: ${adjustment.originalPosition}° → ${finalPosition}°)`
         : adjustment && adjustment.adjustedPosition !== adjustment.originalPosition
         ? `${finalPosition}° (beneficiado: ${adjustment.originalPosition}° → ${finalPosition}°)`
         : `${finalPosition}°`;
-      console.log(`✅ ${driver.driverName} (${positionLabel}) → ${squadron.name} (+${individualPoints} pts)`);
+      console.log(`✅ ${driver.driverName} (${positionLabel}) → ${squadron.name} (${individualPoints} pts)`);
     }
 
     // Guardar resultados ajustados en el evento

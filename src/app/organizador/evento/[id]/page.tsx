@@ -712,8 +712,7 @@ export default function EventoDetallePage() {
                               className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
                             >
                               <option value="position_penalty">Penalización de Posición</option>
-                              <option value="point_deduction">Deducción de Puntos</option>
-                              <option value="disqualification">Descalificación</option>
+                              <option value="disqualification">Descalificación (DSQ - 0 pts)</option>
                               <option value="warning">Advertencia</option>
                             </select>
                           </div>
@@ -733,17 +732,11 @@ export default function EventoDetallePage() {
                           </div>
                         )}
 
-                        {sanctionForm.sanctionType === 'point_deduction' && (
-                          <div className="mb-4">
-                            <label className="block text-sm text-gray-400 mb-2">Puntos a deducir</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={sanctionForm.pointsPenalty}
-                              onChange={(e) => setSanctionForm({...sanctionForm, pointsPenalty: parseInt(e.target.value) || 0})}
-                              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
-                              placeholder="Puntos a deducir de la escudería"
-                            />
+                        {sanctionForm.sanctionType === 'disqualification' && (
+                          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                            <p className="text-sm text-red-400">
+                              ⚠️ El piloto será descalificado: última posición y 0 puntos para su escudería
+                            </p>
                           </div>
                         )}
 
