@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const coachId = searchParams.get('coachId');
-    const weeksAhead = parseInt(searchParams.get('weeksAhead') || '2'); // Default 2 weeks
+    const daysAhead = parseInt(searchParams.get('daysAhead') || '30'); // Default 30 days (1 month)
 
     // Build query filter
     const filter: any = { isActive: true };
@@ -28,11 +28,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Generate date range (today + N weeks)
+    // Generate date range (today + N days)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + (weeksAhead * 7));
+    endDate.setDate(endDate.getDate() + daysAhead);
 
     // Get existing classes in this date range to check what's booked
     const classQuery: any = {
