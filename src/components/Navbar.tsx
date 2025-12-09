@@ -103,6 +103,11 @@ export default function Navbar() {
                 </a>
                 {user && (
                   <>
+                    {isOrganizer && (
+                      <a href="/eventos-racing" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                        Eventos
+                      </a>
+                    )}
                     <a href="/amigos" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                       Amigos
                     </a>
@@ -216,6 +221,11 @@ export default function Navbar() {
                 </a>
                 {user && (
                   <>
+                    {isOrganizer && (
+                      <a href="/eventos-racing" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                        Eventos
+                      </a>
+                    )}
                     <a href="/amigos" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                       Amigos
                     </a>
