@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
-  type: 'class_cancelled_by_coach' | 'booking_cancelled_by_student' | 'friend_request' | 'friend_request_accepted';
+  type: 'class_cancelled_by_coach' | 'booking_cancelled_by_student' | 'friend_request' | 'friend_request_accepted' | 'race_sanction';
   title: string;
   message: string;
   metadata: {
@@ -17,6 +17,16 @@ export interface INotification extends Document {
     friendId?: string;
     friendName?: string;
     friendEmail?: string;
+    // Race sanction metadata
+    eventId?: string;
+    eventName?: string;
+    raceSessionId?: string;
+    raceSessionName?: string;
+    sanctionId?: string;
+    sanctionType?: 'position_penalty' | 'point_deduction' | 'disqualification' | 'warning';
+    positionPenalty?: number;
+    pointsPenalty?: number;
+    description?: string;
   };
   read: boolean;
   createdAt: Date;
@@ -32,7 +42,7 @@ const NotificationSchema: Schema = new Schema({
   },
   type: {
     type: String,
-    enum: ['class_cancelled_by_coach', 'booking_cancelled_by_student', 'friend_request', 'friend_request_accepted'],
+    enum: ['class_cancelled_by_coach', 'booking_cancelled_by_student', 'friend_request', 'friend_request_accepted', 'race_sanction'],
     required: true,
   },
   title: {
@@ -58,6 +68,19 @@ const NotificationSchema: Schema = new Schema({
     friendId: String,
     friendName: String,
     friendEmail: String,
+    // Race sanction metadata
+    eventId: String,
+    eventName: String,
+    raceSessionId: String,
+    raceSessionName: String,
+    sanctionId: String,
+    sanctionType: {
+      type: String,
+      enum: ['position_penalty', 'point_deduction', 'disqualification', 'warning'],
+    },
+    positionPenalty: Number,
+    pointsPenalty: Number,
+    description: String,
   },
   read: {
     type: Boolean,

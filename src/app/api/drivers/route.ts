@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     
     if (action === 'list_all') {
-      // 🆕 Obtener corredores desde race_sessions_v0 (nueva estructura)
+      // 🆕 Obtener corredores desde race_sessions_v0 (sin linkedUserId - SINGLE SOURCE OF TRUTH)
       const drivers = await RaceSessionV0.aggregate([
         // 1. Descomponer array de drivers
         { $unwind: '$drivers' },
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         // 2. Ordenar por fecha descendente (más reciente primero)
         { $sort: { sessionDate: -1 } },
 
-        // 3. Agrupar por nombre de driver
+        // 3. Agrupar por nombre de driver (stats solo)
         {
           $group: {
             _id: '$drivers.driverName',
@@ -31,40 +31,7 @@ export async function GET(request: NextRequest) {
             bestPosition: { $min: '$drivers.finalPosition' },
             bestTime: { $min: { $cond: [{ $gt: ['$drivers.bestTime', 0] }, '$drivers.bestTime', null] } },
             lastRace: { $max: '$sessionDate' },
-            firstRace: { $min: '$sessionDate' },
-            // Obtener linkedUserId y personId (usar $first para obtener el más reciente después de ordenar)
-            linkedUserId: { $first: '$drivers.linkedUserId' },
-            personId: { $first: '$drivers.personId' }
-          }
-        },
-
-        // 3. Lookup a webusers para obtener info del usuario vinculado
-        {
-          $lookup: {
-            from: 'webusers',
-            let: {
-              userId: {
-                $cond: {
-                  if: { $and: ['$linkedUserId', { $ne: ['$linkedUserId', ''] }] },
-                  then: { $toObjectId: '$linkedUserId' },
-                  else: null
-                }
-              }
-            },
-            pipeline: [
-              { $match: { $expr: { $and: [{ $ne: ['$$userId', null] }, { $eq: ['$_id', '$$userId'] }] } } },
-              {
-                $project: {
-                  'profile.firstName': 1,
-                  'profile.lastName': 1,
-                  'profile.alias': 1,
-                  email: 1,
-                  role: 1,   // ← Legacy field (backward compatibility)
-                  roles: 1   // ← New array field
-                }
-              }
-            ],
-            as: 'webUser'
+            firstRace: { $min: '$sessionDate' }
           }
         },
 
@@ -78,15 +45,6 @@ export async function GET(request: NextRequest) {
             bestTime: 1,
             lastRace: 1,
             firstRace: 1,
-            linkedUserId: 1,
-            personId: 1,
-            isLinked: {
-              $and: [
-                { $ne: ['$linkedUserId', null] },
-                { $ne: ['$linkedUserId', ''] }
-              ]
-            },
-            webUser: { $arrayElemAt: ['$webUser', 0] },
             // Extraer nombre y apellido del driverName
             parsedName: {
               $let: {
@@ -123,11 +81,64 @@ export async function GET(request: NextRequest) {
         // 5. Ordenar por última carrera
         { $sort: { lastRace: -1 } }
       ]);
+
+      // 🔗 Buscar vinculación en WebUser (SINGLE SOURCE OF TRUTH)
+      const driverNames = drivers.map(d => d.driverName);
+
+      // Buscar TODOS los usuarios vinculados (sin filtro de nombres)
+      const allLinkedUsers = await WebUser.find({
+        'kartingLink.status': 'linked',
+        'kartingLink.driverName': { $exists: true, $ne: null }
+      }).select('_id profile.firstName profile.lastName profile.alias email roles kartingLink').lean();
+
+      console.log(`🔍 [DRIVERS] Total linked users in DB: ${allLinkedUsers.length}`);
+      if (allLinkedUsers.length > 0) {
+        console.log(`🔍 [DRIVERS] Sample linked user:`, JSON.stringify(allLinkedUsers[0], null, 2));
+      }
+
+      // Filtrar solo los que matchean con nuestros drivers (case-insensitive)
+      const driverNamesLower = new Set(driverNames.map(n => n.toLowerCase()));
+      const linkedUsers = allLinkedUsers.filter((user: any) =>
+        user.kartingLink?.driverName &&
+        driverNamesLower.has(user.kartingLink.driverName.toLowerCase())
+      );
+
+      console.log(`🔍 [DRIVERS] Matched ${linkedUsers.length} linked users with driver list`);
+
+      // Crear mapa de driverName -> webUser (case-insensitive)
+      const driverToUserMap = new Map();
+      linkedUsers.forEach((user: any) => {
+        if (user.kartingLink?.driverName) {
+          const linkInfo = {
+            linkedUserId: user._id.toString(),
+            webUser: {
+              _id: user._id,
+              profile: user.profile,
+              email: user.email,
+              roles: user.roles
+            }
+          };
+          driverToUserMap.set(user.kartingLink.driverName.toLowerCase(), linkInfo);
+          console.log(`   ✓ Mapped: "${user.kartingLink.driverName}" -> ${user.email}`);
+        }
+      });
+
+      // Agregar información de vinculación a cada driver
+      const driversWithLinking = drivers.map(driver => {
+        const linkInfo = driverToUserMap.get(driver.driverName.toLowerCase());
+        return {
+          ...driver,
+          linkedUserId: linkInfo?.linkedUserId || null,
+          personId: null, // No longer used
+          isLinked: !!linkInfo,
+          webUser: linkInfo?.webUser || null
+        };
+      });
       
       // Si hay búsqueda, filtrar
-      let filteredDrivers = drivers;
+      let filteredDrivers = driversWithLinking;
       if (search) {
-        filteredDrivers = drivers.filter(driver =>
+        filteredDrivers = driversWithLinking.filter(driver =>
           driver.driverName.toLowerCase().includes(search.toLowerCase())
         );
       }
@@ -189,8 +200,7 @@ export async function POST(request: NextRequest) {
     const { action, driverName, webUserId, personId, roles } = await request.json();
     
     if (action === 'link_driver' && driverName && webUserId) {
-      console.log('🚨🚨🚨 CÓDIGO NUEVO CARGADO - VERSIÓN 2.0 🚨🚨🚨');
-      console.log(`🔗 Linking driver "${driverName}" to user ${webUserId}`, roles ? `with roles: ${JSON.stringify(roles)}` : '');
+      console.log(`🔗 [LINK-DRIVER] Linking "${driverName}" to user ${webUserId}`);
 
       // Verificar que el usuario existe
       const user = await WebUser.findById(webUserId);
@@ -201,68 +211,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 🆕 Actualizar en race_sessions_v0 (nueva estructura)
-      console.log(`🔍 Buscando sesiones con driver: "${driverName}"`);
-      const sessionsBeforeUpdate = await RaceSessionV0.find({ 'drivers.driverName': driverName }).limit(1);
-      console.log(`🔍 Sesiones encontradas antes de actualizar: ${sessionsBeforeUpdate.length}`);
-      if (sessionsBeforeUpdate.length > 0) {
-        const driver = sessionsBeforeUpdate[0].drivers.find((d: any) => d.driverName === driverName);
-        console.log(`🔍 Estado del driver ANTES: linkedUserId=${driver?.linkedUserId}, personId=${driver?.personId}`);
+      // Verificar que el driverName existe en race_sessions_v0
+      const driverExists = await RaceSessionV0.findOne({ 'drivers.driverName': driverName }).lean();
+      if (!driverExists) {
+        return NextResponse.json(
+          { error: `No se encontraron carreras para el piloto "${driverName}"` },
+          { status: 404 }
+        );
       }
-
-      // Construir el objeto $set dinámicamente (sin undefined)
-      const setFields: any = {
-        'drivers.$[elem].linkedUserId': webUserId
-      };
-      if (personId) {
-        setFields['drivers.$[elem].personId'] = personId;
-      }
-
-      console.log(`🔧 webUserId a guardar: "${webUserId}" (type: ${typeof webUserId})`);
-      console.log(`🔧 setFields:`, JSON.stringify(setFields, null, 2));
-
-      // Agregar timestamp manualmente para evitar conflicto con Mongoose
-      setFields['updatedAt'] = new Date();
-
-      // Usar la colección directa de MongoDB en vez del modelo de Mongoose
-      // para evitar que Mongoose sobrescriba nuestro $set
-      const updateResult = await RaceSessionV0.collection.updateMany(
-        { 'drivers.driverName': driverName },
-        { $set: setFields },
-        {
-          arrayFilters: [{ 'elem.driverName': driverName }]
-        }
-      );
-
-      console.log(`✅ UpdateMany result: matched=${updateResult.matchedCount}, modified=${updateResult.modifiedCount}`);
-
-      // Verificar después de actualizar
-      const sessionsAfterUpdate = await RaceSessionV0.find({ 'drivers.driverName': driverName }).limit(1);
-      if (sessionsAfterUpdate.length > 0) {
-        const driver = sessionsAfterUpdate[0].drivers.find((d: any) => d.driverName === driverName);
-        console.log(`🔍 Estado del driver DESPUÉS: linkedUserId=${driver?.linkedUserId}, personId=${driver?.personId}`);
-        console.log(`🔍 Driver completo:`, JSON.stringify(driver, null, 2));
-      }
-
-      // Verificar que el aggregation también lo vea
-      const testAgg = await RaceSessionV0.aggregate([
-        { $unwind: '$drivers' },
-        { $match: { 'drivers.driverName': driverName } },
-        { $limit: 1 },
-        { $project: { driver: '$drivers' } }
-      ]);
-      console.log(`🔍 Test aggregation result:`, JSON.stringify(testAgg, null, 2));
-
-      // También actualizar en LapRecord (mantener compatibilidad)
-      await LapRecord.updateMany(
-        { driverName: { $regex: new RegExp(`^${driverName}$`, 'i') } },
-        {
-          webUserId,
-          personId: personId || undefined,
-          linkingConfidence: 'high',
-          linkingMethod: 'manual_link'
-        }
-      );
 
       // 🆕 Determinar roles basado en selección (puede tener múltiples)
       let userRoles: string[] = [];
@@ -284,115 +240,62 @@ export async function POST(request: NextRequest) {
                          userRoles.includes('coach') ? 'coach' : 'user';
 
       // Actualizar estado del usuario + roles (migrar de role → roles)
-      await WebUser.findByIdAndUpdate(webUserId, {
+      // IMPORTANTE: Primero limpiar speedParkProfile.driverName si existe, luego establecer kartingLink.driverName
+      const updatedUser = await WebUser.findByIdAndUpdate(webUserId, {
         $set: {
           'kartingLink.status': 'linked',
-          'kartingLink.driverName': driverName,
+          'kartingLink.driverName': driverName, // ← En el nivel correcto
           'kartingLink.linkedAt': new Date(),
           roles: userRoles  // ← Multiple roles
         },
-        $unset: { role: 1 }  // ← Eliminar campo legacy
-      });
-      
-      // Crear o actualizar identidad del corredor
-      await DriverIdentity.findOneAndUpdate(
-        { 
-          $or: [
-            { webUserId },
-            { primaryName: { $regex: new RegExp(`^${driverName}$`, 'i') } }
-          ]
-        },
-        {
-          webUserId,
-          personId: personId || undefined,
-          primaryName: driverName,
-          linkingStatus: 'confirmed',
-          confidence: 100,
-          manuallyVerified: true,
-          verificationDate: new Date(),
-          $push: {
-            nameHistory: {
-              name: driverName,
-              firstSeen: new Date(),
-              lastSeen: new Date(),
-              sessionCount: 0,
-              confidence: 'confirmed',
-              source: 'manual_entry'
-            }
-          }
-        },
-        { upsert: true, new: true }
-      );
-      
-      console.log(`✅ Driver linked: ${driverName} -> ${user.email} (${updateResult.modifiedCount} V0 sessions updated, roles: ${userRoles.join(', ')})`);
+        $unset: {
+          role: 1,  // ← Eliminar campo legacy
+          'kartingLink.speedParkProfile.driverName': 1  // ← Limpiar driverName de speedParkProfile
+        }
+      }, { new: true });
+
+      console.log(`✅ [LINK-DRIVER] Success: ${driverName} -> ${user.email} (roles: ${userRoles.join(', ')})`);
+      console.log(`🔍 [LINK-DRIVER] Verificación - kartingLink guardado:`, JSON.stringify(updatedUser?.kartingLink, null, 2));
 
       return NextResponse.json({
         success: true,
-        message: `Driver ${driverName} linked to ${user.email}${userRoles.length > 0 ? ` with roles: ${userRoles.join(', ')}` : ''}`,
-        recordsUpdated: updateResult.modifiedCount,
+        message: `Driver ${driverName} vinculado a ${user.email}${userRoles.length > 0 ? ` con roles: ${userRoles.join(', ')}` : ''}`,
         assignedRole: primaryRole,
         assignedRoles: userRoles
       });
     }
     
     if (action === 'unlink_driver' && driverName) {
-      console.log(`🔓 Unlinking driver "${driverName}"`);
+      console.log(`🔓 [UNLINK-DRIVER] Unlinking driver "${driverName}"`);
 
-      // 1️⃣ Buscar el WebUser vinculado a este driver
-      const aggregationResult = await RaceSessionV0.aggregate([
-        { $unwind: '$drivers' },
-        { $match: {
-          'drivers.driverName': driverName,
-          'drivers.linkedUserId': { $exists: true, $ne: null }
-        }},
-        { $limit: 1 },
-        { $project: { 'drivers.linkedUserId': 1 } }
-      ]);
+      // Buscar el WebUser vinculado a este driverName
+      const user = await WebUser.findOne({
+        'kartingLink.driverName': driverName,
+        'kartingLink.status': 'linked'
+      });
 
-      let webUserId = null;
-      if (aggregationResult.length > 0 && aggregationResult[0].drivers?.linkedUserId) {
-        webUserId = aggregationResult[0].drivers.linkedUserId;
-        console.log(`🔍 Found linked user: ${webUserId}`);
-      } else {
-        console.log(`⚠️ No linked user found for driver: ${driverName}`);
+      if (!user) {
+        return NextResponse.json(
+          { error: `No se encontró usuario vinculado a "${driverName}"` },
+          { status: 404 }
+        );
       }
 
-      // 2️⃣ Desvincular el WebUser (limpiar kartingLink)
-      if (webUserId) {
-        await WebUser.findByIdAndUpdate(webUserId, {
-          $set: {
-            'kartingLink.status': 'pending_first_race',
-            'kartingLink.driverName': null,
-            'kartingLink.linkedAt': null
-          }
-        });
-        console.log(`✅ WebUser ${webUserId} unlinked from driver`);
-      }
-
-      // 3️⃣ Remover linking de race_sessions_v0 para TODOS los pilotos de este usuario
-      // No solo el driverName específico, sino todos los que tengan este linkedUserId
-      const collection = RaceSessionV0.collection;
-
-      const updateResult = await collection.updateMany(
-        { 'drivers.linkedUserId': webUserId },
-        {
-          $unset: {
-            'drivers.$[elem].linkedUserId': '',
-            'drivers.$[elem].personId': ''
-          }
-        },
-        {
-          arrayFilters: [{ 'elem.linkedUserId': webUserId }]
+      // Limpiar kartingLink del WebUser
+      await WebUser.findByIdAndUpdate(user._id, {
+        $set: {
+          'kartingLink.status': 'pending_first_race',
+          'kartingLink.driverName': null,
+          'kartingLink.linkedAt': null
         }
-      );
+      });
 
-      console.log(`✅ Driver unlinked: ${driverName} (${updateResult.modifiedCount} sessions updated)`);
+      console.log(`✅ [UNLINK-DRIVER] Success: ${driverName} unlinked from ${user.email}`);
 
       return NextResponse.json({
         success: true,
-        message: `Driver ${driverName} desvinculado exitosamente`,
-        recordsUpdated: updateResult.modifiedCount,
-        webUserUnlinked: !!webUserId
+        message: `Driver ${driverName} desvinculado exitosamente de ${user.email}`,
+        webUserUnlinked: true
       });
     }
 

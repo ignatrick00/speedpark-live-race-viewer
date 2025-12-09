@@ -26,7 +26,8 @@ export interface IWebUser extends Document {
     personId?: string;
     linkedAt?: Date;
     status: 'pending_first_race' | 'linked' | 'verification_failed';
-    speedParkProfile?: any; // Speed Park API data
+    driverName?: string; // SMS-Timing driver name (SINGLE SOURCE OF TRUTH)
+    speedParkProfile?: any; // Speed Park API data (legacy)
   };
 
   // Squadron system
@@ -147,6 +148,10 @@ const WebUserSchema: Schema = new Schema({
       type: String,
       enum: ['pending_first_race', 'linked', 'verification_failed'],
       default: 'pending_first_race',
+    },
+    driverName: {
+      type: String,
+      default: null,
     },
     speedParkProfile: {
       type: Schema.Types.Mixed,

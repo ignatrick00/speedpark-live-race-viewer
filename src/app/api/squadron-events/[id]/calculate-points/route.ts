@@ -63,6 +63,9 @@ export async function POST(
     console.log(`🏁 Carrera: ${raceSession.sessionName}`);
     console.log(`👥 Pilotos en carrera: ${raceSession.drivers.length}`);
 
+    // Guardar linkedRaceSessionId en el evento
+    event.linkedRaceSessionId = raceSessionId;
+
     // Tabla de puntos individuales (1° = 25pts ... 20° = 1pt)
     const getIndividualPoints = (position: number): number => {
       const pointsTable: Record<number, number> = {
@@ -71,6 +74,99 @@ export async function POST(
       };
       return pointsTable[position] || 0;
     };
+
+    // APLICAR SANCIONES SI EXISTEN
+    const adjustedDrivers = [...raceSession.drivers];
+    const sanctions = event.sanctions || [];
+    const adjustedResults: Array<{
+      driverName: string;
+      webUserId?: string;
+      originalPosition: number;
+      adjustedPosition: number;
+      sanctionApplied: boolean;
+    }> = [];
+
+    if (sanctions.length > 0) {
+      console.log(`\n⚠️  Aplicando ${sanctions.length} sanción(es)...`);
+
+      // Aplicar penalizaciones de posición
+      for (const sanction of sanctions) {
+        if (sanction.sanctionType === 'position_penalty' && sanction.positionPenalty) {
+          const driverIndex = adjustedDrivers.findIndex(
+            (d: any) => d.driverName.toLowerCase() === sanction.driverName.toLowerCase()
+          );
+
+          if (driverIndex !== -1) {
+            const driver = adjustedDrivers[driverIndex];
+            const originalPosition = driver.finalPosition;
+            const newPosition = originalPosition + sanction.positionPenalty;
+
+            console.log(`   ${sanction.driverName}: ${originalPosition}° → ${newPosition}° (+${sanction.positionPenalty} posiciones)`);
+
+            // Actualizar posición del piloto sancionado
+            adjustedDrivers[driverIndex] = {
+              ...driver,
+              finalPosition: newPosition
+            };
+
+            // Recalcular posiciones de otros pilotos afectados
+            for (let i = 0; i < adjustedDrivers.length; i++) {
+              if (i !== driverIndex) {
+                const otherDriver = adjustedDrivers[i];
+                const otherOriginalPos = raceSession.drivers[i].finalPosition;
+
+                // Si el piloto estaba después del sancionado, sube una posición
+                if (otherOriginalPos > originalPosition && otherOriginalPos <= newPosition) {
+                  adjustedDrivers[i] = {
+                    ...otherDriver,
+                    finalPosition: otherOriginalPos - 1
+                  };
+                }
+              }
+            }
+          }
+        } else if (sanction.sanctionType === 'disqualification') {
+          // Descalificado = última posición
+          const driverIndex = adjustedDrivers.findIndex(
+            (d: any) => d.driverName.toLowerCase() === sanction.driverName.toLowerCase()
+          );
+
+          if (driverIndex !== -1) {
+            const driver = adjustedDrivers[driverIndex];
+            const originalPosition = driver.finalPosition;
+            const lastPosition = adjustedDrivers.length;
+
+            console.log(`   ${sanction.driverName}: DESCALIFICADO (${originalPosition}° → ${lastPosition}°)`);
+
+            adjustedDrivers[driverIndex] = {
+              ...driver,
+              finalPosition: lastPosition
+            };
+          }
+        }
+      }
+
+      // Guardar resultados ajustados
+      for (let i = 0; i < adjustedDrivers.length; i++) {
+        const adjustedDriver = adjustedDrivers[i];
+        const originalDriver = raceSession.drivers[i];
+        const hasSanction = sanctions.some(
+          (s: any) => s.driverName.toLowerCase() === adjustedDriver.driverName.toLowerCase()
+        );
+
+        adjustedResults.push({
+          driverName: adjustedDriver.driverName,
+          webUserId: undefined, // Se llenará después
+          originalPosition: originalDriver.finalPosition,
+          adjustedPosition: adjustedDriver.finalPosition,
+          sanctionApplied: hasSanction
+        });
+      }
+
+      event.adjustedResults = adjustedResults as any;
+    } else {
+      console.log(`\n✅ No hay sanciones aplicadas, usando posiciones originales`);
+    }
 
     // Agrupar pilotos por escudería
     const squadronMap = new Map<string, {
@@ -86,21 +182,41 @@ export async function POST(
       }>;
     }>();
 
-    // Procesar cada piloto de la carrera
-    for (const driver of raceSession.drivers) {
-      if (!driver.webUserId) {
-        console.log(`⚠️  Piloto sin webUserId: ${driver.driverName}`);
+    // Procesar cada piloto de la carrera (usar posiciones ajustadas si hay sanciones)
+    const driversToProcess = sanctions.length > 0 ? adjustedDrivers : raceSession.drivers;
+
+    for (const driver of driversToProcess) {
+      // 🔗 NUEVO: Buscar webUserId desde WebUser (SINGLE SOURCE OF TRUTH)
+      const webUser = await WebUser.findOne({
+        'kartingLink.status': 'linked',
+        'kartingLink.driverName': { $regex: new RegExp(`^${driver.driverName}$`, 'i') }
+      }).select('_id');
+
+      if (!webUser) {
+        console.log(`⚠️  Piloto no vinculado a ningún usuario: ${driver.driverName}`);
         continue;
+      }
+
+      const webUserId = webUser._id.toString();
+
+      // Actualizar adjustedResults con webUserId
+      if (sanctions.length > 0) {
+        const resultIndex = adjustedResults.findIndex(
+          (r: any) => r.driverName.toLowerCase() === driver.driverName.toLowerCase()
+        );
+        if (resultIndex !== -1) {
+          adjustedResults[resultIndex].webUserId = webUserId;
+        }
       }
 
       // Buscar la escudería del piloto
       const squadron = await Squadron.findOne({
-        members: driver.webUserId,
+        members: webUserId,
         isActive: true
       });
 
       if (!squadron) {
-        console.log(`⚠️  Piloto sin escudería: ${driver.driverName} (${driver.webUserId})`);
+        console.log(`⚠️  Piloto sin escudería: ${driver.driverName} (${webUserId})`);
         continue;
       }
 
@@ -118,14 +234,17 @@ export async function POST(
       const squadronData = squadronMap.get(squadron._id.toString())!;
       squadronData.totalPoints += individualPoints;
       squadronData.pilots.push({
-        webUserId: driver.webUserId,
+        webUserId: webUserId,
         driverName: driver.driverName,
         finalPosition: driver.finalPosition,
         individualPoints,
         kartNumber: driver.kartNumber
       });
 
-      console.log(`✅ ${driver.driverName} (${driver.finalPosition}°) → ${squadron.name} (+${individualPoints} pts)`);
+      const positionLabel = sanctions.length > 0
+        ? `${driver.finalPosition}° (ajustado)`
+        : `${driver.finalPosition}°`;
+      console.log(`✅ ${driver.driverName} (${positionLabel}) → ${squadron.name} (+${individualPoints} pts)`);
     }
 
     // Convertir a array y ordenar por puntos totales
@@ -162,13 +281,23 @@ export async function POST(
       };
     });
 
+    // Guardar el evento con linkedRaceSessionId y adjustedResults
+    await event.save();
+
+    console.log(`\n💾 Evento guardado con carrera vinculada: ${raceSessionId}`);
+    if (sanctions.length > 0) {
+      console.log(`   Resultados ajustados guardados (${adjustedResults.length} pilotos)`);
+    }
+
     return NextResponse.json({
       success: true,
       results: {
         raceSessionId,
         raceSessionName: raceSession.sessionName,
         squadrons: results,
-        totalSquadrons: results.length
+        totalSquadrons: results.length,
+        sanctionsApplied: sanctions.length,
+        adjustedResults: sanctions.length > 0 ? adjustedResults : null
       }
     });
 

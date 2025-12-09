@@ -48,16 +48,18 @@ function CountdownTimer({ expiresAt }: { expiresAt: string }) {
   );
 }
 
-export default function InvitacionesPage() {
+export default function InboxPage() {
   const router = useRouter();
   const { token, user } = useAuth();
   const [invitations, setInvitations] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [responding, setResponding] = useState<string | null>(null);
 
   useEffect(() => {
     if (token) {
       fetchInvitations();
+      fetchNotifications();
     }
   }, [token]);
 
@@ -77,6 +79,42 @@ export default function InvitacionesPage() {
       console.error('Error fetching invitations:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch('/api/notifications', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      const response = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ read: true })
+      });
+
+      if (response.ok) {
+        fetchNotifications();
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
     }
   };
 
@@ -194,9 +232,9 @@ export default function InvitacionesPage() {
 
       <div className="max-w-6xl mx-auto p-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-racing text-electric-blue mb-2">📨 Invitaciones</h1>
+          <h1 className="text-4xl font-racing text-electric-blue mb-2">📬 Inbox</h1>
           <p className="text-gray-400">
-            Revisa y responde tus invitaciones pendientes
+            Revisa tus invitaciones y notificaciones pendientes
           </p>
         </div>
 
@@ -443,6 +481,81 @@ export default function InvitacionesPage() {
                 );
               }
             })}
+
+            {/* Notificaciones Section */}
+            {notifications.length > 0 && (
+              <div className="mt-8">
+                <h2 className="text-2xl font-racing text-white mb-4">📢 Notificaciones</h2>
+                <div className="space-y-3">
+                  {notifications.map((notification) => {
+                    if (notification.type === 'race_sanction') {
+                      return (
+                        <div
+                          key={notification._id}
+                          className={`bg-gradient-to-br from-yellow-900/20 via-slate-800/80 to-slate-900/90 border-2 ${
+                            notification.read ? 'border-yellow-800/20' : 'border-yellow-600/50'
+                          } rounded-xl p-6 hover:border-yellow-500/50 transition-all`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-3">
+                                <span className="text-3xl">⚠️</span>
+                                <div>
+                                  <h3 className="text-xl font-racing text-white">
+                                    {notification.title}
+                                  </h3>
+                                  <p className="text-yellow-400 font-bold text-sm">{notification.metadata?.eventName}</p>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2 text-sm">
+                                <p className="text-white">{notification.message}</p>
+
+                                <div className="grid grid-cols-2 gap-2 mt-3">
+                                  <div>
+                                    <span className="text-gray-500">Carrera:</span>{' '}
+                                    <span className="text-gray-300">{notification.metadata?.raceSessionName}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Tipo:</span>{' '}
+                                    <span className="text-yellow-400 font-bold">
+                                      {notification.metadata?.sanctionType === 'position_penalty' ? `+${notification.metadata?.positionPenalty} posiciones` :
+                                       notification.metadata?.sanctionType === 'point_deduction' ? `-${notification.metadata?.pointsPenalty} puntos` :
+                                       notification.metadata?.sanctionType === 'disqualification' ? 'DESCALIFICADO' :
+                                       'ADVERTENCIA'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="mt-3 p-3 bg-slate-900/50 rounded-lg">
+                                  <p className="text-xs text-gray-400 mb-1">Motivo:</p>
+                                  <p className="text-sm text-white">{notification.metadata?.description}</p>
+                                </div>
+
+                                <p className="text-xs text-gray-500 mt-2">
+                                  {new Date(notification.createdAt).toLocaleString('es-CL')}
+                                </p>
+                              </div>
+                            </div>
+
+                            {!notification.read && (
+                              <button
+                                onClick={() => markNotificationAsRead(notification._id)}
+                                className="ml-4 px-4 py-2 bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 rounded-lg hover:bg-yellow-600/30 transition-all text-sm font-bold"
+                              >
+                                ✓ Marcar como leída
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                    // Otros tipos de notificaciones (friend_request, etc.)
+                    return null;
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -29,6 +29,18 @@ export default function EventoDetallePage() {
   const [calculatedResults, setCalculatedResults] = useState<any>(null);
   const [calculating, setCalculating] = useState(false);
 
+  // Sanctions states
+  const [sanctions, setSanctions] = useState<any[]>([]);
+  const [showSanctionForm, setShowSanctionForm] = useState(false);
+  const [sanctionForm, setSanctionForm] = useState({
+    driverName: '',
+    sanctionType: 'position_penalty',
+    description: '',
+    positionPenalty: 0,
+    pointsPenalty: 0
+  });
+  const [applyingSanction, setApplyingSanction] = useState(false);
+
   useEffect(() => {
     if (token && params.id) {
       fetchEvent();
@@ -133,6 +145,8 @@ export default function EventoDetallePage() {
       if (response.ok) {
         const data = await response.json();
         setCalculatedResults(data.results);
+        // Fetch sanctions after calculation
+        fetchSanctions();
       } else {
         const error = await response.json();
         alert(error.error || 'Error al calcular puntos');
@@ -142,6 +156,96 @@ export default function EventoDetallePage() {
       alert('Error al calcular puntos');
     } finally {
       setCalculating(false);
+    }
+  };
+
+  const fetchSanctions = async () => {
+    try {
+      const response = await fetch(`/api/squadron-events/${params.id}/sanctions`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSanctions(data.sanctions || []);
+      }
+    } catch (error) {
+      console.error('Error fetching sanctions:', error);
+    }
+  };
+
+  const applySanction = async () => {
+    if (!sanctionForm.driverName || !sanctionForm.description) {
+      alert('Piloto y descripción son requeridos');
+      return;
+    }
+
+    try {
+      setApplyingSanction(true);
+      const response = await fetch(`/api/squadron-events/${params.id}/sanctions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(sanctionForm)
+      });
+
+      if (response.ok) {
+        alert('Sanción aplicada exitosamente');
+        setShowSanctionForm(false);
+        setSanctionForm({
+          driverName: '',
+          sanctionType: 'position_penalty',
+          description: '',
+          positionPenalty: 0,
+          pointsPenalty: 0
+        });
+
+        // Recalcular puntos automáticamente
+        if (selectedRace) {
+          await calculatePoints(selectedRace.sessionId);
+        }
+        fetchSanctions();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Error al aplicar sanción');
+      }
+    } catch (error) {
+      console.error('Error applying sanction:', error);
+      alert('Error al aplicar sanción');
+    } finally {
+      setApplyingSanction(false);
+    }
+  };
+
+  const deleteSanction = async (sanctionId: string) => {
+    if (!confirm('¿Eliminar esta sanción?')) return;
+
+    try {
+      const response = await fetch(`/api/squadron-events/${params.id}/sanctions?sanctionId=${sanctionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        alert('Sanción eliminada');
+        // Recalcular puntos
+        if (selectedRace) {
+          await calculatePoints(selectedRace.sessionId);
+        }
+        fetchSanctions();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Error al eliminar sanción');
+      }
+    } catch (error) {
+      console.error('Error deleting sanction:', error);
+      alert('Error al eliminar sanción');
     }
   };
 
@@ -656,12 +760,158 @@ export default function EventoDetallePage() {
                       ))}
                     </div>
 
+                    {/* Seccián de Sanciones */}
+                    <div className="mb-6 bg-slate-800/50 border border-yellow-600/30 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                          ⚠️ Sanciones
+                          {sanctions.length > 0 && (
+                            <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 text-xs font-bold rounded-full">
+                              {sanctions.length}
+                            </span>
+                          )}
+                        </h3>
+                        <button
+                          onClick={() => setShowSanctionForm(!showSanctionForm)}
+                          className="px-4 py-2 bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 rounded-lg hover:bg-yellow-600/30 transition-all font-bold text-sm"
+                        >
+                          {showSanctionForm ? '✕ Cancelar' : '+ Aplicar Sanción'}
+                        </button>
+                      </div>
+
+                      {/* Sanction Form */}
+                      {showSanctionForm && (
+                        <div className="mb-4 bg-slate-900/50 rounded-lg p-4 border border-yellow-600/20">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm text-gray-400 mb-2">Piloto *</label>
+                              <select
+                                value={sanctionForm.driverName}
+                                onChange={(e) => setSanctionForm({...sanctionForm, driverName: e.target.value})}
+                                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                              >
+                                <option value="">Seleccionar piloto...</option>
+                                {raceDetails?.drivers?.map((driver: any) => (
+                                  <option key={driver.driverName} value={driver.driverName}>
+                                    {driver.driverName} ({driver.finalPosition}°)
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm text-gray-400 mb-2">Tipo de Sanción *</label>
+                              <select
+                                value={sanctionForm.sanctionType}
+                                onChange={(e) => setSanctionForm({...sanctionForm, sanctionType: e.target.value})}
+                                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                              >
+                                <option value="position_penalty">Penalización de Posición</option>
+                                <option value="point_deduction">Deducción de Puntos</option>
+                                <option value="disqualification">Descalificación</option>
+                                <option value="warning">Advertencia</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {sanctionForm.sanctionType === 'position_penalty' && (
+                            <div className="mb-4">
+                              <label className="block text-sm text-gray-400 mb-2">Posiciones a penalizar</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={sanctionForm.positionPenalty}
+                                onChange={(e) => setSanctionForm({...sanctionForm, positionPenalty: parseInt(e.target.value) || 0})}
+                                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                                placeholder="Ej: 3 (baja 3 posiciones)"
+                              />
+                            </div>
+                          )}
+
+                          {sanctionForm.sanctionType === 'point_deduction' && (
+                            <div className="mb-4">
+                              <label className="block text-sm text-gray-400 mb-2">Puntos a deducir</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={sanctionForm.pointsPenalty}
+                                onChange={(e) => setSanctionForm({...sanctionForm, pointsPenalty: parseInt(e.target.value) || 0})}
+                                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                                placeholder="Puntos a deducir de la escudería"
+                              />
+                            </div>
+                          )}
+
+                          <div className="mb-4">
+                            <label className="block text-sm text-gray-400 mb-2">Descripción *</label>
+                            <textarea
+                              value={sanctionForm.description}
+                              onChange={(e) => setSanctionForm({...sanctionForm, description: e.target.value})}
+                              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                              placeholder="Razón de la sanción (ej: Adelantó con bandera amarilla)"
+                              rows={3}
+                              maxLength={500}
+                            />
+                          </div>
+
+                          <button
+                            onClick={applySanction}
+                            disabled={applyingSanction}
+                            className="w-full px-6 py-3 bg-yellow-600 text-white rounded-lg font-bold hover:bg-yellow-700 transition-all disabled:opacity-50"
+                          >
+                            {applyingSanction ? 'Aplicando...' : '⚠️ Aplicar Sanción'}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Sanctions List */}
+                      {sanctions.length > 0 ? (
+                        <div className="space-y-2">
+                          {sanctions.map((sanction: any) => (
+                            <div
+                              key={sanction._id}
+                              className="bg-slate-900/50 border border-yellow-600/20 rounded-lg p-4"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-white font-bold">{sanction.driverName}</span>
+                                    <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 text-xs font-bold rounded">
+                                      {sanction.sanctionType === 'position_penalty' ? `+${sanction.positionPenalty} pos` :
+                                       sanction.sanctionType === 'point_deduction' ? `-${sanction.pointsPenalty} pts` :
+                                       sanction.sanctionType === 'disqualification' ? 'DESCALIFICADO' :
+                                       'ADVERTENCIA'}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-400">{sanction.description}</p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(sanction.appliedAt).toLocaleString('es-CL')}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => deleteSanction(sanction._id)}
+                                  className="ml-4 px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/50 rounded hover:bg-red-500/30 transition-all text-sm"
+                                >
+                                  ✕ Eliminar
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center text-gray-500 py-4">
+                          No hay sanciones aplicadas a esta carrera
+                        </p>
+                      )}
+                    </div>
+
                     <div className="flex gap-3">
                       <button
                         onClick={() => {
                           setCalculatedResults(null);
                           setRaceDetails(null);
                           setSelectedRace(null);
+                          setSanctions([]);
                         }}
                         className="flex-1 px-6 py-3 bg-slate-700 text-white rounded-lg font-bold hover:bg-slate-600 transition-all"
                       >

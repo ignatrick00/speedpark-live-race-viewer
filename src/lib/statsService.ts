@@ -204,7 +204,7 @@ export class StatsService {
           : 0,
         timestamp: session.sessionDate,
         processed: session.processed || false,
-        linkedUsersCount: session.drivers?.filter((d: any) => d.linkedUserId).length || 0,
+        // linkedUsersCount removed - no longer tracking linkedUserId in race_sessions_v0
       }));
 
     } catch (error) {

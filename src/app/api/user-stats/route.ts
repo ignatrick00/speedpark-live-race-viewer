@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 [USER-STATS] Fetching stats for user: ${webUserId}`);
 
-    // 1️⃣ Get user info with linked driver name
+    // 1️⃣ Get user info and check linking status (SINGLE SOURCE OF TRUTH)
     const user = await WebUser.findById(webUserId).lean();
 
     if (!user) {
@@ -29,15 +29,30 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // 2️⃣ Find all sessions where this user is linked
+    // Check if user is linked to a driver name
+    const kartingLink = (user as any).kartingLink;
+    if (!kartingLink || kartingLink.status !== 'linked' || !kartingLink.driverName) {
+      console.log(`⚠️ [USER-STATS] User ${webUserId} is not linked to any driver`);
+      return NextResponse.json({
+        success: true,
+        stats: null,
+        sessions: [],
+        message: 'User not linked to any driver'
+      });
+    }
+
+    const driverName = kartingLink.driverName;
+    console.log(`🔗 [USER-STATS] User linked to driver: "${driverName}"`);
+
+    // 2️⃣ Find all sessions by driverName (case-insensitive)
     const sessions = await RaceSessionV0.aggregate([
       // Unwind drivers array
       { $unwind: '$drivers' },
 
-      // Match sessions where driver is linked to this user
+      // Match sessions where driverName matches (case-insensitive)
       {
         $match: {
-          'drivers.linkedUserId': webUserId
+          'drivers.driverName': { $regex: new RegExp(`^${driverName}$`, 'i') }
         }
       },
 

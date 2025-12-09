@@ -29,7 +29,8 @@ export interface IDriverInRace {
   // Array de TODAS las vueltas de este piloto
   laps: ILapV0[];
 
-  // Linking opcional (si el piloto está registrado)
+  // DEPRECATED: Linking moved to WebUser collection (single source of truth)
+  // These fields are kept for backward compatibility but are no longer used
   webUserId?: string;
   personId?: string;
   linkingConfidence?: 'high' | 'medium' | 'low';

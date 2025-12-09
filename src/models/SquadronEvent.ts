@@ -54,6 +54,30 @@ export interface ISquadronEvent extends Document {
     notes?: string;
   }>;
 
+  // Carrera vinculada (SMS-Timing)
+  linkedRaceSessionId?: string; // sessionId de la carrera en race_sessions_v0
+
+  // Sanciones aplicadas
+  sanctions?: Array<{
+    driverName: string;
+    webUserId: string;
+    sanctionType: 'position_penalty' | 'point_deduction' | 'disqualification' | 'warning';
+    description: string;
+    positionPenalty?: number; // Número de posiciones a bajar (ej: +3 posiciones)
+    pointsPenalty?: number; // Puntos a deducir
+    appliedBy: mongoose.Types.ObjectId; // Organizador que aplicó la sanción
+    appliedAt: Date;
+  }>;
+
+  // Resultados ajustados (posiciones después de sanciones)
+  adjustedResults?: Array<{
+    driverName: string;
+    webUserId?: string;
+    originalPosition: number;
+    adjustedPosition: number;
+    sanctionApplied: boolean;
+  }>;
+
   // Resultados (después del evento)
   results?: Array<{
     squadronId: mongoose.Types.ObjectId;
@@ -221,6 +245,66 @@ const SquadronEventSchema: Schema = new Schema({
     },
     notes: {
       type: String,
+    },
+  }],
+  linkedRaceSessionId: {
+    type: String,
+    default: null,
+  },
+  sanctions: [{
+    driverName: {
+      type: String,
+      required: true,
+    },
+    webUserId: {
+      type: String,
+      required: true,
+    },
+    sanctionType: {
+      type: String,
+      enum: ['position_penalty', 'point_deduction', 'disqualification', 'warning'],
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+      maxlength: 500,
+    },
+    positionPenalty: {
+      type: Number,
+      min: 0,
+    },
+    pointsPenalty: {
+      type: Number,
+      min: 0,
+    },
+    appliedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'WebUser',
+      required: true,
+    },
+    appliedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  }],
+  adjustedResults: [{
+    driverName: {
+      type: String,
+      required: true,
+    },
+    webUserId: String,
+    originalPosition: {
+      type: Number,
+      required: true,
+    },
+    adjustedPosition: {
+      type: Number,
+      required: true,
+    },
+    sanctionApplied: {
+      type: Boolean,
+      default: false,
     },
   }],
   results: [{

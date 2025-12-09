@@ -43,16 +43,22 @@ export async function GET(request: Request) {
 
     console.log(`📊 [RACE-RESULTS-V0] Found race with ${race.drivers.length} drivers`);
 
-    // Buscar escuderías para todos los pilotos
+    // Buscar escuderías para todos los pilotos (SINGLE SOURCE OF TRUTH)
     const driversWithSquadrons = await Promise.all(
       race.drivers.map(async (driver) => {
         let squadronName = null;
-        let userId = driver.linkedUserId || driver.webUserId; // Priorizar linkedUserId
+        let userId = null;
 
-        // Si no tiene webUserId, intentar buscar por nombre o alias (case-insensitive)
-        if (!userId) {
-          // 1. Buscar en WebUser por alias o speedParkProfile
-          let webUser = await WebUser.findOne({
+        // Buscar webUserId del driver usando WebUser como única fuente
+        // 1. Buscar por kartingLink.driverName (case-insensitive)
+        let webUser = await WebUser.findOne({
+          'kartingLink.status': 'linked',
+          'kartingLink.driverName': { $regex: new RegExp(`^${driver.driverName}$`, 'i') }
+        }).select('_id').lean();
+
+        // 2. Si no se encuentra, buscar por alias
+        if (!webUser) {
+          webUser = await WebUser.findOne({
             $or: [
               { 'profile.alias': { $regex: new RegExp(`^${driver.driverName}$`, 'i') } },
               { 'kartingLink.speedParkProfile.driverName': { $regex: new RegExp(`^${driver.driverName}$`, 'i') } },
@@ -60,23 +66,23 @@ export async function GET(request: Request) {
             ],
             'kartingLink.status': 'linked'
           }).select('_id').lean();
+        }
 
-          // 2. Si no se encuentra, buscar en driver_race_data (estructura antigua)
-          if (!webUser) {
-            const driverData = await DriverRaceData.findOne({
-              driverName: { $regex: new RegExp(`^${driver.driverName}$`, 'i') },
-              linkingStatus: 'linked',
-              webUserId: { $exists: true, $ne: null }
-            }).select('webUserId').lean();
+        // 3. Si aún no se encuentra, buscar en driver_race_data (estructura legacy)
+        if (!webUser) {
+          const driverData = await DriverRaceData.findOne({
+            driverName: { $regex: new RegExp(`^${driver.driverName}$`, 'i') },
+            linkingStatus: 'linked',
+            webUserId: { $exists: true, $ne: null }
+          }).select('webUserId').lean();
 
-            if (driverData && driverData.webUserId) {
-              userId = driverData.webUserId;
-              console.log(`🔗 Found webUserId via driver_race_data for ${driver.driverName}: ${userId}`);
-            }
-          } else {
-            userId = webUser._id.toString();
-            console.log(`🔗 Found webUserId for ${driver.driverName}: ${userId}`);
+          if (driverData && driverData.webUserId) {
+            userId = driverData.webUserId;
+            console.log(`🔗 Found webUserId via driver_race_data for ${driver.driverName}: ${userId}`);
           }
+        } else {
+          userId = webUser._id.toString();
+          console.log(`🔗 Found webUserId for ${driver.driverName}: ${userId}`);
         }
 
         if (userId) {
