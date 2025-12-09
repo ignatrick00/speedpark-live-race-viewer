@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import dbConnect from '@/lib/mongodb';
 import Friendship from '@/models/Friendship';
 import WebUser from '@/models/WebUser';
+import UserStats from '@/models/UserStats';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -27,9 +28,28 @@ export async function GET(request: NextRequest) {
       ]
     }).populate('userId friendId', 'email profile').lean();
 
+    // Get user IDs to fetch stats
+    const friendUserIds = acceptedFriendships.map(friendship => {
+      const isSender = friendship.userId._id.toString() === decoded.userId;
+      return isSender ? friendship.friendId._id : friendship.userId._id;
+    });
+
+    // Fetch stats for all friends in one query
+    const friendsStats = await UserStats.find({
+      webUserId: { $in: friendUserIds }
+    }).lean();
+
+    // Create a map for quick lookup
+    const statsMap = new Map();
+    friendsStats.forEach(stat => {
+      statsMap.set(stat.webUserId.toString(), stat);
+    });
+
     const friends = acceptedFriendships.map(friendship => {
       const isSender = friendship.userId._id.toString() === decoded.userId;
       const friendData = isSender ? friendship.friendId : friendship.userId;
+      const stats = statsMap.get(friendData._id.toString());
+
       return {
         friendshipId: friendship._id.toString(),
         userId: friendData._id.toString(),
@@ -38,7 +58,17 @@ export async function GET(request: NextRequest) {
         lastName: friendData.profile.lastName,
         alias: friendData.profile.alias,
         whatsappNumber: friendData.profile.whatsappNumber,
-        since: friendship.createdAt
+        since: friendship.createdAt,
+        stats: stats ? {
+          totalRaces: stats.totalRaces || 0,
+          bestTime: stats.bestTime || null,
+          averageTime: stats.averageTime || null,
+          podiumFinishes: stats.podiumFinishes || 0,
+          firstPlaces: stats.firstPlaces || 0,
+          secondPlaces: stats.secondPlaces || 0,
+          thirdPlaces: stats.thirdPlaces || 0,
+          lastRaceAt: stats.lastRaceAt || null
+        } : null
       };
     });
 

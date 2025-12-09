@@ -24,6 +24,16 @@ interface Friend {
   lastName: string;
   alias?: string;
   since?: Date;
+  stats?: {
+    totalRaces: number;
+    bestTime: number | null;
+    averageTime: number | null;
+    podiumFinishes: number;
+    firstPlaces: number;
+    secondPlaces: number;
+    thirdPlaces: number;
+    lastRaceAt: Date | null;
+  } | null;
 }
 
 interface FriendRequest {
@@ -392,18 +402,78 @@ export default function AmigosPage() {
                   <p className="text-gray-400">Usa el buscador de arriba para encontrar y agregar amigos</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {friends.map((friend) => (
                     <div
                       key={friend.friendshipId}
-                      className="bg-gradient-to-br from-green-900/20 via-slate-800/80 to-slate-900/90 border-2 border-green-500/30 rounded-xl p-4"
+                      className="bg-gradient-to-br from-green-900/20 via-slate-800/80 to-slate-900/90 border-2 border-green-500/30 rounded-xl p-5"
                     >
-                      <div className="flex items-start justify-between mb-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-4 pb-3 border-b border-green-500/20">
                         <div className="flex-1">
-                          <p className="text-white font-bold text-lg">{getDisplayName(friend)}</p>
+                          <p className="text-white font-bold text-xl mb-1">{getDisplayName(friend)}</p>
                           <p className="text-gray-400 text-sm">{friend.email}</p>
                         </div>
+                        <div className="text-green-400 text-2xl">🏁</div>
                       </div>
+
+                      {/* Stats Section */}
+                      {friend.stats ? (
+                        <div className="mb-4 space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Total Races */}
+                            <div className="bg-slate-900/50 rounded-lg p-3 border border-cyan-400/20">
+                              <div className="text-cyan-400 text-xs font-medium mb-1">CARRERAS</div>
+                              <div className="text-white text-2xl font-racing">{friend.stats.totalRaces}</div>
+                            </div>
+
+                            {/* Podiums */}
+                            <div className="bg-slate-900/50 rounded-lg p-3 border border-yellow-400/20">
+                              <div className="text-yellow-400 text-xs font-medium mb-1">PODIOS</div>
+                              <div className="text-white text-2xl font-racing">{friend.stats.podiumFinishes}</div>
+                            </div>
+                          </div>
+
+                          {/* Best Time */}
+                          {friend.stats.bestTime && (
+                            <div className="bg-slate-900/50 rounded-lg p-3 border border-electric-blue/20">
+                              <div className="text-electric-blue text-xs font-medium mb-1">MEJOR TIEMPO</div>
+                              <div className="text-white text-xl font-racing">
+                                {(friend.stats.bestTime / 1000).toFixed(3)}s
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Positions */}
+                          <div className="flex gap-2 text-center">
+                            <div className="flex-1 bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 rounded-lg p-2 border border-yellow-400/30">
+                              <div className="text-yellow-400 text-lg font-bold">🥇</div>
+                              <div className="text-white text-sm font-medium">{friend.stats.firstPlaces}</div>
+                            </div>
+                            <div className="flex-1 bg-gradient-to-br from-gray-400/20 to-gray-500/10 rounded-lg p-2 border border-gray-400/30">
+                              <div className="text-gray-300 text-lg font-bold">🥈</div>
+                              <div className="text-white text-sm font-medium">{friend.stats.secondPlaces}</div>
+                            </div>
+                            <div className="flex-1 bg-gradient-to-br from-orange-600/20 to-orange-700/10 rounded-lg p-2 border border-orange-500/30">
+                              <div className="text-orange-400 text-lg font-bold">🥉</div>
+                              <div className="text-white text-sm font-medium">{friend.stats.thirdPlaces}</div>
+                            </div>
+                          </div>
+
+                          {/* Last Race */}
+                          {friend.stats.lastRaceAt && (
+                            <div className="text-gray-400 text-xs text-center">
+                              Última carrera: {new Date(friend.stats.lastRaceAt).toLocaleDateString('es-CL')}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mb-4 text-center py-6 text-gray-500 text-sm">
+                          Sin estadísticas disponibles
+                        </div>
+                      )}
+
+                      {/* Remove Button */}
                       <button
                         onClick={() => handleRemoveFriend(friend.friendshipId)}
                         disabled={actionInProgress === friend.friendshipId}
