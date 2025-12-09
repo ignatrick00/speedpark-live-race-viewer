@@ -41,6 +41,7 @@ export default function EventoDetallePage() {
   });
   const [applyingSanction, setApplyingSanction] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [availablePilots, setAvailablePilots] = useState<any[]>([]);
 
   useEffect(() => {
     if (token && params.id) {
@@ -50,17 +51,20 @@ export default function EventoDetallePage() {
 
   // Load sanctions and results when event has a linked race
   useEffect(() => {
-    if (event && event.linkedRaceSessionId && event.raceStatus !== 'pending') {
+    if (token && event && event.linkedRaceSessionId && event.raceStatus !== 'pending') {
       fetchSanctions();
       // Load calculated results to show preview
       loadCalculatedResults();
+      // Load available pilots for sanctions
+      loadAvailablePilots();
     }
-  }, [event?.linkedRaceSessionId, event?.raceStatus]);
+  }, [token, event?.linkedRaceSessionId, event?.raceStatus]);
 
   const loadCalculatedResults = async () => {
     if (!event?.linkedRaceSessionId) return;
 
     try {
+      console.log('🔄 [FRONTEND] Cargando resultados calculados...');
       const response = await fetch(`/api/squadron-events/${params.id}/calculate-points`, {
         method: 'POST',
         headers: {
@@ -70,12 +74,50 @@ export default function EventoDetallePage() {
         body: JSON.stringify({ raceSessionId: event.linkedRaceSessionId })
       });
 
+      console.log('📡 [FRONTEND] Response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ [FRONTEND] Datos recibidos:', data);
+        console.log('📊 [FRONTEND] Results object:', data.results);
+        console.log('🏆 [FRONTEND] Squadrons:', data.results?.squadrons);
         setCalculatedResults(data.results);
+        console.log('💾 [FRONTEND] State actualizado');
+      } else {
+        const errorData = await response.json();
+        console.error('❌ [FRONTEND] Error response:', errorData);
       }
     } catch (error) {
-      console.error('Error loading calculated results:', error);
+      console.error('💥 [FRONTEND] Error loading calculated results:', error);
+    }
+  };
+
+  const loadAvailablePilots = async () => {
+    if (!event?.linkedRaceSessionId) {
+      console.log('⚠️ [FRONTEND] No hay linkedRaceSessionId, no se pueden cargar pilotos');
+      return;
+    }
+
+    try {
+      console.log('👥 [FRONTEND] Cargando pilotos para carrera:', event.linkedRaceSessionId);
+      const response = await fetch(`/api/race-sessions/${event.linkedRaceSessionId}/pilots-with-squadron`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('📡 [FRONTEND] Pilots response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ [FRONTEND] Pilotos recibidos:', data);
+        console.log('👥 [FRONTEND] Cantidad de pilotos:', data.pilots?.length || 0);
+        setAvailablePilots(data.pilots || []);
+      } else {
+        console.error('❌ [FRONTEND] Error al cargar pilotos, status:', response.status);
+      }
+    } catch (error) {
+      console.error('💥 [FRONTEND] Error loading available pilots:', error);
     }
   };
 
@@ -89,6 +131,12 @@ export default function EventoDetallePage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('📋 [FRONTEND] Evento cargado:', {
+          id: data.event._id,
+          name: data.event.name,
+          linkedRaceSessionId: data.event.linkedRaceSessionId,
+          raceStatus: data.event.raceStatus
+        });
         setEvent(data.event);
       }
     } catch (error) {
@@ -197,18 +245,26 @@ export default function EventoDetallePage() {
 
   const fetchSanctions = async () => {
     try {
+      console.log('🔍 [FRONTEND] Cargando sanciones...');
       const response = await fetch(`/api/squadron-events/${params.id}/sanctions`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
+      console.log('📡 [FRONTEND] Sanctions response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ [FRONTEND] Sanciones recibidas:', data);
+        console.log('📋 [FRONTEND] Array de sanciones:', data.sanctions);
+        console.log('🔢 [FRONTEND] Cantidad de sanciones:', data.sanctions?.length || 0);
         setSanctions(data.sanctions || []);
+      } else {
+        console.error('❌ [FRONTEND] Error al cargar sanciones, status:', response.status);
       }
     } catch (error) {
-      console.error('Error fetching sanctions:', error);
+      console.error('💥 [FRONTEND] Error fetching sanctions:', error);
     }
   };
 
@@ -241,8 +297,8 @@ export default function EventoDetallePage() {
         });
 
         // Reload sanctions list and recalculate points
-        fetchSanctions();
-        loadCalculatedResults();
+        await fetchSanctions();
+        await loadCalculatedResults();
       } else {
         const error = await response.json();
         alert(error.error || 'Error al aplicar sanción');
@@ -269,8 +325,8 @@ export default function EventoDetallePage() {
       if (response.ok) {
         alert('Sanción eliminada');
         // Reload sanctions list and recalculate points
-        fetchSanctions();
-        loadCalculatedResults();
+        await fetchSanctions();
+        await loadCalculatedResults();
       } else {
         const error = await response.json();
         alert(error.error || 'Error al eliminar sanción');
@@ -510,14 +566,31 @@ export default function EventoDetallePage() {
                   </div>
                 </div>
 
-                <p className="text-gray-400 text-sm mb-6">
-                  Carrera ID: {event.linkedRaceSessionId}
-                </p>
+                <div className="flex items-center justify-between mb-6">
+                  <p className="text-gray-400 text-sm">
+                    Carrera ID: {event.linkedRaceSessionId}
+                  </p>
+                  {event.raceStatus === 'in_review' && (
+                    <button
+                      onClick={() => loadCalculatedResults()}
+                      className="px-4 py-2 bg-electric-blue/20 text-electric-blue border border-electric-blue/50 rounded-lg text-sm font-bold hover:bg-electric-blue/30 transition-all"
+                    >
+                      🔄 Recargar Preview
+                    </button>
+                  )}
+                </div>
 
                 {/* Points Preview */}
                 {calculatedResults && (
                   <div className="mb-6 space-y-3">
-                    <h3 className="text-lg font-bold text-white mb-4">📊 Preview de Puntos</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-white">📊 Preview de Puntos</h3>
+                      {calculatedResults.sanctionsApplied > 0 && (
+                        <span className="px-3 py-1 bg-yellow-600/20 text-yellow-400 text-xs font-bold rounded-full border border-yellow-600/50">
+                          ⚠️ {calculatedResults.sanctionsApplied} sanción(es) aplicada(s)
+                        </span>
+                      )}
+                    </div>
                     {calculatedResults.squadrons.map((squadron: any, index: number) => (
                       <div
                         key={squadron.squadronId}
@@ -546,14 +619,32 @@ export default function EventoDetallePage() {
                         <div className="border-t border-slate-700 pt-3 mt-3">
                           <p className="text-xs text-gray-400 mb-2">Pilotos participantes:</p>
                           <div className="grid grid-cols-2 gap-2">
-                            {squadron.pilots.map((pilot: any) => (
-                              <div key={pilot.webUserId} className="text-sm">
-                                <span className="text-white">{pilot.driverName}</span>
-                                <span className="text-gray-400 ml-2">
-                                  {pilot.finalPosition}° • {pilot.individualPoints} pts
-                                </span>
-                              </div>
-                            ))}
+                            {squadron.pilots.map((pilot: any) => {
+                              const hasSanction = sanctions.some(
+                                (s: any) => s.driverName.toLowerCase() === pilot.driverName.toLowerCase()
+                              );
+                              const sanctionData = hasSanction
+                                ? sanctions.find((s: any) => s.driverName.toLowerCase() === pilot.driverName.toLowerCase())
+                                : null;
+
+                              return (
+                                <div key={pilot.webUserId} className={`text-sm p-2 rounded ${hasSanction ? 'bg-yellow-600/10 border border-yellow-600/30' : ''}`}>
+                                  <span className="text-white">{pilot.driverName}</span>
+                                  <span className="text-gray-400 ml-2">
+                                    {pilot.finalPosition}° • {pilot.individualPoints} pts
+                                  </span>
+                                  {hasSanction && sanctionData && (
+                                    <div className="text-xs text-yellow-400 mt-1">
+                                      ⚠️ {sanctionData.sanctionType === 'position_penalty'
+                                        ? `+${sanctionData.positionPenalty} pos`
+                                        : sanctionData.sanctionType === 'disqualification'
+                                        ? 'DSQ'
+                                        : sanctionData.sanctionType}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -589,14 +680,28 @@ export default function EventoDetallePage() {
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div>
-                            <label className="block text-sm text-gray-400 mb-2">Nombre del Piloto *</label>
-                            <input
-                              type="text"
+                            <label className="block text-sm text-gray-400 mb-2">Piloto *</label>
+                            <select
                               value={sanctionForm.driverName}
                               onChange={(e) => setSanctionForm({...sanctionForm, driverName: e.target.value})}
                               className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
-                              placeholder="Nombre exacto del piloto"
-                            />
+                            >
+                              <option value="">Seleccionar piloto...</option>
+                              {(() => {
+                                console.log('🎨 [RENDER] availablePilots al renderizar dropdown:', availablePilots);
+                                console.log('🎨 [RENDER] Cantidad:', availablePilots.length);
+                                return availablePilots.map((pilot: any) => (
+                                  <option key={pilot.driverName} value={pilot.driverName}>
+                                    P{pilot.position} - {pilot.driverName} [{pilot.squadronTag}]
+                                  </option>
+                                ));
+                              })()}
+                            </select>
+                            {availablePilots.length === 0 && (
+                              <p className="text-xs text-yellow-500 mt-1">
+                                ⚠️ No hay pilotos vinculados a escuderías en esta carrera
+                              </p>
+                            )}
                           </div>
 
                           <div>

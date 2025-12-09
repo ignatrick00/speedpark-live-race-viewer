@@ -5,6 +5,7 @@ import RaceSessionV0 from '@/models/RaceSessionV0';
 import Squadron from '@/models/Squadron';
 import SquadronEvent from '@/models/SquadronEvent';
 import WebUser from '@/models/WebUser';
+import RaceSanction from '@/models/RaceSanction';
 
 // POST - Calcular puntos basado en una carrera seleccionada
 export async function POST(
@@ -79,94 +80,90 @@ export async function POST(
     };
 
     // APLICAR SANCIONES SI EXISTEN
-    const adjustedDrivers = [...raceSession.drivers];
-    const sanctions = event.sanctions || [];
-    const adjustedResults: Array<{
-      driverName: string;
-      webUserId?: string;
+    // Buscar sanciones desde RaceSanction collection (fuente de verdad)
+    const mongoose = require('mongoose');
+    const eventObjectId = new mongoose.Types.ObjectId(params.id);
+    const sanctionsFromDB = await RaceSanction.find({ eventId: eventObjectId }).lean();
+
+    console.log(`🔍 Sanciones encontradas en RaceSanction: ${sanctionsFromDB.length}`);
+    console.log(`🔍 Sanciones en event.sanctions: ${event.sanctions?.length || 0}`);
+
+    const sanctions = sanctionsFromDB;
+
+    console.log(`🔍 Sanciones a aplicar: ${sanctions.length}`);
+
+    // Crear mapa de posiciones ajustadas por nombre de piloto
+    const positionAdjustments = new Map<string, {
       originalPosition: number;
       adjustedPosition: number;
       sanctionApplied: boolean;
-    }> = [];
+    }>();
+
+    // Inicializar todas las posiciones originales
+    for (const driver of raceSession.drivers) {
+      positionAdjustments.set(driver.driverName.toLowerCase(), {
+        originalPosition: driver.finalPosition,
+        adjustedPosition: driver.finalPosition,
+        sanctionApplied: false
+      });
+    }
 
     if (sanctions.length > 0) {
       console.log(`\n⚠️  Aplicando ${sanctions.length} sanción(es)...`);
 
-      // Aplicar penalizaciones de posición
+      // Primero, aplicar todas las penalizaciones
       for (const sanction of sanctions) {
+        const driverKey = sanction.driverName.toLowerCase();
+        const adjustment = positionAdjustments.get(driverKey);
+
+        if (!adjustment) {
+          console.log(`   ⚠️ Piloto no encontrado: ${sanction.driverName}`);
+          continue;
+        }
+
         if (sanction.sanctionType === 'position_penalty' && sanction.positionPenalty) {
-          const driverIndex = adjustedDrivers.findIndex(
-            (d: any) => d.driverName.toLowerCase() === sanction.driverName.toLowerCase()
-          );
+          const originalPos = adjustment.originalPosition;
+          const newPos = originalPos + sanction.positionPenalty;
 
-          if (driverIndex !== -1) {
-            const driver = adjustedDrivers[driverIndex];
-            const originalPosition = driver.finalPosition;
-            const newPosition = originalPosition + sanction.positionPenalty;
+          adjustment.adjustedPosition = newPos;
+          adjustment.sanctionApplied = true;
 
-            console.log(`   ${sanction.driverName}: ${originalPosition}° → ${newPosition}° (+${sanction.positionPenalty} posiciones)`);
+          console.log(`   ${sanction.driverName}: ${originalPos}° → ${newPos}° (+${sanction.positionPenalty} posiciones)`);
+        } else if (sanction.sanctionType === 'disqualification') {
+          const originalPos = adjustment.originalPosition;
+          const lastPosition = raceSession.drivers.length;
 
-            // Actualizar posición del piloto sancionado
-            adjustedDrivers[driverIndex] = {
-              ...driver,
-              finalPosition: newPosition
-            };
+          adjustment.adjustedPosition = lastPosition;
+          adjustment.sanctionApplied = true;
 
-            // Recalcular posiciones de otros pilotos afectados
-            for (let i = 0; i < adjustedDrivers.length; i++) {
-              if (i !== driverIndex) {
-                const otherDriver = adjustedDrivers[i];
-                const otherOriginalPos = raceSession.drivers[i].finalPosition;
+          console.log(`   ${sanction.driverName}: DESCALIFICADO (${originalPos}° → ${lastPosition}°)`);
+        }
+      }
 
-                // Si el piloto estaba después del sancionado, sube una posición
-                if (otherOriginalPos > originalPosition && otherOriginalPos <= newPosition) {
-                  adjustedDrivers[i] = {
-                    ...otherDriver,
-                    finalPosition: otherOriginalPos - 1
-                  };
-                }
+      // Ahora, ajustar las posiciones de los pilotos que suben
+      for (const sanction of sanctions) {
+        if (sanction.sanctionType === 'position_penalty' || sanction.sanctionType === 'disqualification') {
+          const sanctionedKey = sanction.driverName.toLowerCase();
+          const sanctionedAdj = positionAdjustments.get(sanctionedKey);
+
+          if (!sanctionedAdj) continue;
+
+          const originalPos = sanctionedAdj.originalPosition;
+          const newPos = sanctionedAdj.adjustedPosition;
+
+          // Todos los pilotos entre originalPos y newPos suben una posición
+          for (const [driverKey, adj] of positionAdjustments) {
+            if (driverKey !== sanctionedKey && !adj.sanctionApplied) {
+              if (adj.originalPosition > originalPos && adj.originalPosition <= newPos) {
+                adj.adjustedPosition = adj.originalPosition - 1;
+                console.log(`   ${driverKey}: ${adj.originalPosition}° → ${adj.adjustedPosition}° (beneficiado por sanción)`);
               }
             }
-          }
-        } else if (sanction.sanctionType === 'disqualification') {
-          // Descalificado = última posición
-          const driverIndex = adjustedDrivers.findIndex(
-            (d: any) => d.driverName.toLowerCase() === sanction.driverName.toLowerCase()
-          );
-
-          if (driverIndex !== -1) {
-            const driver = adjustedDrivers[driverIndex];
-            const originalPosition = driver.finalPosition;
-            const lastPosition = adjustedDrivers.length;
-
-            console.log(`   ${sanction.driverName}: DESCALIFICADO (${originalPosition}° → ${lastPosition}°)`);
-
-            adjustedDrivers[driverIndex] = {
-              ...driver,
-              finalPosition: lastPosition
-            };
           }
         }
       }
 
-      // Guardar resultados ajustados
-      for (let i = 0; i < adjustedDrivers.length; i++) {
-        const adjustedDriver = adjustedDrivers[i];
-        const originalDriver = raceSession.drivers[i];
-        const hasSanction = sanctions.some(
-          (s: any) => s.driverName.toLowerCase() === adjustedDriver.driverName.toLowerCase()
-        );
-
-        adjustedResults.push({
-          driverName: adjustedDriver.driverName,
-          webUserId: undefined, // Se llenará después
-          originalPosition: originalDriver.finalPosition,
-          adjustedPosition: adjustedDriver.finalPosition,
-          sanctionApplied: hasSanction
-        });
-      }
-
-      event.adjustedResults = adjustedResults as any;
+      console.log(`\n📋 Resultados ajustados calculados`);
     } else {
       console.log(`\n✅ No hay sanciones aplicadas, usando posiciones originales`);
     }
@@ -185,11 +182,9 @@ export async function POST(
       }>;
     }>();
 
-    // Procesar cada piloto de la carrera (usar posiciones ajustadas si hay sanciones)
-    const driversToProcess = sanctions.length > 0 ? adjustedDrivers : raceSession.drivers;
-
-    for (const driver of driversToProcess) {
-      // 🔗 NUEVO: Buscar webUserId desde WebUser (SINGLE SOURCE OF TRUTH)
+    // Procesar cada piloto de la carrera con posiciones ajustadas
+    for (const driver of raceSession.drivers) {
+      // 🔗 Buscar webUserId desde WebUser (SINGLE SOURCE OF TRUTH)
       const webUser = await WebUser.findOne({
         'kartingLink.status': 'linked',
         'kartingLink.driverName': { $regex: new RegExp(`^${driver.driverName}$`, 'i') }
@@ -202,16 +197,6 @@ export async function POST(
 
       const webUserId = webUser._id.toString();
 
-      // Actualizar adjustedResults con webUserId
-      if (sanctions.length > 0) {
-        const resultIndex = adjustedResults.findIndex(
-          (r: any) => r.driverName.toLowerCase() === driver.driverName.toLowerCase()
-        );
-        if (resultIndex !== -1) {
-          adjustedResults[resultIndex].webUserId = webUserId;
-        }
-      }
-
       // Buscar la escudería del piloto
       const squadron = await Squadron.findOne({
         members: webUserId,
@@ -223,7 +208,10 @@ export async function POST(
         continue;
       }
 
-      const individualPoints = getIndividualPoints(driver.finalPosition);
+      // Obtener posición ajustada del mapa
+      const adjustment = positionAdjustments.get(driver.driverName.toLowerCase());
+      const finalPosition = adjustment ? adjustment.adjustedPosition : driver.finalPosition;
+      const individualPoints = getIndividualPoints(finalPosition);
 
       if (!squadronMap.has(squadron._id.toString())) {
         squadronMap.set(squadron._id.toString(), {
@@ -239,15 +227,51 @@ export async function POST(
       squadronData.pilots.push({
         webUserId: webUserId,
         driverName: driver.driverName,
-        finalPosition: driver.finalPosition,
+        finalPosition: finalPosition,
         individualPoints,
         kartNumber: driver.kartNumber
       });
 
-      const positionLabel = sanctions.length > 0
-        ? `${driver.finalPosition}° (ajustado)`
-        : `${driver.finalPosition}°`;
+      const positionLabel = adjustment && adjustment.sanctionApplied
+        ? `${finalPosition}° (sancionado: ${adjustment.originalPosition}° → ${finalPosition}°)`
+        : adjustment && adjustment.adjustedPosition !== adjustment.originalPosition
+        ? `${finalPosition}° (beneficiado: ${adjustment.originalPosition}° → ${finalPosition}°)`
+        : `${finalPosition}°`;
       console.log(`✅ ${driver.driverName} (${positionLabel}) → ${squadron.name} (+${individualPoints} pts)`);
+    }
+
+    // Guardar resultados ajustados en el evento
+    let adjustedResults: Array<{
+      driverName: string;
+      webUserId: string;
+      originalPosition: number;
+      adjustedPosition: number;
+      sanctionApplied: boolean;
+    }> = [];
+
+    if (sanctions.length > 0) {
+
+      for (const driver of raceSession.drivers) {
+        const webUser = await WebUser.findOne({
+          'kartingLink.status': 'linked',
+          'kartingLink.driverName': { $regex: new RegExp(`^${driver.driverName}$`, 'i') }
+        }).select('_id');
+
+        if (webUser) {
+          const adjustment = positionAdjustments.get(driver.driverName.toLowerCase());
+          if (adjustment) {
+            adjustedResults.push({
+              driverName: driver.driverName,
+              webUserId: webUser._id.toString(),
+              originalPosition: adjustment.originalPosition,
+              adjustedPosition: adjustment.adjustedPosition,
+              sanctionApplied: adjustment.sanctionApplied
+            });
+          }
+        }
+      }
+
+      event.adjustedResults = adjustedResults as any;
     }
 
     // Convertir a array y ordenar por puntos totales

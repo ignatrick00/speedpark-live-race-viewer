@@ -104,7 +104,7 @@ export async function POST(
 
     const webUserId = webUser._id.toString();
 
-    // Crear la sanción
+    // Crear la sanción en RaceSanction collection (fuente de verdad única)
     const sanction = await RaceSanction.create({
       eventId: event._id,
       raceSessionId: event.linkedRaceSessionId,
@@ -118,25 +118,8 @@ export async function POST(
       appliedAt: new Date()
     });
 
-    // Agregar la sanción al evento
-    if (!event.sanctions) {
-      event.sanctions = [];
-    }
-
-    event.sanctions.push({
-      driverName,
-      webUserId,
-      sanctionType,
-      description,
-      positionPenalty,
-      pointsPenalty,
-      appliedBy: userId,
-      appliedAt: new Date()
-    } as any);
-
-    await event.save();
-
-    console.log(`⚠️  Sanción aplicada: ${driverName} - ${sanctionType} - ${description}`);
+    console.log(`⚠️  Sanción creada en RaceSanction: ${driverName} - ${sanctionType} - ${description}`);
+    console.log(`📌 ID de sanción: ${sanction._id}`);
     console.log(`📌 Notificación NO enviada (se enviará al finalizar resultados)`);
 
     // NOTA: Las notificaciones se envían cuando se finaliza el evento (raceStatus = 'finalized')
@@ -173,9 +156,24 @@ export async function GET(
   try {
     await connectDB();
 
-    const sanctions = await RaceSanction.find({ eventId: params.id })
+    console.log(`🔍 [SANCTIONS GET] Buscando sanciones para evento: ${params.id}`);
+
+    // Importar mongoose para usar Types.ObjectId
+    const mongoose = require('mongoose');
+    const eventObjectId = new mongoose.Types.ObjectId(params.id);
+
+    const sanctions = await RaceSanction.find({ eventId: eventObjectId })
       .populate('appliedBy', 'email profile')
       .sort({ appliedAt: -1 });
+
+    console.log(`📊 [SANCTIONS GET] Encontradas ${sanctions.length} sanciones`);
+    if (sanctions.length > 0) {
+      console.log(`📋 [SANCTIONS GET] Primera sanción:`, {
+        driverName: sanctions[0].driverName,
+        sanctionType: sanctions[0].sanctionType,
+        positionPenalty: sanctions[0].positionPenalty
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -242,22 +240,13 @@ export async function DELETE(
       );
     }
 
-    // Eliminar de RaceSanction
+    // Eliminar de RaceSanction (fuente de verdad única)
     const sanction = await RaceSanction.findByIdAndDelete(sanctionId);
     if (!sanction) {
       return NextResponse.json({ error: 'Sanción no encontrada' }, { status: 404 });
     }
 
-    // Eliminar del evento
-    const event = await SquadronEvent.findById(params.id);
-    if (event && event.sanctions) {
-      event.sanctions = event.sanctions.filter(
-        (s: any) => s.driverName !== sanction.driverName || s.appliedAt.getTime() !== sanction.appliedAt.getTime()
-      );
-      await event.save();
-    }
-
-    console.log(`🗑️  Sanción eliminada: ${sanction.driverName} - ${sanction.sanctionType}`);
+    console.log(`🗑️  Sanción eliminada de RaceSanction: ${sanction.driverName} - ${sanction.sanctionType}`);
 
     return NextResponse.json({
       success: true,
