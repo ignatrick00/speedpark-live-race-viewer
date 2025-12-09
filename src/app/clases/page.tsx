@@ -1008,7 +1008,43 @@ export default function ClasesPage() {
                             
                             {/* Reservation Panel */}
                             <div className="sm:ml-6 w-full sm:w-auto">
-                              {slotStatus.status !== 'occupied' && (
+                              {/* Check if user is already enrolled in this group class */}
+                              {user && bloque.groupBookings?.some(b => b.studentName === `${user.profile.firstName} ${user.profile.lastName}`) ? (
+                                <div className="bg-green-900/20 border border-green-400/30 rounded-lg p-4 w-full sm:w-[240px]">
+                                  <div className="text-center mb-4">
+                                    <div className="text-3xl mb-2">✅</div>
+                                    <p className="text-green-400 font-bold text-sm">INSCRITO</p>
+                                    <p className="text-green-300/70 text-xs mt-1">Ya estás en esta clase grupal</p>
+                                  </div>
+                                  {/* Invite button */}
+                                  {(() => {
+                                    const spotsLeft = bloque.maxGroupCapacity - bloque.groupBookings.length;
+                                    return spotsLeft > 0 ? (
+                                      <button
+                                        onClick={() => {
+                                          setSelectedClassForInvite(bloque)
+                                          setShowInvitationModal(true)
+                                        }}
+                                        className="w-full px-4 py-2 bg-cyan-400/20 border border-cyan-400/50 text-cyan-400 rounded-lg hover:bg-cyan-400/30 transition-all font-medium text-sm"
+                                      >
+                                        ✉️ Invitar Amigos ({spotsLeft} {spotsLeft === 1 ? 'cupo' : 'cupos'})
+                                      </button>
+                                    ) : (
+                                      <div className="text-center text-xs text-orange-400">
+                                        🔥 Clase llena - Sin cupos disponibles
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              ) : slotStatus.status === 'occupied' ? (
+                                <div className="bg-red-900/20 border border-red-400/30 rounded-lg p-4 w-full sm:w-[240px]">
+                                  <div className="text-center">
+                                    <div className="text-3xl mb-2">🔒</div>
+                                    <p className="text-red-400 font-medium text-sm">Clase Reservada</p>
+                                    <p className="text-red-300/70 text-xs mt-1">Este slot ya no está disponible</p>
+                                  </div>
+                                </div>
+                              ) : (
                                 <div className="bg-blue-900/30 border border-blue-400/20 rounded-lg p-4 w-full sm:w-[240px]">
                                   {/* Mode Switch */}
                                   <div className="flex bg-blue-800/30 rounded-lg p-1 mb-3">
@@ -1033,12 +1069,12 @@ export default function ClasesPage() {
                                       👥 Grupal
                                     </button>
                                   </div>
-                                  
+
                                   {/* Price */}
                                   <div className="text-xl font-bold text-cyan-400 mb-2">
                                     {formatPrice(getPrice(bloque, getBloqueReservationMode(bloque.id)))}
                                   </div>
-                                  
+
                                   {/* Additional info */}
                                   <div className="text-xs text-blue-300 mb-3">
                                     {getBloqueReservationMode(bloque.id) === 'individual' ? (
