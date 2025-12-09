@@ -271,7 +271,7 @@ export default function UserProfilePage() {
 
             {/* Progress Chart */}
             {personalStats.monthlyProgression && personalStats.monthlyProgression.length > 0 && (
-              <ProgressChart data={personalStats.monthlyProgression} />
+              <ProgressChart monthlyData={personalStats.monthlyProgression} />
             )}
 
             {/* Race History */}
