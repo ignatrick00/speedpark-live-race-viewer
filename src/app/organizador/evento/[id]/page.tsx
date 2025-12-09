@@ -13,6 +13,7 @@ export default function EventoDetallePage() {
   const { token } = useAuth();
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showRaceSearchModal, setShowRaceSearchModal] = useState(false);
 
   useEffect(() => {
     if (token && params.id) {
@@ -194,7 +195,7 @@ export default function EventoDetallePage() {
           )}
 
           {/* Actions */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap">
             {event.status === 'draft' && (
               <button
                 onClick={async () => {
@@ -222,6 +223,16 @@ export default function EventoDetallePage() {
                 📢 Publicar Evento
               </button>
             )}
+
+            {event.status === 'completed' && (
+              <button
+                onClick={() => setShowRaceSearchModal(true)}
+                className="px-6 py-3 bg-electric-blue text-black rounded-xl font-bold hover:bg-cyan-300 transition-all"
+              >
+                🔍 Buscar Carrera
+              </button>
+            )}
+
             <button
               onClick={() => router.push(`/organizador/evento/${event._id}/editar`)}
               className="px-6 py-3 bg-purple-500 text-white rounded-xl font-bold hover:bg-purple-600 transition-all"
@@ -256,6 +267,31 @@ export default function EventoDetallePage() {
             </button>
           </div>
         </div>
+
+        {/* Race Search Modal - Placeholder */}
+        {showRaceSearchModal && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-900 border border-electric-blue/30 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-slate-700">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-racing text-electric-blue">🔍 Buscar Carrera</h2>
+                  <button
+                    onClick={() => setShowRaceSearchModal(false)}
+                    className="text-gray-400 hover:text-white text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <p className="text-gray-400 text-center py-12">
+                  Modal de búsqueda de carreras en desarrollo...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </OrganizerGuard>
   );
