@@ -183,7 +183,13 @@ export default function ClasesPage() {
           const data = await response.json()
 
           // Transform API data to match existing format
-          const transformedBloques: ClaseBloque[] = data.slots.map((slot: any) => {
+          // Filter out user's own classes (if they are a coach, don't show their own availability)
+          const filteredSlots = data.slots.filter((slot: any) => {
+            const coachId = typeof slot.coachId === 'string' ? slot.coachId : slot.coachId
+            return user?.id !== coachId // Don't show user's own classes
+          })
+
+          const transformedBloques: ClaseBloque[] = filteredSlots.map((slot: any) => {
             return {
               id: slot.existingClassId || `slot-${slot.date}-${slot.startTime}`,
               instructorId: typeof slot.coachId === 'string' ? slot.coachId : slot.coachId,
@@ -209,9 +215,9 @@ export default function ClasesPage() {
 
           setBloques(transformedBloques)
 
-          // Extract unique instructors from slots
+          // Extract unique instructors from filtered slots (excluding user's own classes)
           const uniqueInstructors = new Map<string, Instructor>()
-          data.slots.forEach((slot: any) => {
+          filteredSlots.forEach((slot: any) => {
             const coachId = typeof slot.coachId === 'string' ? slot.coachId : slot.coachId
             if (!uniqueInstructors.has(coachId)) {
               uniqueInstructors.set(coachId, {
