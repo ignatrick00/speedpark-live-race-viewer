@@ -473,14 +473,22 @@ export default function AmigosPage() {
                         </div>
                       )}
 
-                      {/* Remove Button */}
-                      <button
-                        onClick={() => handleRemoveFriend(friend.friendshipId)}
-                        disabled={actionInProgress === friend.friendshipId}
-                        className="w-full px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm"
-                      >
-                        {actionInProgress === friend.friendshipId ? '⏳' : '🗑️ Eliminar'}
-                      </button>
+                      {/* Action Buttons */}
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => router.push(`/perfil/${friend.userId}`)}
+                          className="w-full px-4 py-2 bg-cyan-400/20 text-cyan-400 border border-cyan-400/50 rounded-lg hover:bg-cyan-400/30 transition-all font-medium text-sm"
+                        >
+                          📊 Ver Estadísticas Completas
+                        </button>
+                        <button
+                          onClick={() => handleRemoveFriend(friend.friendshipId)}
+                          disabled={actionInProgress === friend.friendshipId}
+                          className="w-full px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm"
+                        >
+                          {actionInProgress === friend.friendshipId ? '⏳' : '🗑️ Eliminar'}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
