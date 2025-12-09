@@ -369,12 +369,12 @@ export async function POST(request: NextRequest) {
         console.log(`✅ WebUser ${webUserId} unlinked from driver`);
       }
 
-      // 3️⃣ Remover linking de race_sessions_v0 (usando operación directa en MongoDB)
-      // Usar colección nativa de MongoDB (bypass Mongoose para evitar problemas de caché)
+      // 3️⃣ Remover linking de race_sessions_v0 para TODOS los pilotos de este usuario
+      // No solo el driverName específico, sino todos los que tengan este linkedUserId
       const collection = RaceSessionV0.collection;
 
       const updateResult = await collection.updateMany(
-        { 'drivers.driverName': driverName },
+        { 'drivers.linkedUserId': webUserId },
         {
           $unset: {
             'drivers.$[elem].linkedUserId': '',
@@ -382,9 +382,11 @@ export async function POST(request: NextRequest) {
           }
         },
         {
-          arrayFilters: [{ 'elem.driverName': driverName }]
+          arrayFilters: [{ 'elem.linkedUserId': webUserId }]
         }
       );
+
+      console.log(`✅ Removed linkedUserId from ${updateResult.modifiedCount} sessions for all driver names`);
 
       // 4️⃣ También remover de LapRecord (compatibilidad)
       await LapRecord.updateMany(
