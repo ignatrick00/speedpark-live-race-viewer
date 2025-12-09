@@ -15,6 +15,20 @@ export default function EventoDetallePage() {
   const [loading, setLoading] = useState(true);
   const [showRaceSearchModal, setShowRaceSearchModal] = useState(false);
 
+  // Race search states
+  const [races, setRaces] = useState<any[]>([]);
+  const [searchingRaces, setSearchingRaces] = useState(false);
+  const [searchFilters, setSearchFilters] = useState({
+    eventDate: '',
+    sessionType: '',
+    search: ''
+  });
+  const [selectedRace, setSelectedRace] = useState<any>(null);
+  const [raceDetails, setRaceDetails] = useState<any>(null);
+  const [loadingRaceDetails, setLoadingRaceDetails] = useState(false);
+  const [calculatedResults, setCalculatedResults] = useState<any>(null);
+  const [calculating, setCalculating] = useState(false);
+
   useEffect(() => {
     if (token && params.id) {
       fetchEvent();
@@ -37,6 +51,97 @@ export default function EventoDetallePage() {
       console.error('Error fetching event:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const searchRaces = async (dateToSearch?: string) => {
+    const searchDate = dateToSearch || searchFilters.eventDate;
+    if (!searchDate) return;
+
+    try {
+      setSearchingRaces(true);
+      const response = await fetch(`/api/races-v0?date=${searchDate}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          let filteredRaces = data.races || [];
+
+          // Apply filters
+          if (searchFilters.sessionType) {
+            filteredRaces = filteredRaces.filter((race: any) =>
+              race.sessionType === searchFilters.sessionType
+            );
+          }
+          if (searchFilters.search) {
+            filteredRaces = filteredRaces.filter((race: any) =>
+              race.sessionName.toLowerCase().includes(searchFilters.search.toLowerCase())
+            );
+          }
+
+          setRaces(filteredRaces);
+        }
+      }
+    } catch (error) {
+      console.error('Error searching races:', error);
+    } finally {
+      setSearchingRaces(false);
+    }
+  };
+
+  // Auto-search when date changes
+  useEffect(() => {
+    if (showRaceSearchModal && searchFilters.eventDate) {
+      searchRaces();
+    }
+  }, [searchFilters.eventDate, searchFilters.sessionType, searchFilters.search, showRaceSearchModal]);
+
+  const loadRaceDetails = async (raceSessionId: string) => {
+    try {
+      setLoadingRaceDetails(true);
+      const response = await fetch(`/api/race-results-v0?sessionId=${encodeURIComponent(raceSessionId)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setRaceDetails(data.race);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading race details:', error);
+    } finally {
+      setLoadingRaceDetails(false);
+    }
+  };
+
+  const calculatePoints = async (raceSessionId: string) => {
+    try {
+      setCalculating(true);
+      const response = await fetch(`/api/squadron-events/${params.id}/calculate-points`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ raceSessionId })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCalculatedResults(data.results);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Error al calcular puntos');
+      }
+    } catch (error) {
+      console.error('Error calculating points:', error);
+      alert('Error al calcular puntos');
+    } finally {
+      setCalculating(false);
     }
   };
 
@@ -283,9 +388,298 @@ export default function EventoDetallePage() {
               </div>
 
               <div className="p-6">
-                <p className="text-gray-400 text-center py-12">
-                  Modal de búsqueda de carreras en desarrollo...
-                </p>
+                {!selectedRace && !raceDetails && !calculatedResults && (
+                  <>
+                    {/* Search Filters */}
+                    <div className="mb-6">
+                      <label className="block text-sm text-gray-400 mb-2">📅 Fecha del Evento</label>
+                      <input
+                        type="date"
+                        value={searchFilters.eventDate}
+                        onChange={(e) => setSearchFilters({...searchFilters, eventDate: e.target.value})}
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                      />
+                    </div>
+
+                    {/* Optional Filters */}
+                    {searchFilters.eventDate && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-2">Tipo de Sesión (opcional)</label>
+                          <select
+                            value={searchFilters.sessionType}
+                            onChange={(e) => setSearchFilters({...searchFilters, sessionType: e.target.value})}
+                            className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                          >
+                            <option value="">Todos</option>
+                            <option value="carrera">Carrera</option>
+                            <option value="clasificacion">Clasificación</option>
+                            <option value="practica">Práctica</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-2">Buscar por nombre (opcional)</label>
+                          <input
+                            type="text"
+                            value={searchFilters.search}
+                            onChange={(e) => setSearchFilters({...searchFilters, search: e.target.value})}
+                            placeholder="Nombre de sesión..."
+                            className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Race Results */}
+                    {searchingRaces && (
+                      <div className="text-center py-12">
+                        <div className="w-12 h-12 border-4 border-electric-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-gray-400">Cargando carreras...</p>
+                      </div>
+                    )}
+
+                    {!searchingRaces && searchFilters.eventDate && races.length > 0 && (
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {races.map((race) => (
+                          <div
+                            key={race.sessionId}
+                            className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:border-electric-blue/50 transition-all cursor-pointer"
+                            onClick={() => {
+                              setSelectedRace(race);
+                              loadRaceDetails(race.sessionId);
+                            }}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <h3 className="text-white font-bold">{race.sessionName}</h3>
+                                <p className="text-sm text-gray-400">
+                                  {new Date(race.sessionDate).toLocaleDateString('es-CL', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                  })}
+                                </p>
+                              </div>
+                              <span className="px-3 py-1 bg-electric-blue/20 text-electric-blue text-xs font-bold rounded-full">
+                                {race.sessionType}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-sm">
+                              <div>
+                                <span className="text-gray-400">Pilotos:</span>
+                                <span className="text-white ml-2 font-bold">{race.totalDrivers}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-400">Vueltas:</span>
+                                <span className="text-white ml-2 font-bold">{race.totalLaps}</span>
+                              </div>
+                              <div className="text-right">
+                                <button className="text-electric-blue hover:text-cyan-300 font-bold">
+                                  Seleccionar →
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {!searchingRaces && !searchFilters.eventDate && (
+                      <div className="text-center py-12 text-gray-400">
+                        Selecciona una fecha para ver las carreras disponibles
+                      </div>
+                    )}
+
+                    {!searchingRaces && races.length === 0 && searchFilters.eventDate && (
+                      <div className="text-center py-12 text-gray-400">
+                        No se encontraron carreras para el {(() => {
+                          const [year, month, day] = searchFilters.eventDate.split('-').map(Number);
+                          const date = new Date(year, month - 1, day);
+                          return date.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+                        })()}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Loading race details */}
+                {loadingRaceDetails && (
+                  <div className="text-center py-12">
+                    <div className="w-12 h-12 border-4 border-electric-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-400">Cargando resultados de la carrera...</p>
+                  </div>
+                )}
+
+                {/* Race Details Preview */}
+                {raceDetails && !calculatedResults && !loadingRaceDetails && (
+                  <div>
+                    <div className="mb-4">
+                      <button
+                        onClick={() => {
+                          setRaceDetails(null);
+                          setSelectedRace(null);
+                        }}
+                        className="text-electric-blue hover:text-cyan-300 mb-4"
+                      >
+                        ← Volver a búsqueda
+                      </button>
+                      <h3 className="text-xl font-bold text-white mb-2">{selectedRace?.sessionName}</h3>
+                      <p className="text-gray-400 text-sm">
+                        {new Date(selectedRace?.sessionDate).toLocaleDateString('es-CL', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })} • {raceDetails.drivers?.length || 0} pilotos
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-800 rounded-lg p-4 mb-6 max-h-96 overflow-y-auto">
+                      <h4 className="text-sm font-bold text-gray-400 mb-3">Resultados de la Carrera</h4>
+                      <div className="space-y-2">
+                        {raceDetails.drivers?.map((driver: any, index: number) => (
+                          <div
+                            key={driver.webUserId || index}
+                            className="grid grid-cols-[60px_1fr_180px_140px] gap-3 items-center bg-slate-900/50 rounded p-3"
+                          >
+                            {/* Posición */}
+                            <div className="flex justify-center">
+                              <span className={`text-2xl font-bold ${
+                                driver.finalPosition === 1 ? 'text-yellow-400' :
+                                driver.finalPosition === 2 ? 'text-gray-300' :
+                                driver.finalPosition === 3 ? 'text-orange-400' :
+                                'text-gray-500'
+                              }`}>
+                                {driver.finalPosition === 1 ? '🥇' :
+                                 driver.finalPosition === 2 ? '🥈' :
+                                 driver.finalPosition === 3 ? '🥉' :
+                                 `${driver.finalPosition}°`}
+                              </span>
+                            </div>
+
+                            {/* Nombre y Tiempo */}
+                            <div>
+                              <p className="text-white font-bold">{driver.driverName}</p>
+                              <p className="text-xs text-gray-400">
+                                Mejor tiempo: {driver.bestTime ? `${(driver.bestTime / 1000).toFixed(3)}s` : 'N/A'}
+                              </p>
+                            </div>
+
+                            {/* Escudería */}
+                            <div>
+                              {driver.squadronName ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-purple-400">🏁</span>
+                                  <span className="text-purple-300 font-semibold">{driver.squadronName}</span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-500 text-sm italic">Sin escudería</span>
+                              )}
+                            </div>
+
+                            {/* Vueltas y Kart */}
+                            <div className="text-right">
+                              <p className="text-sm text-gray-400">{driver.totalLaps} vueltas</p>
+                              <p className="text-xs text-gray-500">Kart #{driver.kartNumber}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => calculatePoints(selectedRace.sessionId)}
+                      className="w-full px-6 py-3 bg-electric-blue text-black rounded-lg font-bold hover:bg-cyan-300 transition-all"
+                    >
+                      🏆 Calcular Puntos por Escudería
+                    </button>
+                  </div>
+                )}
+
+                {/* Calculating state */}
+                {calculating && (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 border-4 border-electric-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-white text-xl font-bold mb-2">Calculando puntos...</p>
+                    <p className="text-gray-400">Identificando escuderías y calculando resultados</p>
+                  </div>
+                )}
+
+                {/* Results preview */}
+                {calculatedResults && !calculating && (
+                  <div>
+                    <div className="mb-6">
+                      <h3 className="text-xl font-bold text-white mb-2">Resultados Calculados</h3>
+                      <p className="text-gray-400 text-sm">Carrera: {selectedRace?.sessionName}</p>
+                      <p className="text-gray-400 text-sm">Categoría: {event.category} - {EventCategoryConfig[event.category]?.points} pts base</p>
+                    </div>
+
+                    <div className="space-y-3 mb-6">
+                      {calculatedResults.squadrons.map((squadron: any, index: number) => (
+                        <div
+                          key={squadron.squadronId}
+                          className="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 rounded-lg p-4"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <span className="text-3xl">
+                                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}°`}
+                              </span>
+                              <div>
+                                <h4 className="text-white font-bold text-lg">{squadron.squadronName}</h4>
+                                <p className="text-sm text-gray-400">{squadron.pilots.length} pilotos</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-electric-blue">
+                                +{squadron.pointsAwarded.toLocaleString()} pts
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {squadron.percentageAwarded}% • {squadron.totalPoints} pts totales
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="border-t border-slate-700 pt-3 mt-3">
+                            <p className="text-xs text-gray-400 mb-2">Pilotos participantes:</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {squadron.pilots.map((pilot: any) => (
+                                <div key={pilot.webUserId} className="text-sm">
+                                  <span className="text-white">{pilot.driverName}</span>
+                                  <span className="text-gray-400 ml-2">
+                                    {pilot.finalPosition}° • {pilot.individualPoints} pts
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setCalculatedResults(null);
+                          setRaceDetails(null);
+                          setSelectedRace(null);
+                        }}
+                        className="flex-1 px-6 py-3 bg-slate-700 text-white rounded-lg font-bold hover:bg-slate-600 transition-all"
+                      >
+                        ← Buscar Otra Carrera
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!confirm('¿Confirmar y aplicar estos puntos a las escuderías?')) return;
+                          // TODO: Implement finalization
+                          alert('Funcionalidad de aplicar puntos en desarrollo');
+                        }}
+                        className="flex-1 px-6 py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-all"
+                      >
+                        ✅ Confirmar y Aplicar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

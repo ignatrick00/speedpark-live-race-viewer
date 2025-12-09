@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import RaceSessionV0 from '@/models/RaceSessionV0';
+import Squadron from '@/models/Squadron';
+import WebUser from '@/models/WebUser';
+import mongoose from 'mongoose';
+
+// Schema para buscar en la colección antigua
+const DriverRaceDataSchema = new mongoose.Schema({}, { strict: false, collection: 'driver_race_data' });
+const DriverRaceData = mongoose.models.DriverRaceData || mongoose.model('DriverRaceData', DriverRaceDataSchema);
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +43,72 @@ export async function GET(request: Request) {
 
     console.log(`📊 [RACE-RESULTS-V0] Found race with ${race.drivers.length} drivers`);
 
+    // Buscar escuderías para todos los pilotos
+    const driversWithSquadrons = await Promise.all(
+      race.drivers.map(async (driver) => {
+        let squadronName = null;
+        let userId = driver.linkedUserId || driver.webUserId; // Priorizar linkedUserId
+
+        // Si no tiene webUserId, intentar buscar por nombre o alias (case-insensitive)
+        if (!userId) {
+          // 1. Buscar en WebUser por alias o speedParkProfile
+          let webUser = await WebUser.findOne({
+            $or: [
+              { 'profile.alias': { $regex: new RegExp(`^${driver.driverName}$`, 'i') } },
+              { 'kartingLink.speedParkProfile.driverName': { $regex: new RegExp(`^${driver.driverName}$`, 'i') } },
+              { 'kartingLink.speedParkProfile.aliases': { $regex: new RegExp(`^${driver.driverName}$`, 'i') } }
+            ],
+            'kartingLink.status': 'linked'
+          }).select('_id').lean();
+
+          // 2. Si no se encuentra, buscar en driver_race_data (estructura antigua)
+          if (!webUser) {
+            const driverData = await DriverRaceData.findOne({
+              driverName: { $regex: new RegExp(`^${driver.driverName}$`, 'i') },
+              linkingStatus: 'linked',
+              webUserId: { $exists: true, $ne: null }
+            }).select('webUserId').lean();
+
+            if (driverData && driverData.webUserId) {
+              userId = driverData.webUserId;
+              console.log(`🔗 Found webUserId via driver_race_data for ${driver.driverName}: ${userId}`);
+            }
+          } else {
+            userId = webUser._id.toString();
+            console.log(`🔗 Found webUserId for ${driver.driverName}: ${userId}`);
+          }
+        }
+
+        if (userId) {
+          try {
+            // Convertir string a ObjectId
+            const userObjectId = new mongoose.Types.ObjectId(userId);
+
+            const squadron = await Squadron.findOne({
+              members: userObjectId,
+              isActive: true
+            }).select('name').lean();
+
+            if (squadron) {
+              squadronName = squadron.name;
+              console.log(`✅ Found squadron for ${driver.driverName}: ${squadronName}`);
+            } else {
+              console.log(`⚠️ No squadron found for ${driver.driverName} (userId: ${userId})`);
+            }
+          } catch (error) {
+            console.log(`❌ Error finding squadron for ${driver.driverName}:`, error);
+          }
+        } else {
+          console.log(`⚠️ Driver ${driver.driverName} - No webUserId and not found by name`);
+        }
+
+        return {
+          ...driver,
+          squadronName
+        };
+      })
+    );
+
     // Formatear datos para frontend
     const formattedRace = {
       sessionId: race.sessionId,
@@ -44,7 +117,7 @@ export async function GET(request: Request) {
       sessionType: race.sessionType,
       totalDrivers: race.totalDrivers,
       totalLaps: race.totalLaps,
-      drivers: race.drivers
+      drivers: driversWithSquadrons
         .map(driver => ({
           driverName: driver.driverName,
           finalPosition: driver.finalPosition,
@@ -54,6 +127,8 @@ export async function GET(request: Request) {
           lastTime: driver.lastTime,
           averageTime: driver.averageTime,
           gapToLeader: driver.gapToLeader,
+          squadronName: driver.squadronName,
+          webUserId: driver.webUserId,
           laps: driver.laps.map(lap => ({
             lapNumber: lap.lapNumber,
             time: lap.time,
