@@ -274,28 +274,26 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // Send notifications to all affected students
-    if (affectedStudents.length > 0) {
-      try {
-        const coachName = user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`;
-        await notificationService.notifyStudentsOfCancellation(
-          affectedStudents,
-          {
-            classId: trainingClass._id.toString(),
-            date: date,
-            startTime,
-            endTime,
-            coachName,
-          }
-        );
-      } catch (notifError) {
-        console.error('Error sending notifications:', notifError);
-        // Continue even if notification fails
-      }
-    }
-
-    // Now delete the class
+    // Now delete the class first (so deletion always works)
     await TrainingClass.findByIdAndDelete(trainingClass._id);
+
+    // Send notifications to all affected students (after deletion)
+    if (affectedStudents.length > 0) {
+      // Run notifications in background, don't await
+      const coachName = `${user.profile.firstName} ${user.profile.lastName}`;
+      notificationService.notifyStudentsOfCancellation(
+        affectedStudents,
+        {
+          classId: trainingClass._id.toString(),
+          date: date,
+          startTime,
+          endTime,
+          coachName,
+        }
+      ).catch(notifError => {
+        console.error('Error sending notifications:', notifError);
+      });
+    }
 
     return NextResponse.json({
       success: true,
