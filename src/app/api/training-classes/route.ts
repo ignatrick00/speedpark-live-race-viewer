@@ -87,7 +87,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.role !== 'coach') {
+    // Check if user is a coach (support both legacy 'role' and new 'roles' array)
+    const userRoles = (user as any).roles && Array.isArray((user as any).roles)
+      ? (user as any).roles
+      : ((user as any).role ? [(user as any).role] : ['user']);
+
+    const isCoach = userRoles.includes('coach');
+
+    if (!isCoach) {
       return NextResponse.json(
         { error: 'Only coaches can create training classes' },
         { status: 403 }
@@ -189,7 +196,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (user.role !== 'coach') {
+    // Check if user is a coach (support both legacy 'role' and new 'roles' array)
+    const userRoles = (user as any).roles && Array.isArray((user as any).roles)
+      ? (user as any).roles
+      : ((user as any).role ? [(user as any).role] : ['user']);
+
+    const isCoach = userRoles.includes('coach');
+
+    if (!isCoach) {
       return NextResponse.json(
         { error: 'Only coaches can delete training classes' },
         { status: 403 }
