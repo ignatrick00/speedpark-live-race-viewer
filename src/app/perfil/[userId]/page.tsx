@@ -145,14 +145,18 @@ export default function UserProfilePage() {
       firstRace: stats.firstRaceAt ? new Date(stats.firstRaceAt) : new Date(),
       lastRace: stats.lastRaceAt ? new Date(stats.lastRaceAt) : new Date(),
       monthlyProgression: stats.monthlyStats || [],
-      recentRaces: (stats.recentSessions || []).map((s: any) => ({
-        date: new Date(s.date),
-        sessionName: s.sessionName,
-        position: s.position,
-        kartNumber: s.kartNumber,
-        bestTime: s.bestTime,
-        totalLaps: s.totalLaps
-      }))
+      recentRaces: (stats.recentSessions || []).map((s: any) => {
+        console.log('🏁 [RACE-MAP] Raw race data:', s);
+        console.log('🏁 [RACE-MAP] Position field:', s.position, 'Type:', typeof s.position);
+        return {
+          date: new Date(s.date),
+          sessionName: s.sessionName,
+          position: s.position,
+          kartNumber: s.kartNumber,
+          bestTime: s.bestTime,
+          totalLaps: s.totalLaps
+        };
+      })
     };
   };
 
@@ -246,22 +250,114 @@ export default function UserProfilePage() {
           </button>
         </div>
 
-        {/* Stats Cards */}
-        {personalStats && (
-          <div className="space-y-8">
-            {/* Personal Stats */}
-            <PersonalStatsCard stats={personalStats} />
+        {/* Stats Summary Cards */}
+        {personalStats && personalStats.recentRaces && personalStats.recentRaces.length > 0 && (
+          <>
+            {/* Quick Stats Grid */}
+            {(() => {
+              const totalRaces = stats?.totalRaces || 0;
+              const avgLaps = stats?.totalLaps && totalRaces > 0
+                ? Math.round(stats.totalLaps / totalRaces)
+                : 0;
 
-            {/* Progress Chart */}
-            {personalStats.monthlyProgression && personalStats.monthlyProgression.length > 0 && (
-              <ProgressChart monthlyData={personalStats.monthlyProgression} />
-            )}
+              // Find favorite kart (most used)
+              const kartUsage: { [key: number]: number } = {};
+              personalStats.recentRaces.forEach((race: any) => {
+                kartUsage[race.kartNumber] = (kartUsage[race.kartNumber] || 0) + 1;
+              });
+              const favoriteKart = Object.entries(kartUsage).reduce((max, [kart, count]) =>
+                count > (max.count || 0) ? { kart: Number(kart), count } : max
+              , { kart: 0, count: 0 }).kart;
 
-            {/* Race History */}
-            {personalStats.recentRaces && personalStats.recentRaces.length > 0 && (
-              <RaceHistoryTable races={personalStats.recentRaces} />
-            )}
-          </div>
+              // Last race date
+              const lastRaceDate = stats?.lastRaceAt ? new Date(stats.lastRaceAt) : null;
+              const daysAgo = lastRaceDate
+                ? Math.floor((Date.now() - lastRaceDate.getTime()) / (1000 * 60 * 60 * 24))
+                : 0;
+              const lastRaceText = daysAgo === 0 ? 'Hoy' : daysAgo === 1 ? 'Ayer' : `Hace ${daysAgo} días`;
+
+              return (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  {/* Total Races */}
+                  <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-4 text-center">
+                    <div className="text-3xl font-bold text-electric-blue">{totalRaces}</div>
+                    <div className="text-sm text-sky-blue/60 mt-1">Carreras</div>
+                  </div>
+
+                  {/* Favorite Kart */}
+                  <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-4 text-center">
+                    <div className="text-3xl font-bold text-electric-blue">#{favoriteKart}</div>
+                    <div className="text-sm text-sky-blue/60 mt-1">Kart Favorito</div>
+                  </div>
+
+                  {/* Avg Laps */}
+                  <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-4 text-center">
+                    <div className="text-3xl font-bold text-electric-blue">{avgLaps}</div>
+                    <div className="text-sm text-sky-blue/60 mt-1">Vueltas Promedio</div>
+                  </div>
+
+                  {/* Last Race */}
+                  <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-4 text-center">
+                    <div className="text-xl font-bold text-electric-blue">{lastRaceText}</div>
+                    <div className="text-sm text-sky-blue/60 mt-1">Última Carrera</div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Best Lap Card */}
+            <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-6">
+              {/* Header */}
+              <h3 className="text-xl font-bold text-electric-blue flex items-center gap-2 mb-6">
+                🏁 Mejor Vuelta
+              </h3>
+
+              {/* Best Lap Display */}
+              {(() => {
+                // Find the best lap across all races
+                const bestRace = personalStats.recentRaces.reduce((best, race) => {
+                  return !best || race.bestTime < best.bestTime ? race : best;
+                }, personalStats.recentRaces[0]);
+
+                const formatTime = (timeMs: number) => {
+                  if (!timeMs || timeMs === 0) return '--:--';
+                  const minutes = Math.floor(timeMs / 60000);
+                  const seconds = ((timeMs % 60000) / 1000).toFixed(3);
+                  return `${minutes}:${parseFloat(seconds).toFixed(3).padStart(6, '0')}`;
+                };
+
+                const formatDate = (date: Date) => {
+                  return new Date(date).toLocaleDateString('es-CL', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                  });
+                };
+
+                return (
+                  <div className="bg-racing-black/40 border border-electric-blue/30 rounded-lg p-6 text-center">
+                    {/* Time - Large Display */}
+                    <div className="font-mono text-6xl font-bold text-karting-gold mb-4">
+                      {formatTime(bestRace.bestTime)}
+                    </div>
+
+                    {/* Race Details */}
+                    <div className="space-y-2 text-sky-blue/80">
+                      <div className="text-lg">
+                        <span className="text-white font-bold">Kart #{bestRace.kartNumber}</span>
+                      </div>
+                      <div className="text-sm">
+                        {formatDate(bestRace.date)}
+                      </div>
+                      <div className="text-sm text-sky-blue/60">
+                        {bestRace.sessionName}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </>
         )}
       </div>
     </div>
