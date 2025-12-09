@@ -80,7 +80,9 @@ export default function ClasesPage() {
   // Invitation modal state
   const [showInvitationModal, setShowInvitationModal] = useState(false)
   const [selectedClassForInvite, setSelectedClassForInvite] = useState<ClaseBloque | null>(null)
-  const [inviteeEmail, setInviteeEmail] = useState('')
+  const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set())
+  const [friends, setFriends] = useState<any[]>([])
+  const [loadingFriends, setLoadingFriends] = useState(false)
   const [sendingInvitation, setSendingInvitation] = useState(false)
 
   // WhatsApp field for booking
@@ -101,6 +103,14 @@ export default function ClasesPage() {
       setWhatsappNumber(user.profile.whatsappNumber)
     }
   }, [user])
+
+  // Load friends when invitation modal opens
+  useEffect(() => {
+    if (showInvitationModal && token) {
+      fetchFriends()
+      setSelectedFriends(new Set()) // Reset selection
+    }
+  }, [showInvitationModal, token])
 
   // Fetch my bookings
   const fetchMyBookings = async () => {
@@ -406,6 +416,25 @@ export default function ClasesPage() {
     }
   }
 
+  const fetchFriends = async () => {
+    setLoadingFriends(true)
+    try {
+      const response = await fetch('/api/friends', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setFriends(data.friends || [])
+      }
+    } catch (error) {
+      console.error('Error fetching friends:', error)
+    } finally {
+      setLoadingFriends(false)
+    }
+  }
+
   const handleSendInvitation = async () => {
     if (!token) {
       setNotificationMessage('Debes iniciar sesión para enviar invitaciones')
@@ -414,8 +443,8 @@ export default function ClasesPage() {
       return
     }
 
-    if (!inviteeEmail) {
-      setNotificationMessage('Por favor ingresa un email')
+    if (selectedFriends.size === 0) {
+      setNotificationMessage('Por favor selecciona al menos un amigo')
       setNotificationType('error')
       setShowNotification(true)
       return
@@ -427,35 +456,37 @@ export default function ClasesPage() {
 
     setSendingInvitation(true)
     try {
-      const response = await fetch('/api/group-invitations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          classId: selectedClassForInvite.id,
-          inviteeEmail
+      // Get emails from selected friends
+      const selectedEmails = friends
+        .filter(f => selectedFriends.has(f.userId))
+        .map(f => f.email)
+
+      // Send invitations to all selected friends
+      const promises = selectedEmails.map(email =>
+        fetch('/api/group-invitations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            classId: selectedClassForInvite.id,
+            inviteeEmail: email
+          })
         })
-      })
+      )
 
-      const data = await response.json()
+      await Promise.all(promises)
 
-      if (response.ok) {
-        setNotificationMessage(`¡Invitación enviada a ${inviteeEmail}!`)
-        setNotificationType('success')
-        setShowNotification(true)
-        setShowInvitationModal(false)
-        setInviteeEmail('')
-        setSelectedClassForInvite(null)
-      } else {
-        setNotificationMessage(data.error || 'Error al enviar invitación')
-        setNotificationType('error')
-        setShowNotification(true)
-      }
+      setNotificationMessage(`¡Invitaciones enviadas a ${selectedFriends.size} amigo${selectedFriends.size > 1 ? 's' : ''}!`)
+      setNotificationType('success')
+      setShowNotification(true)
+      setShowInvitationModal(false)
+      setSelectedFriends(new Set())
+      setSelectedClassForInvite(null)
     } catch (error) {
-      console.error('Error sending invitation:', error)
-      setNotificationMessage('Error al enviar invitación')
+      console.error('Error sending invitations:', error)
+      setNotificationMessage('Error al enviar invitaciones')
       setNotificationType('error')
       setShowNotification(true)
     } finally {
@@ -1441,18 +1472,66 @@ export default function ClasesPage() {
 
               <div>
                 <label className="block text-electric-blue text-sm mb-2">
-                  Email del corredor *
+                  Selecciona amigos para invitar ({selectedFriends.size} seleccionados)
                 </label>
-                <input
-                  type="email"
-                  value={inviteeEmail}
-                  onChange={(e) => setInviteeEmail(e.target.value)}
-                  placeholder="corredor@ejemplo.com"
-                  className="w-full px-4 py-3 bg-midnight/50 border-2 border-electric-blue/50 rounded-lg text-white focus:border-electric-blue focus:outline-none"
-                  disabled={sendingInvitation}
-                />
-                <p className="text-sky-blue/50 text-xs mt-1">
-                  Se enviará un link de invitación a este email
+
+                {loadingFriends ? (
+                  <div className="text-center py-8 text-cyan-400">Cargando amigos...</div>
+                ) : friends.length === 0 ? (
+                  <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-6 text-center">
+                    <p className="text-gray-400 mb-3">No tienes amigos todavía</p>
+                    <button
+                      onClick={() => {
+                        setShowInvitationModal(false)
+                        router.push('/amigos')
+                      }}
+                      className="px-4 py-2 bg-cyan-400/20 border border-cyan-400/50 text-cyan-400 rounded-lg hover:bg-cyan-400/30 transition-all text-sm"
+                    >
+                      Ir a Amigos
+                    </button>
+                  </div>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto space-y-2 bg-midnight/30 border border-electric-blue/30 rounded-lg p-3">
+                    {friends
+                      .filter(friend => {
+                        // Filter out friends already enrolled
+                        const friendName = friend.alias || `${friend.firstName} ${friend.lastName}`
+                        return !selectedClassForInvite.groupBookings?.some(b =>
+                          b.studentName === friendName ||
+                          b.studentName === `${friend.firstName} ${friend.lastName}`
+                        )
+                      })
+                      .map(friend => (
+                        <label
+                          key={friend.userId}
+                          className="flex items-center gap-3 p-3 bg-slate-800/50 hover:bg-slate-700/50 rounded-lg cursor-pointer transition-all"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedFriends.has(friend.userId)}
+                            onChange={(e) => {
+                              const newSelected = new Set(selectedFriends)
+                              if (e.target.checked) {
+                                newSelected.add(friend.userId)
+                              } else {
+                                newSelected.delete(friend.userId)
+                              }
+                              setSelectedFriends(newSelected)
+                            }}
+                            className="w-5 h-5 rounded border-cyan-400/50 bg-midnight text-cyan-400 focus:ring-cyan-400 focus:ring-offset-0"
+                          />
+                          <div className="flex-1">
+                            <p className="text-white font-medium">
+                              {friend.alias || `${friend.firstName} ${friend.lastName}`}
+                            </p>
+                            <p className="text-gray-400 text-xs">{friend.email}</p>
+                          </div>
+                        </label>
+                      ))}
+                  </div>
+                )}
+                <p className="text-sky-blue/50 text-xs mt-2">
+                  Se enviará un link de invitación a los amigos seleccionados
                 </p>
               </div>
             </div>
@@ -1462,7 +1541,7 @@ export default function ClasesPage() {
                 onClick={() => {
                   setShowInvitationModal(false)
                   setSelectedClassForInvite(null)
-                  setInviteeEmail('')
+                  setSelectedFriends(new Set())
                 }}
                 disabled={sendingInvitation}
                 className="flex-1 px-6 py-3 border-2 border-slate-500 text-slate-300 rounded-lg hover:bg-slate-500/10 transition-all font-medium disabled:opacity-50"
@@ -1471,10 +1550,10 @@ export default function ClasesPage() {
               </button>
               <button
                 onClick={handleSendInvitation}
-                disabled={sendingInvitation || !inviteeEmail}
+                disabled={sendingInvitation || selectedFriends.size === 0}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg hover:from-yellow-300 hover:to-yellow-400 transition-all font-racing text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {sendingInvitation ? 'ENVIANDO...' : 'ENVIAR'}
+                {sendingInvitation ? 'ENVIANDO...' : `INVITAR (${selectedFriends.size})`}
               </button>
             </div>
           </div>

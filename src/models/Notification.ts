@@ -2,18 +2,21 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
-  type: 'class_cancelled_by_coach' | 'booking_cancelled_by_student';
+  type: 'class_cancelled_by_coach' | 'booking_cancelled_by_student' | 'friend_request' | 'friend_request_accepted';
   title: string;
   message: string;
   metadata: {
     classId?: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    cancelledBy: string;
-    cancelledByRole: 'coach' | 'student';
+    date?: string;
+    startTime?: string;
+    endTime?: string;
+    cancelledBy?: string;
+    cancelledByRole?: 'coach' | 'student';
     coachName?: string;
     studentName?: string;
+    friendId?: string;
+    friendName?: string;
+    friendEmail?: string;
   };
   read: boolean;
   createdAt: Date;
@@ -29,7 +32,7 @@ const NotificationSchema: Schema = new Schema({
   },
   type: {
     type: String,
-    enum: ['class_cancelled_by_coach', 'booking_cancelled_by_student'],
+    enum: ['class_cancelled_by_coach', 'booking_cancelled_by_student', 'friend_request', 'friend_request_accepted'],
     required: true,
   },
   title: {
@@ -42,29 +45,19 @@ const NotificationSchema: Schema = new Schema({
   },
   metadata: {
     classId: String,
-    date: {
-      type: String,
-      required: true,
-    },
-    startTime: {
-      type: String,
-      required: true,
-    },
-    endTime: {
-      type: String,
-      required: true,
-    },
-    cancelledBy: {
-      type: String,
-      required: true,
-    },
+    date: String,
+    startTime: String,
+    endTime: String,
+    cancelledBy: String,
     cancelledByRole: {
       type: String,
       enum: ['coach', 'student'],
-      required: true,
     },
     coachName: String,
     studentName: String,
+    friendId: String,
+    friendName: String,
+    friendEmail: String,
   },
   read: {
     type: Boolean,

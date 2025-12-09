@@ -99,14 +99,19 @@ export default function Navbar() {
                   Competir
                 </a>
                 {user && (
-                  <a href="/invitaciones" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm relative">
-                    Invitaciones
-                    {invitationCount > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                        {invitationCount}
-                      </span>
-                    )}
-                  </a>
+                  <>
+                    <a href="/amigos" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                      Amigos
+                    </a>
+                    <a href="/invitaciones" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm relative">
+                      Invitaciones
+                      {invitationCount > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                          {invitationCount}
+                        </span>
+                      )}
+                    </a>
+                  </>
                 )}
               </div>
 
@@ -204,14 +209,19 @@ export default function Navbar() {
                   Competir
                 </a>
                 {user && (
-                  <a href="/invitaciones" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm flex items-center gap-2">
-                    Invitaciones
-                    {invitationCount > 0 && (
-                      <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                        {invitationCount}
-                      </span>
-                    )}
-                  </a>
+                  <>
+                    <a href="/amigos" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                      Amigos
+                    </a>
+                    <a href="/invitaciones" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm flex items-center gap-2">
+                      Invitaciones
+                      {invitationCount > 0 && (
+                        <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                          {invitationCount}
+                        </span>
+                      )}
+                    </a>
+                  </>
                 )}
               </div>
             </div>
