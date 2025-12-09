@@ -224,14 +224,12 @@ export default function EventoDetallePage() {
               </button>
             )}
 
-            {event.status === 'completed' && (
-              <button
-                onClick={() => setShowRaceSearchModal(true)}
-                className="px-6 py-3 bg-electric-blue text-black rounded-xl font-bold hover:bg-cyan-300 transition-all"
-              >
-                🔍 Buscar Carrera
-              </button>
-            )}
+            <button
+              onClick={() => setShowRaceSearchModal(true)}
+              className="px-6 py-3 bg-electric-blue text-black rounded-xl font-bold hover:bg-cyan-300 transition-all"
+            >
+              🔍 Buscar Carrera
+            </button>
 
             <button
               onClick={() => router.push(`/organizador/evento/${event._id}/editar`)}
