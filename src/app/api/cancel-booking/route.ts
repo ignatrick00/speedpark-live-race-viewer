@@ -67,6 +67,19 @@ export async function POST(request: NextRequest) {
       // Cancel individual booking by removing it
       trainingClass.individualBooking = undefined;
       trainingClass.updateStatus();
+
+      // If class is now empty (no bookings), delete it entirely
+      const hasGroupBookings = trainingClass.groupBookings && trainingClass.groupBookings.length > 0;
+      if (!hasGroupBookings) {
+        await TrainingClass.findByIdAndDelete(classId);
+        return NextResponse.json({
+          success: true,
+          message: 'Booking cancelled and empty class removed',
+          bookingType: 'individual',
+          classDeleted: true
+        });
+      }
+
       await trainingClass.save();
 
       return NextResponse.json({
@@ -94,6 +107,21 @@ export async function POST(request: NextRequest) {
       // Remove the booking from the array
       trainingClass.groupBookings.splice(groupBookingIndex, 1);
       trainingClass.updateStatus();
+
+      // If class is now empty (no bookings), delete it entirely
+      const hasIndividualBooking = trainingClass.individualBooking && trainingClass.individualBooking.studentId;
+      const hasOtherGroupBookings = trainingClass.groupBookings.length > 0;
+
+      if (!hasIndividualBooking && !hasOtherGroupBookings) {
+        await TrainingClass.findByIdAndDelete(classId);
+        return NextResponse.json({
+          success: true,
+          message: 'Booking cancelled and empty class removed',
+          bookingType: 'group',
+          classDeleted: true
+        });
+      }
+
       await trainingClass.save();
 
       return NextResponse.json({

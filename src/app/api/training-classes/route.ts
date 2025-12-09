@@ -43,9 +43,16 @@ export async function GET(request: NextRequest) {
       .populate('coachId', 'profile email')
       .lean();
 
+    // Filter to only show classes with active bookings
+    const classesWithBookings = classes.filter(clase => {
+      const hasIndividualBooking = clase.individualBooking && clase.individualBooking.studentId;
+      const hasGroupBookings = clase.groupBookings && clase.groupBookings.length > 0;
+      return hasIndividualBooking || hasGroupBookings;
+    });
+
     return NextResponse.json({
       success: true,
-      classes,
+      classes: classesWithBookings,
     });
   } catch (error) {
     console.error('Error fetching training classes:', error);
