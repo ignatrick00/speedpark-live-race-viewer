@@ -674,6 +674,51 @@ export default function DashboardPage() {
           )}
         </header>
 
+        {/* SMS-Timing Link Status Card */}
+        {stats && linkedDriverName && (
+          <div className="max-w-4xl mx-auto mb-6">
+            <div className="bg-gradient-to-r from-electric-blue/10 via-purple-500/10 to-electric-blue/10 border-2 border-electric-blue/40 rounded-xl p-6">
+              <div className="flex items-center gap-4">
+                <div className="text-5xl">🏎️</div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-white mb-1">Vinculado a SMS-Timing</h3>
+                  <p className="text-gray-400 text-sm mb-3">Tu cuenta está conectada con tus datos de carreras</p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-400">Nombre en el sistema:</span>
+                    <div className="bg-electric-blue/20 border border-electric-blue/50 px-4 py-2 rounded-lg">
+                      <span className="text-electric-blue font-bold text-lg">{linkedDriverName}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="bg-green-500/20 text-green-400 border border-green-500/40 px-4 py-2 rounded-lg flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="font-semibold text-sm">✅ ACTIVO</span>
+                  </div>
+                  <span className="text-xs text-gray-500">{stats.totalRaces} carreras registradas</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show warning if not linked */}
+        {!linkedDriverName && stats && (
+          <div className="max-w-4xl mx-auto mb-6">
+            <div className="bg-yellow-500/10 border-2 border-yellow-500/40 rounded-xl p-6">
+              <div className="flex items-center gap-4">
+                <div className="text-5xl">⚠️</div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-yellow-400 mb-1">Sin Vinculación SMS-Timing</h3>
+                  <p className="text-gray-400 text-sm">
+                    Tu cuenta aún no está vinculada con un nombre en el sistema de carreras. Solicita vinculación al administrador.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Show welcome banner if user has no real data yet */}
         {!stats && user.kartingLink.status === 'pending_first_race' && (
           <div className="max-w-4xl mx-auto">
