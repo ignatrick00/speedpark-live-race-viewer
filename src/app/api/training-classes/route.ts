@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import TrainingClass from '@/models/TrainingClass';
 import WebUser from '@/models/WebUser';
+import notificationService from '@/lib/notificationService';
 
 // GET - List all training classes (with optional filters)
 export async function GET(request: NextRequest) {
@@ -228,25 +229,78 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Find and delete the class
+    // Find the class first to get students info
     const slotDate = new Date(date);
-    const result = await TrainingClass.findOneAndDelete({
+    const trainingClass = await TrainingClass.findOne({
       coachId: user._id,
       date: slotDate,
       startTime,
       endTime,
     });
 
-    if (!result) {
+    if (!trainingClass) {
       return NextResponse.json(
         { error: 'Class not found or you do not have permission to delete it' },
         { status: 404 }
       );
     }
 
+    // Collect all affected students
+    const affectedStudents: Array<{ userId: string; email: string; name: string }> = [];
+
+    // Add individual booking student
+    if (trainingClass.individualBooking && trainingClass.individualBooking.studentId) {
+      const student = await WebUser.findById(trainingClass.individualBooking.studentId);
+      if (student) {
+        affectedStudents.push({
+          userId: student._id.toString(),
+          email: student.email,
+          name: trainingClass.individualBooking.studentName,
+        });
+      }
+    }
+
+    // Add group booking students
+    if (trainingClass.groupBookings && trainingClass.groupBookings.length > 0) {
+      for (const booking of trainingClass.groupBookings) {
+        const student = await WebUser.findById(booking.studentId);
+        if (student) {
+          affectedStudents.push({
+            userId: student._id.toString(),
+            email: student.email,
+            name: booking.studentName,
+          });
+        }
+      }
+    }
+
+    // Send notifications to all affected students
+    if (affectedStudents.length > 0) {
+      try {
+        const coachName = user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`;
+        await notificationService.notifyStudentsOfCancellation(
+          affectedStudents,
+          {
+            classId: trainingClass._id.toString(),
+            date: date,
+            startTime,
+            endTime,
+            coachName,
+          }
+        );
+      } catch (notifError) {
+        console.error('Error sending notifications:', notifError);
+        // Continue even if notification fails
+      }
+    }
+
+    // Now delete the class
+    await TrainingClass.findByIdAndDelete(trainingClass._id);
+
     return NextResponse.json({
       success: true,
       message: 'Training class deleted successfully',
+      studentsNotified: affectedStudents.length,
     });
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {

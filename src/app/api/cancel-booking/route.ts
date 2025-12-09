@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/mongodb';
 import TrainingClass from '@/models/TrainingClass';
 import WebUser from '@/models/WebUser';
+import notificationService from '@/lib/notificationService';
 
 // POST - Cancel a student's booking
 export async function POST(request: NextRequest) {
@@ -64,9 +65,36 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Get coach info before removing booking
+      const coachId = trainingClass.coachId;
+      const coach = await WebUser.findById(coachId);
+      const studentName = user.profile.firstName + ' ' + user.profile.lastName;
+
       // Cancel individual booking by removing it
       trainingClass.individualBooking = undefined;
       trainingClass.updateStatus();
+
+      // Send notification to coach
+      if (coach) {
+        try {
+          await notificationService.notifyCoachOfCancellation({
+            userId: coach._id.toString(),
+            userEmail: coach.email,
+            userName: coach.profile.firstName,
+            type: 'booking_cancelled_by_student',
+            classData: {
+              classId: trainingClass._id.toString(),
+              date: trainingClass.date.toISOString().split('T')[0],
+              startTime: trainingClass.startTime,
+              endTime: trainingClass.endTime,
+              studentName,
+            },
+          });
+        } catch (notifError) {
+          console.error('Error sending notification:', notifError);
+          // Continue even if notification fails
+        }
+      }
 
       // If class is now empty (no bookings), delete it entirely
       const hasGroupBookings = trainingClass.groupBookings && trainingClass.groupBookings.length > 0;
@@ -104,9 +132,36 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Get coach info before removing booking
+      const coachId = trainingClass.coachId;
+      const coach = await WebUser.findById(coachId);
+      const studentName = user.profile.firstName + ' ' + user.profile.lastName;
+
       // Remove the booking from the array
       trainingClass.groupBookings.splice(groupBookingIndex, 1);
       trainingClass.updateStatus();
+
+      // Send notification to coach
+      if (coach) {
+        try {
+          await notificationService.notifyCoachOfCancellation({
+            userId: coach._id.toString(),
+            userEmail: coach.email,
+            userName: coach.profile.firstName,
+            type: 'booking_cancelled_by_student',
+            classData: {
+              classId: trainingClass._id.toString(),
+              date: trainingClass.date.toISOString().split('T')[0],
+              startTime: trainingClass.startTime,
+              endTime: trainingClass.endTime,
+              studentName,
+            },
+          });
+        } catch (notifError) {
+          console.error('Error sending notification:', notifError);
+          // Continue even if notification fails
+        }
+      }
 
       // If class is now empty (no bookings), delete it entirely
       const hasIndividualBooking = trainingClass.individualBooking && trainingClass.individualBooking.studentId;
