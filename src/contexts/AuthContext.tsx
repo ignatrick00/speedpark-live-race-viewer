@@ -269,15 +269,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // 🔍 DEBUG LOGGING - Temporal para diagnosticar permisos
+  const isAdmin = !!user && (user.email === 'icabreraquezada@gmail.com' || (user.roles?.includes('admin') ?? user.role === 'admin'));
+  const isOrganizer = !!user && (user.email === 'icabreraquezada@gmail.com' || (user.roles?.includes('organizer') ?? user.role === 'organizer') || (user.roles?.includes('admin') ?? user.role === 'admin'));
+  const isCoach = !!user && (user.roles?.includes('coach') ?? user.role === 'coach');
+
+  if (user) {
+    console.log('🔍 [AUTH-CONTEXT] User:', user.email);
+    console.log('   user.role:', user.role);
+    console.log('   user.roles:', user.roles);
+    console.log('   isAdmin:', isAdmin);
+    console.log('   isOrganizer:', isOrganizer);
+    console.log('   isCoach:', isCoach);
+  }
+
   const value: AuthContextType = {
     user,
     stats,
     token,
     isLoading,
     isAuthenticated: !!user && !!token,
-    isAdmin: !!user && (user.email === 'icabreraquezada@gmail.com' || (user.roles?.includes('admin') ?? user.role === 'admin')),
-    isOrganizer: !!user && (user.email === 'icabreraquezada@gmail.com' || (user.roles?.includes('organizer') ?? user.role === 'organizer') || (user.roles?.includes('admin') ?? user.role === 'admin')),
-    isCoach: !!user && (user.roles?.includes('coach') ?? user.role === 'coach'),
+    isAdmin,
+    isOrganizer,
+    isCoach,
     login,
     register,
     logout,

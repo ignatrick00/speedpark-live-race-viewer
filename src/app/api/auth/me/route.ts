@@ -59,6 +59,13 @@ export async function GET(request: NextRequest) {
                        userRoles.includes('organizer') ? 'organizer' :
                        userRoles.includes('coach') ? 'coach' : 'user';
 
+    // 🔍 DEBUG LOGGING - Temporal para diagnosticar permisos
+    console.log('🔍 [AUTH-ME] User:', user.email);
+    console.log('   Raw role field:', (user as any).role);
+    console.log('   Raw roles field:', (user as any).roles);
+    console.log('   Normalized roles:', userRoles);
+    console.log('   Primary role:', primaryRole);
+
     return NextResponse.json({
       success: true,
       user: {

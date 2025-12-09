@@ -59,11 +59,31 @@ const CoachAvailabilitySchema: Schema = new Schema({
     type: Number,
     min: 0,
     max: 6,
+    validate: {
+      validator: function(this: ICoachAvailability, value: number) {
+        // Only validate if availabilityType is recurring
+        if (this.availabilityType === 'recurring') {
+          return value !== undefined && value !== null;
+        }
+        return true; // Skip validation for other types
+      },
+      message: 'dayOfWeek is required for recurring availability'
+    }
   },
 
   // Specific date (for one-time availability)
   specificDate: {
     type: Date,
+    validate: {
+      validator: function(this: ICoachAvailability, value: Date) {
+        // Only validate if availabilityType is specific
+        if (this.availabilityType === 'specific') {
+          return value !== undefined && value !== null;
+        }
+        return true; // Skip validation for other types
+      },
+      message: 'specificDate is required for specific availability'
+    }
   },
 
   // Time range
@@ -109,20 +129,6 @@ const CoachAvailabilitySchema: Schema = new Schema({
   },
 }, {
   timestamps: true,
-});
-
-// Custom validation: dayOfWeek required for recurring, specificDate required for specific
-CoachAvailabilitySchema.pre('validate', function(next) {
-  if (this.availabilityType === 'recurring') {
-    if (this.dayOfWeek === undefined || this.dayOfWeek === null) {
-      this.invalidate('dayOfWeek', 'dayOfWeek is required for recurring availability');
-    }
-  } else if (this.availabilityType === 'specific') {
-    if (!this.specificDate) {
-      this.invalidate('specificDate', 'specificDate is required for specific availability');
-    }
-  }
-  next();
 });
 
 // Indexes for performance
