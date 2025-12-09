@@ -50,6 +50,11 @@ export default function AmigosPage() {
 
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
 
+  // Notification modal state
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
+
   useEffect(() => {
     if (token) {
       fetchFriends();
@@ -122,15 +127,21 @@ export default function AmigosPage() {
 
       const data = await response.json();
       if (response.ok) {
-        alert('Solicitud de amistad enviada');
+        setNotificationMessage('Solicitud de amistad enviada');
+        setNotificationType('success');
+        setShowNotification(true);
         fetchFriends();
         searchUsers(); // Refresh search results
       } else {
-        alert(data.error || 'Error al enviar solicitud');
+        setNotificationMessage(data.error || 'Error al enviar solicitud');
+        setNotificationType('error');
+        setShowNotification(true);
       }
     } catch (error) {
       console.error('Error sending request:', error);
-      alert('Error al enviar solicitud');
+      setNotificationMessage('Error al enviar solicitud');
+      setNotificationType('error');
+      setShowNotification(true);
     } finally {
       setActionInProgress(null);
     }
@@ -150,14 +161,20 @@ export default function AmigosPage() {
 
       const data = await response.json();
       if (response.ok) {
-        alert(accept ? 'Solicitud aceptada' : 'Solicitud rechazada');
+        setNotificationMessage(accept ? 'Solicitud aceptada' : 'Solicitud rechazada');
+        setNotificationType('success');
+        setShowNotification(true);
         fetchFriends();
       } else {
-        alert(data.error || 'Error al responder solicitud');
+        setNotificationMessage(data.error || 'Error al responder solicitud');
+        setNotificationType('error');
+        setShowNotification(true);
       }
     } catch (error) {
       console.error('Error responding to request:', error);
-      alert('Error al responder solicitud');
+      setNotificationMessage('Error al responder solicitud');
+      setNotificationType('error');
+      setShowNotification(true);
     } finally {
       setActionInProgress(null);
     }
@@ -177,14 +194,20 @@ export default function AmigosPage() {
 
       const data = await response.json();
       if (response.ok) {
-        alert('Amistad eliminada');
+        setNotificationMessage('Amistad eliminada');
+        setNotificationType('success');
+        setShowNotification(true);
         fetchFriends();
       } else {
-        alert(data.error || 'Error al eliminar amistad');
+        setNotificationMessage(data.error || 'Error al eliminar amistad');
+        setNotificationType('error');
+        setShowNotification(true);
       }
     } catch (error) {
       console.error('Error removing friend:', error);
-      alert('Error al eliminar amistad');
+      setNotificationMessage('Error al eliminar amistad');
+      setNotificationType('error');
+      setShowNotification(true);
     } finally {
       setActionInProgress(null);
     }
@@ -396,6 +419,31 @@ export default function AmigosPage() {
           </>
         )}
       </div>
+
+      {/* Notification Modal */}
+      {showNotification && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-midnight via-racing-black to-midnight border-2 border-electric-blue/50 rounded-lg p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center">
+              {notificationType === 'success' ? (
+                <div className="text-6xl mb-4">✅</div>
+              ) : (
+                <div className="text-6xl mb-4">❌</div>
+              )}
+              <h3 className={`text-2xl font-racing mb-4 ${notificationType === 'success' ? 'text-electric-blue' : 'text-red-400'}`}>
+                {notificationType === 'success' ? 'ÉXITO' : 'ERROR'}
+              </h3>
+              <p className="text-sky-blue/90 mb-6">{notificationMessage}</p>
+              <button
+                onClick={() => setShowNotification(false)}
+                className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-lg hover:from-yellow-300 hover:to-yellow-400 transition-all font-racing text-lg shadow-lg"
+              >
+                CERRAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
