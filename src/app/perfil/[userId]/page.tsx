@@ -95,6 +95,8 @@ export default function UserProfilePage() {
       const statsData = await statsResponse.json();
 
       if (statsData.success && statsData.stats) {
+        console.log('📊 [FRIEND-PROFILE] Stats data:', statsData.stats);
+
         // Convert from race_sessions_v0 format to our format
         setStats({
           totalRaces: statsData.stats.totalRaces || 0,
@@ -109,22 +111,8 @@ export default function UserProfilePage() {
           firstRaceAt: statsData.stats.firstRace ? new Date(statsData.stats.firstRace) : null,
           lastRaceAt: statsData.stats.lastRace ? new Date(statsData.stats.lastRace) : null,
           racesThisMonth: 0,
-          recentSessions: statsData.stats.recentRaces?.map((race: any) => ({
-            sessionId: '',
-            sessionName: race.sessionName,
-            position: race.position,
-            bestTime: race.bestTime,
-            timestamp: new Date(race.date),
-            revenue: 0
-          })) || [],
-          monthlyStats: statsData.stats.monthlyProgression?.map((m: any) => ({
-            year: parseInt(m.month.split('-')[0]),
-            month: parseInt(m.month.split('-')[1]),
-            races: m.races,
-            revenue: 0,
-            bestTime: m.bestTime,
-            podiums: 0
-          })) || []
+          recentSessions: statsData.stats.recentRaces || [],
+          monthlyStats: statsData.stats.monthlyProgression || []
         });
       } else {
         setStats(null);
@@ -150,25 +138,20 @@ export default function UserProfilePage() {
       totalSpent: stats.totalRevenue,
       bestTime: stats.bestTime || 0,
       averageTime: stats.averageTime || 0,
-      bestPosition: stats.firstPlaces > 0 ? 1 : stats.secondPlaces > 0 ? 2 : stats.thirdPlaces > 0 ? 3 : 0,
+      bestPosition: stats.podiumFinishes > 0 ? 1 : 0,
       podiumFinishes: stats.podiumFinishes,
       favoriteKart: 0,
       totalLaps: stats.totalLaps,
       firstRace: stats.firstRaceAt ? new Date(stats.firstRaceAt) : new Date(),
       lastRace: stats.lastRaceAt ? new Date(stats.lastRaceAt) : new Date(),
-      monthlyProgression: stats.monthlyStats.map(m => ({
-        month: `${m.year}-${String(m.month).padStart(2, '0')}`,
-        races: m.races,
-        bestTime: m.bestTime,
-        position: 0
-      })),
-      recentRaces: stats.recentSessions.map(s => ({
-        date: new Date(s.timestamp),
+      monthlyProgression: stats.monthlyStats || [],
+      recentRaces: (stats.recentSessions || []).map((s: any) => ({
+        date: new Date(s.date),
         sessionName: s.sessionName,
         position: s.position,
-        kartNumber: 0,
+        kartNumber: s.kartNumber,
         bestTime: s.bestTime,
-        totalLaps: 0
+        totalLaps: s.totalLaps
       }))
     };
   };
