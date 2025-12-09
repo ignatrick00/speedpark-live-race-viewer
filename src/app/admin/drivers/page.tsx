@@ -54,6 +54,7 @@ export default function DriversAdminPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
+  const [linkFilter, setLinkFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isLinking, setIsLinking] = useState(false);
@@ -333,19 +334,28 @@ export default function DriversAdminPage() {
           </button>
         </div>
 
-        {/* Stats */}
+        {/* Stats with Filters */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gray-800 p-4 rounded-lg">
+          <div
+            className={`bg-gray-800 p-4 rounded-lg cursor-pointer transition-all ${linkFilter === 'all' ? 'ring-2 ring-cyan-400' : 'hover:bg-gray-700'}`}
+            onClick={() => setLinkFilter('all')}
+          >
             <div className="text-2xl font-bold text-cyan-400">{drivers.length}</div>
             <div className="text-sm text-gray-400">Total Corredores</div>
           </div>
-          <div className="bg-gray-800 p-4 rounded-lg">
+          <div
+            className={`bg-gray-800 p-4 rounded-lg cursor-pointer transition-all ${linkFilter === 'linked' ? 'ring-2 ring-green-400' : 'hover:bg-gray-700'}`}
+            onClick={() => setLinkFilter('linked')}
+          >
             <div className="text-2xl font-bold text-green-400">
               {drivers.filter(d => d.isLinked).length}
             </div>
             <div className="text-sm text-gray-400">Vinculados</div>
           </div>
-          <div className="bg-gray-800 p-4 rounded-lg">
+          <div
+            className={`bg-gray-800 p-4 rounded-lg cursor-pointer transition-all ${linkFilter === 'unlinked' ? 'ring-2 ring-red-400' : 'hover:bg-gray-700'}`}
+            onClick={() => setLinkFilter('unlinked')}
+          >
             <div className="text-2xl font-bold text-red-400">
               {drivers.filter(d => !d.isLinked).length}
             </div>
@@ -373,7 +383,13 @@ export default function DriversAdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {drivers.map((driver, index) => (
+                {drivers
+                  .filter(driver => {
+                    if (linkFilter === 'linked') return driver.isLinked;
+                    if (linkFilter === 'unlinked') return !driver.isLinked;
+                    return true; // 'all'
+                  })
+                  .map((driver, index) => (
                   <tr key={index} className="border-b border-gray-700 hover:bg-gray-700/50">
                     <td className="p-3">
                       <div className="font-medium text-white">{driver.driverName}</div>

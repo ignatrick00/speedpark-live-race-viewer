@@ -80,7 +80,12 @@ export async function GET(request: NextRequest) {
             firstRace: 1,
             linkedUserId: 1,
             personId: 1,
-            isLinked: { $ne: ['$linkedUserId', null] },
+            isLinked: {
+              $and: [
+                { $ne: ['$linkedUserId', null] },
+                { $ne: ['$linkedUserId', ''] }
+              ]
+            },
             webUser: { $arrayElemAt: ['$webUser', 0] },
             // Extraer nombre y apellido del driverName
             parsedName: {
