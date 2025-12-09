@@ -108,9 +108,6 @@ export default function Navbar() {
                         <a href="/eventos-racing" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                           Eventos
                         </a>
-                        <a href="/campeonatos" className="text-purple-400 hover:text-purple-300 transition-colors font-medium uppercase tracking-wider text-sm">
-                          🏆 Campeonatos
-                        </a>
                       </>
                     )}
                     <a href="/amigos" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
@@ -230,9 +227,6 @@ export default function Navbar() {
                       <>
                         <a href="/eventos-racing" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                           Eventos
-                        </a>
-                        <a href="/campeonatos" className="text-purple-400 hover:text-purple-300 transition-colors font-medium uppercase tracking-wider text-sm">
-                          🏆 Campeonatos
                         </a>
                       </>
                     )}

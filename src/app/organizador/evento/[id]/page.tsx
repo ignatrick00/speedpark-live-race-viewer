@@ -48,6 +48,37 @@ export default function EventoDetallePage() {
     }
   }, [token, params.id]);
 
+  // Load sanctions and results when event has a linked race
+  useEffect(() => {
+    if (event && event.linkedRaceSessionId && event.raceStatus !== 'pending') {
+      fetchSanctions();
+      // Load calculated results to show preview
+      loadCalculatedResults();
+    }
+  }, [event?.linkedRaceSessionId, event?.raceStatus]);
+
+  const loadCalculatedResults = async () => {
+    if (!event?.linkedRaceSessionId) return;
+
+    try {
+      const response = await fetch(`/api/squadron-events/${params.id}/calculate-points`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ raceSessionId: event.linkedRaceSessionId })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCalculatedResults(data.results);
+      }
+    } catch (error) {
+      console.error('Error loading calculated results:', error);
+    }
+  };
+
   const fetchEvent = async () => {
     try {
       const response = await fetch(`/api/squadron-events/${params.id}`, {
@@ -145,16 +176,20 @@ export default function EventoDetallePage() {
 
       if (response.ok) {
         const data = await response.json();
-        setCalculatedResults(data.results);
-        // Fetch sanctions after calculation
-        fetchSanctions();
+        alert('✅ Carrera asociada exitosamente!\n\nAhora puedes aplicar sanciones y publicar los puntos finales.');
+        // Close modal and reload event
+        setShowRaceSearchModal(false);
+        setCalculatedResults(null);
+        setRaceDetails(null);
+        setSelectedRace(null);
+        await fetchEvent();
       } else {
         const error = await response.json();
-        alert(error.error || 'Error al calcular puntos');
+        alert(error.error || 'Error al asociar carrera');
       }
     } catch (error) {
       console.error('Error calculating points:', error);
-      alert('Error al calcular puntos');
+      alert('Error al asociar carrera');
     } finally {
       setCalculating(false);
     }
@@ -205,11 +240,9 @@ export default function EventoDetallePage() {
           pointsPenalty: 0
         });
 
-        // Recalcular puntos automáticamente
-        if (selectedRace) {
-          await calculatePoints(selectedRace.sessionId);
-        }
+        // Reload sanctions list and recalculate points
         fetchSanctions();
+        loadCalculatedResults();
       } else {
         const error = await response.json();
         alert(error.error || 'Error al aplicar sanción');
@@ -235,11 +268,9 @@ export default function EventoDetallePage() {
 
       if (response.ok) {
         alert('Sanción eliminada');
-        // Recalcular puntos
-        if (selectedRace) {
-          await calculatePoints(selectedRace.sessionId);
-        }
+        // Reload sanctions list and recalculate points
         fetchSanctions();
+        loadCalculatedResults();
       } else {
         const error = await response.json();
         alert(error.error || 'Error al eliminar sanción');
@@ -251,45 +282,60 @@ export default function EventoDetallePage() {
   };
 
   const finalizeEvent = async () => {
-    if (!calculatedResults) {
-      alert('No hay resultados calculados');
+    if (!event?.linkedRaceSessionId) {
+      alert('No hay carrera asociada');
       return;
     }
 
-    const confirmMessage = `¿Finalizar resultados y aplicar puntos?\n\nEsto hará:\n- Aplicará ${calculatedResults.squadrons.length} puntos a las escuderías\n- Enviará ${sanctions.length} notificaciones de sanciones\n- Bloqueará los resultados (no se podrán modificar)\n\n¿Continuar?`;
+    const confirmMessage = `¿Publicar puntos finales?\n\nEsto hará:\n- Recalculará los puntos con las sanciones aplicadas\n- Aplicará los puntos a las escuderías\n- Enviará ${sanctions.length} notificaciones de sanciones\n- Bloqueará los resultados (no se podrán modificar)\n\n¿Continuar?`;
 
     if (!confirm(confirmMessage)) return;
 
     try {
       setFinalizing(true);
+
+      // First, recalculate points with current sanctions
+      const calcResponse = await fetch(`/api/squadron-events/${params.id}/calculate-points`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ raceSessionId: event.linkedRaceSessionId })
+      });
+
+      if (!calcResponse.ok) {
+        alert('Error al recalcular puntos');
+        return;
+      }
+
+      const calcData = await calcResponse.json();
+
+      // Then finalize with calculated results
       const response = await fetch(`/api/squadron-events/${params.id}/finalize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ calculatedResults })
+        body: JSON.stringify({ calculatedResults: calcData.results })
       });
 
       if (response.ok) {
         const data = await response.json();
-        alert(`✅ Resultados finalizados!\n\n` +
+        alert(`✅ Puntos finales publicados!\n\n` +
               `Puntos aplicados: ${data.appliedPoints?.length || 0} escuderías\n` +
               `Notificaciones enviadas: ${data.sanctionsNotified || 0} pilotos`);
 
-        // Recargar evento para ver estado actualizado
+        // Reload event to show finalized status
         await fetchEvent();
-        setCalculatedResults(null);
-        setRaceDetails(null);
-        setSelectedRace(null);
-        setSanctions([]);
       } else {
         const error = await response.json();
-        alert(error.error || 'Error al finalizar resultados');
+        alert(error.error || 'Error al publicar resultados');
       }
     } catch (error) {
       console.error('Error finalizing event:', error);
-      alert('Error al finalizar resultados');
+      alert('Error al publicar resultados');
     } finally {
       setFinalizing(false);
     }
@@ -445,6 +491,240 @@ export default function EventoDetallePage() {
                     <span className="text-sm text-gray-400">{participant.confirmedPilots?.length || 0} pilotos</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Race Results & Sanctions Section - Shown when race is associated */}
+          {(event.raceStatus === 'in_review' || event.raceStatus === 'finalized') && event.linkedRaceSessionId && (
+            <div className="mb-8">
+              <div className="bg-gradient-to-r from-purple-500/10 to-electric-blue/10 border border-purple-500/30 rounded-2xl p-8">
+                {/* Header with Status */}
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-white">🏁 Resultados de Carrera</h2>
+                  <div className={`px-4 py-2 rounded-lg font-bold ${
+                    event.raceStatus === 'finalized' ? 'bg-green-500/20 text-green-400 border border-green-500/50' :
+                    'bg-yellow-600/20 text-yellow-400 border border-yellow-600/50'
+                  }`}>
+                    {event.raceStatus === 'finalized' ? '✅ Resultados Finales' : '🔍 En Revisión'}
+                  </div>
+                </div>
+
+                <p className="text-gray-400 text-sm mb-6">
+                  Carrera ID: {event.linkedRaceSessionId}
+                </p>
+
+                {/* Points Preview */}
+                {calculatedResults && (
+                  <div className="mb-6 space-y-3">
+                    <h3 className="text-lg font-bold text-white mb-4">📊 Preview de Puntos</h3>
+                    {calculatedResults.squadrons.map((squadron: any, index: number) => (
+                      <div
+                        key={squadron.squadronId}
+                        className="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 rounded-lg p-4"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-3xl">
+                              {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}°`}
+                            </span>
+                            <div>
+                              <h4 className="text-white font-bold text-lg">{squadron.squadronName}</h4>
+                              <p className="text-sm text-gray-400">{squadron.pilots.length} pilotos</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-electric-blue">
+                              +{squadron.pointsAwarded.toLocaleString()} pts
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {squadron.percentageAwarded}% • {squadron.totalPoints} pts totales
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-700 pt-3 mt-3">
+                          <p className="text-xs text-gray-400 mb-2">Pilotos participantes:</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {squadron.pilots.map((pilot: any) => (
+                              <div key={pilot.webUserId} className="text-sm">
+                                <span className="text-white">{pilot.driverName}</span>
+                                <span className="text-gray-400 ml-2">
+                                  {pilot.finalPosition}° • {pilot.individualPoints} pts
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Sanctions Section */}
+                {event.raceStatus === 'in_review' && (
+                  <div className="mb-6 bg-slate-800/50 border border-yellow-600/30 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        ⚠️ Sanciones
+                        {sanctions.length > 0 && (
+                          <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 text-xs font-bold rounded-full">
+                            {sanctions.length}
+                          </span>
+                        )}
+                      </h3>
+                      <button
+                        onClick={() => setShowSanctionForm(!showSanctionForm)}
+                        className="px-4 py-2 bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 rounded-lg hover:bg-yellow-600/30 transition-all font-bold text-sm"
+                      >
+                        {showSanctionForm ? '✕ Cancelar' : '+ Aplicar Sanción'}
+                      </button>
+                    </div>
+
+                    {/* Sanction Form */}
+                    {showSanctionForm && (
+                      <div className="mb-4 bg-slate-900/50 rounded-lg p-4 border border-yellow-600/20">
+                        <p className="text-sm text-gray-400 mb-4">
+                          Aplicar sanción a un piloto participante en la carrera
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <label className="block text-sm text-gray-400 mb-2">Nombre del Piloto *</label>
+                            <input
+                              type="text"
+                              value={sanctionForm.driverName}
+                              onChange={(e) => setSanctionForm({...sanctionForm, driverName: e.target.value})}
+                              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                              placeholder="Nombre exacto del piloto"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm text-gray-400 mb-2">Tipo de Sanción *</label>
+                            <select
+                              value={sanctionForm.sanctionType}
+                              onChange={(e) => setSanctionForm({...sanctionForm, sanctionType: e.target.value})}
+                              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                            >
+                              <option value="position_penalty">Penalización de Posición</option>
+                              <option value="point_deduction">Deducción de Puntos</option>
+                              <option value="disqualification">Descalificación</option>
+                              <option value="warning">Advertencia</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {sanctionForm.sanctionType === 'position_penalty' && (
+                          <div className="mb-4">
+                            <label className="block text-sm text-gray-400 mb-2">Posiciones a penalizar</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={sanctionForm.positionPenalty}
+                              onChange={(e) => setSanctionForm({...sanctionForm, positionPenalty: parseInt(e.target.value) || 0})}
+                              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                              placeholder="Ej: 3 (baja 3 posiciones)"
+                            />
+                          </div>
+                        )}
+
+                        {sanctionForm.sanctionType === 'point_deduction' && (
+                          <div className="mb-4">
+                            <label className="block text-sm text-gray-400 mb-2">Puntos a deducir</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={sanctionForm.pointsPenalty}
+                              onChange={(e) => setSanctionForm({...sanctionForm, pointsPenalty: parseInt(e.target.value) || 0})}
+                              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                              placeholder="Puntos a deducir de la escudería"
+                            />
+                          </div>
+                        )}
+
+                        <div className="mb-4">
+                          <label className="block text-sm text-gray-400 mb-2">Descripción *</label>
+                          <textarea
+                            value={sanctionForm.description}
+                            onChange={(e) => setSanctionForm({...sanctionForm, description: e.target.value})}
+                            className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                            placeholder="Razón de la sanción (ej: Adelantó con bandera amarilla)"
+                            rows={3}
+                            maxLength={500}
+                          />
+                        </div>
+
+                        <button
+                          onClick={applySanction}
+                          disabled={applyingSanction}
+                          className="w-full px-6 py-3 bg-yellow-600 text-white rounded-lg font-bold hover:bg-yellow-700 transition-all disabled:opacity-50"
+                        >
+                          {applyingSanction ? 'Aplicando...' : '⚠️ Aplicar Sanción'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Applied Sanctions List */}
+                    {sanctions.length > 0 ? (
+                      <div className="space-y-2">
+                        {sanctions.map((sanction: any) => (
+                          <div
+                            key={sanction._id}
+                            className="bg-slate-900/70 border border-yellow-600/20 rounded-lg p-4"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-bold text-white">{sanction.driverName}</span>
+                                  <span className="px-2 py-1 bg-yellow-600/20 text-yellow-400 text-xs font-bold rounded-full">
+                                    {sanction.sanctionType === 'position_penalty' ? `+${sanction.positionPenalty} pos` :
+                                     sanction.sanctionType === 'point_deduction' ? `-${sanction.pointsPenalty} pts` :
+                                     sanction.sanctionType === 'disqualification' ? 'DSQ' :
+                                     'WARNING'}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-300 mb-1">{sanction.description}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(sanction.appliedAt).toLocaleString('es-CL')}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => deleteSanction(sanction._id)}
+                                className="ml-4 px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/50 rounded hover:bg-red-500/30 transition-all text-sm"
+                              >
+                                ✕ Eliminar
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-gray-500 py-4">
+                        No hay sanciones aplicadas a esta carrera
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Finalize Button */}
+                {event.raceStatus === 'in_review' && (
+                  <button
+                    onClick={finalizeEvent}
+                    disabled={finalizing}
+                    className="w-full px-6 py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-all disabled:opacity-50"
+                  >
+                    {finalizing ? '⏳ Publicando...' : '✅ Aplicar Sanciones y Publicar Puntos Finales'}
+                  </button>
+                )}
+
+                {event.raceStatus === 'finalized' && event.finalizedAt && (
+                  <div className="text-center py-6 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <p className="text-green-400 font-bold text-lg mb-2">✅ Resultados Publicados</p>
+                    <p className="text-gray-400 text-sm">
+                      Finalizado: {new Date(event.finalizedAt).toLocaleString('es-CL')}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -740,7 +1020,7 @@ export default function EventoDetallePage() {
                       onClick={() => calculatePoints(selectedRace.sessionId)}
                       className="w-full px-6 py-3 bg-electric-blue text-black rounded-lg font-bold hover:bg-cyan-300 transition-all"
                     >
-                      🏆 Calcular Puntos por Escudería
+                      🔗 Asociar Carrera
                     </button>
                   </div>
                 )}
