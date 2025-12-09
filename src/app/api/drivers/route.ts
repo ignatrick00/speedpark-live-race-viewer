@@ -386,33 +386,7 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      console.log(`✅ Removed linkedUserId from ${updateResult.modifiedCount} sessions for all driver names`);
-
-      // 4️⃣ También remover de LapRecord (compatibilidad)
-      await LapRecord.updateMany(
-        { driverName: { $regex: new RegExp(`^${driverName}$`, 'i') } },
-        {
-          $unset: {
-            webUserId: 1,
-            personId: 1
-          },
-          linkingConfidence: 'low',
-          linkingMethod: 'exact_match'
-        }
-      );
-
-      // 5️⃣ Actualizar identidad del corredor
-      await DriverIdentity.findOneAndUpdate(
-        { primaryName: { $regex: new RegExp(`^${driverName}$`, 'i') } },
-        {
-          $unset: { webUserId: 1 },
-          linkingStatus: 'unlinked',
-          confidence: 20,
-          manuallyVerified: false
-        }
-      );
-
-      console.log(`✅ Driver unlinked: ${driverName} (${updateResult.modifiedCount} records updated)`);
+      console.log(`✅ Driver unlinked: ${driverName} (${updateResult.modifiedCount} sessions updated)`);
 
       return NextResponse.json({
         success: true,
