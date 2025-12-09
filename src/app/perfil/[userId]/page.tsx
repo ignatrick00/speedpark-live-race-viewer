@@ -327,11 +327,16 @@ export default function UserProfilePage() {
                 };
 
                 const formatDate = (date: Date) => {
-                  return new Date(date).toLocaleDateString('es-CL', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric'
-                  });
+                  const d = new Date(date);
+                  const dayName = d.toLocaleDateString('es-CL', { weekday: 'long' });
+                  const dayNumber = d.getDate();
+                  const year = d.getFullYear();
+                  const time = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+
+                  // Capitalize first letter
+                  const dayNameCapitalized = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+
+                  return `Carrera ${dayNameCapitalized} ${dayNumber}, ${year} - ${time}`;
                 };
 
                 return (
@@ -348,9 +353,6 @@ export default function UserProfilePage() {
                       </div>
                       <div className="text-sm">
                         {formatDate(bestRace.date)}
-                      </div>
-                      <div className="text-sm text-sky-blue/60">
-                        {bestRace.sessionName}
                       </div>
                     </div>
                   </div>
