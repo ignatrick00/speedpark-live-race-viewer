@@ -278,7 +278,7 @@ export default function InvitacionesPage() {
                     </div>
                   </div>
                 );
-              } else {
+              } else if (invitation.type === 'event') {
                 // Event invitation
                 const categoryConfig = EventCategoryConfig[invitation.category as EventCategory];
                 return (
