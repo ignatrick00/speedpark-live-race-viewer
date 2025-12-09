@@ -418,7 +418,7 @@ export default function AmigosPage() {
                       </div>
 
                       {/* Stats Section */}
-                      {friend.stats ? (
+                      {friend.stats && (
                         <div className="mb-4 space-y-3">
                           <div className="grid grid-cols-2 gap-3">
                             {/* Total Races */}
@@ -466,10 +466,6 @@ export default function AmigosPage() {
                               Última carrera: {new Date(friend.stats.lastRaceAt).toLocaleDateString('es-CL')}
                             </div>
                           )}
-                        </div>
-                      ) : (
-                        <div className="mb-4 text-center py-6 text-gray-500 text-sm">
-                          Sin estadísticas disponibles
                         </div>
                       )}
 

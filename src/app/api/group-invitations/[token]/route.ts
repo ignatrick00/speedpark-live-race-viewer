@@ -210,6 +210,7 @@ export async function POST(
       studentName,
       bookedAt: new Date(),
       status: 'confirmed',
+      whatsappNumber: user.profile.whatsappNumber || '',
     } as any);
 
     trainingClass.updateStatus();
