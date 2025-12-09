@@ -111,10 +111,10 @@ export default function InvitacionesPage() {
     }
   };
 
-  const handleRespondClassInvite = async (token: string, accept: boolean) => {
-    setResponding(token);
+  const handleRespondClassInvite = async (invitationToken: string, accept: boolean) => {
+    setResponding(invitationToken);
     try {
-      const response = await fetch(`/api/group-invitations/${token}`, {
+      const response = await fetch(`/api/group-invitations/${invitationToken}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
