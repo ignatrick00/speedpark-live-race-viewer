@@ -2079,7 +2079,7 @@ function SquadronEventCard({ event }: { event: any }) {
       {event.participants && event.participants.length > 0 && (
         <button
           onClick={handleViewPilotsClick}
-          className="w-full mb-4 px-4 py-2 bg-purple-500/20 border border-purple-500/50 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-all font-racing text-sm"
+          className="mb-4 px-4 py-2 bg-purple-500/20 border border-purple-500/50 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-all font-racing text-sm inline-block"
         >
           👥 VER PILOTOS INSCRITOS ({event.participants.length} escuderías)
         </button>
