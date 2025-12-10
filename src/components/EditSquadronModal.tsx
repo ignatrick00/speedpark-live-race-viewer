@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { uploadSquadronLogoWithProgress } from '@/lib/image-upload';
 
 interface EditSquadronModalProps {
@@ -41,7 +42,12 @@ export default function EditSquadronModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mounted, setMounted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -155,12 +161,33 @@ export default function EditSquadronModal({
     }
   };
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen) {
+      // Bloquear scroll completamente
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    } else {
+      // Restaurar scroll
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !mounted) return null;
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" onClick={onClose}>
       <div
-        className="relative w-full max-w-2xl bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl shadow-2xl animate-glow overflow-hidden"
+        className="relative w-full max-w-6xl max-h-[85vh] bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl shadow-2xl animate-glow overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Background pattern */}
@@ -172,7 +199,7 @@ export default function EditSquadronModal({
           }}
         />
 
-        <div className="relative z-10 p-6">
+        <div className="relative z-10 p-6 overflow-y-auto">
           {/* Header */}
           <div className="flex items-start justify-between mb-6">
             <div>
@@ -197,22 +224,24 @@ export default function EditSquadronModal({
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Squadron Name */}
-            <div>
-              <label className="block text-sky-blue text-sm mb-2">Nombre de la Escudería</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                minLength={3}
-                maxLength={30}
-                required
-                className="w-full px-4 py-3 bg-midnight/80 border border-electric-blue/30 rounded-lg text-sky-blue placeholder-sky-blue/40 focus:outline-none focus:border-electric-blue font-digital"
-              />
-            </div>
+            {/* Grid layout: 2 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Squadron Name */}
+              <div>
+                <label className="block text-sky-blue text-sm mb-2">Nombre de la Escudería</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  minLength={3}
+                  maxLength={30}
+                  required
+                  className="w-full px-4 py-3 bg-midnight/80 border border-electric-blue/30 rounded-lg text-sky-blue placeholder-sky-blue/40 focus:outline-none focus:border-electric-blue font-digital"
+                />
+              </div>
 
-            {/* Logo Upload */}
-            <div>
+              {/* Logo Upload */}
+              <div>
               <label className="block text-sky-blue text-sm mb-2">Logo de la Escudería</label>
               <div className="flex items-center gap-4">
                 {/* Logo Preview */}
@@ -266,25 +295,28 @@ export default function EditSquadronModal({
                   />
                 </div>
               </div>
+              </div>
             </div>
 
-            {/* Description */}
+            {/* Description - Full width */}
             <div>
               <label className="block text-sky-blue text-sm mb-2">Descripción</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 maxLength={500}
-                rows={3}
+                rows={2}
                 className="w-full px-4 py-3 bg-midnight/80 border border-electric-blue/30 rounded-lg text-sky-blue placeholder-sky-blue/40 focus:outline-none focus:border-electric-blue font-digital resize-none"
               />
               <p className="text-xs text-sky-blue/50 mt-1">{description.length}/500 caracteres</p>
             </div>
 
-            {/* Colors */}
-            <div>
-              <label className="block text-sky-blue text-sm mb-2">Colores del Equipo</label>
-              <div className="grid grid-cols-2 gap-4">
+            {/* Colors and Recruitment Mode - Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Colors */}
+              <div>
+                <label className="block text-sky-blue text-sm mb-2">Colores del Equipo</label>
+                <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sky-blue/70 text-xs mb-2">Color Primario</label>
                   <div className="flex items-center gap-3">
@@ -316,36 +348,37 @@ export default function EditSquadronModal({
                   </div>
                 </div>
               </div>
-            </div>
+              </div>
 
-            {/* Recruitment Mode */}
-            <div>
-              <label className="block text-sky-blue text-sm mb-2">Modo de Reclutamiento</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRecruitmentMode('open')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    recruitmentMode === 'open'
-                      ? 'border-electric-blue bg-electric-blue/20'
-                      : 'border-electric-blue/30 bg-midnight/50 hover:border-electric-blue/60'
-                  }`}
-                >
-                  <p className="text-lg mb-1">🔓 Abierto</p>
-                  <p className="text-xs text-sky-blue/70">Cualquiera puede unirse</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRecruitmentMode('invite-only')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    recruitmentMode === 'invite-only'
-                      ? 'border-electric-blue bg-electric-blue/20'
-                      : 'border-electric-blue/30 bg-midnight/50 hover:border-electric-blue/60'
-                  }`}
-                >
-                  <p className="text-lg mb-1">🔐 Solo Invitación</p>
-                  <p className="text-xs text-sky-blue/70">Requiere solicitud</p>
-                </button>
+              {/* Recruitment Mode */}
+              <div>
+                <label className="block text-sky-blue text-sm mb-2">Modo de Reclutamiento</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRecruitmentMode('open')}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      recruitmentMode === 'open'
+                        ? 'border-electric-blue bg-electric-blue/20'
+                        : 'border-electric-blue/30 bg-midnight/50 hover:border-electric-blue/60'
+                    }`}
+                  >
+                    <p className="text-lg mb-1">🔓 Abierto</p>
+                    <p className="text-xs text-sky-blue/70">Cualquiera puede unirse</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecruitmentMode('invite-only')}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      recruitmentMode === 'invite-only'
+                        ? 'border-electric-blue bg-electric-blue/20'
+                        : 'border-electric-blue/30 bg-midnight/50 hover:border-electric-blue/60'
+                    }`}
+                  >
+                    <p className="text-lg mb-1">🔐 Solo Invitación</p>
+                    <p className="text-xs text-sky-blue/70">Requiere solicitud</p>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -372,4 +405,6 @@ export default function EditSquadronModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
