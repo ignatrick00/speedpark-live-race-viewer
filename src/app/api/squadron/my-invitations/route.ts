@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import WebUser from '@/models/WebUser';
+import SquadronPointsHistory from '@/models/SquadronPointsHistory';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -51,11 +52,32 @@ export async function GET(req: NextRequest) {
     }
 
     // Filtrar solo invitaciones pendientes de escuaderías activas
-    const pendingInvitations = (user.invitations || []).filter((inv: any) =>
+    const filteredInvitations = (user.invitations || []).filter((inv: any) =>
       inv.status === 'pending' &&
       inv.squadronId &&
       inv.squadronId.isActive &&
       inv.squadronId.members.length < 4
+    );
+
+    // Calcular puntos desde SquadronPointsHistory para cada invitación (igual que /api/invitations)
+    const pendingInvitations = await Promise.all(
+      filteredInvitations.map(async (invitation: any) => {
+        // Calcular puntos totales desde el historial
+        const pointsHistory = await SquadronPointsHistory.aggregate([
+          { $match: { squadronId: invitation.squadronId._id } },
+          { $group: { _id: null, totalPoints: { $sum: '$pointsChange' } } }
+        ]);
+
+        const totalPoints = pointsHistory.length > 0 ? pointsHistory[0].totalPoints : 0;
+
+        return {
+          ...invitation.toObject ? invitation.toObject() : invitation,
+          squadronId: {
+            ...invitation.squadronId,
+            totalPoints: totalPoints
+          }
+        };
+      })
     );
 
     return NextResponse.json({

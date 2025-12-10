@@ -118,25 +118,25 @@ export default function InboxPage() {
     }
   };
 
-  const handleRespondSquadronInvite = async (squadronId: string, accept: boolean) => {
-    setResponding(squadronId);
+  const handleRespondSquadronInvite = async (invitationId: string, accept: boolean, squadronName: string) => {
+    setResponding(invitationId);
     try {
-      const response = await fetch('/api/squadron/respond-invitation', {
+      const endpoint = accept ? '/api/squadron/accept-invitation' : '/api/squadron/reject-invitation';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          squadronId,
-          accept,
+          invitationId,
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert(accept ? 'Te has unido a la escudería!' : 'Invitación rechazada');
+        alert(accept ? `Te has unido a ${squadronName}!` : 'Invitación rechazada');
         fetchInvitations();
       } else {
         alert(data.error || 'Error al responder invitación');
@@ -274,7 +274,9 @@ export default function InboxPage() {
                             <h3 className="text-2xl font-racing text-white">
                               {invitation.squadronName}
                             </h3>
-                            <p className="text-blue-400 font-bold">[{invitation.squadronTag}]</p>
+                            {invitation.squadronTag && (
+                              <p className="text-blue-400 font-bold">[{invitation.squadronTag}]</p>
+                            )}
                           </div>
                         </div>
 
@@ -286,31 +288,37 @@ export default function InboxPage() {
                                 `${invitation.invitedBy?.profile?.firstName} ${invitation.invitedBy?.profile?.lastName}`}
                             </span>
                           </p>
-                          <p>
-                            <span className="text-gray-500">Rol:</span>{' '}
-                            <span className="text-white capitalize">{invitation.role}</span>
-                          </p>
-                          <p>
-                            <span className="text-gray-500">Expira en:</span>{' '}
-                            <CountdownTimer expiresAt={invitation.expiresAt} />
+                          <div className="flex gap-4 text-xs mt-3">
+                            <span className="text-sky-blue/60">
+                              📊 {invitation.division}
+                            </span>
+                            <span className="text-sky-blue/60">
+                              ⚡ Fair Racing: {invitation.fairRacingAverage}
+                            </span>
+                            <span className="text-sky-blue/60">
+                              🏆 {invitation.totalPoints} pts
+                            </span>
+                          </div>
+                          <p className="text-xs text-sky-blue/50 mt-2">
+                            Recibida: {new Date(invitation.invitedAt).toLocaleString('es-CL')}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex flex-col gap-2 ml-4">
                         <button
-                          onClick={() => handleRespondSquadronInvite(invitation.squadronId, true)}
-                          disabled={responding === invitation.squadronId}
+                          onClick={() => handleRespondSquadronInvite(invitation._id, true, invitation.squadronName)}
+                          disabled={responding === invitation._id}
                           className="px-6 py-2 bg-green-500/20 text-green-400 border border-green-500/50 rounded-lg hover:bg-green-500/30 transition-all disabled:opacity-50 font-bold"
                         >
-                          {responding === invitation.squadronId ? '⏳' : '✓ Aceptar'}
+                          {responding === invitation._id ? '⏳' : '✓ ACEPTAR'}
                         </button>
                         <button
-                          onClick={() => handleRespondSquadronInvite(invitation.squadronId, false)}
-                          disabled={responding === invitation.squadronId}
+                          onClick={() => handleRespondSquadronInvite(invitation._id, false, invitation.squadronName)}
+                          disabled={responding === invitation._id}
                           className="px-6 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 font-bold"
                         >
-                          {responding === invitation.squadronId ? '⏳' : '✕ Rechazar'}
+                          {responding === invitation._id ? '⏳' : '✕ RECHAZAR'}
                         </button>
                       </div>
                     </div>

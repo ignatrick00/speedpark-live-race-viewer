@@ -5,6 +5,7 @@ import WebUser from '@/models/WebUser';
 import Squadron from '@/models/Squadron';
 import SquadronEvent from '@/models/SquadronEvent';
 import GroupClassInvitation from '@/models/GroupClassInvitation';
+import SquadronPointsHistory from '@/models/SquadronPointsHistory';
 import '@/models/Squadron';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -43,29 +44,57 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get squadron invitations
-    const squadronInvitations = await Squadron.find({
-      'invitations.email': user.email,
-      'invitations.status': 'pending'
-    })
-      .populate('createdBy', 'email profile')
-      .select('name tag invitations createdBy');
+    // Get squadron invitations from WebUser model (where they're actually stored)
+    console.log(`📧 [INVITATIONS] Buscando invitaciones de escuadrón para userId: ${userId}`);
 
-    const squadronInvites = squadronInvitations.map((squadron: any) => {
-      const invitation = squadron.invitations.find(
-        (inv: any) => inv.email === user.email && inv.status === 'pending'
-      );
-      return {
-        type: 'squadron',
-        squadronId: squadron._id,
-        squadronName: squadron.name,
-        squadronTag: squadron.tag,
-        invitedBy: squadron.createdBy,
-        invitedAt: invitation.invitedAt,
-        expiresAt: invitation.expiresAt,
-        role: invitation.role,
-      };
-    });
+    const userWithInvitations = await WebUser.findById(userId)
+      .populate({
+        path: 'invitations.squadronId',
+        select: 'name tag colors division fairRacingAverage totalPoints isActive members',
+      })
+      .populate({
+        path: 'invitations.invitedBy',
+        select: 'email profile',
+      })
+      .lean();
+
+    console.log(`🏁 [INVITATIONS] Usuario encontrado con ${userWithInvitations?.invitations?.length || 0} invitaciones totales`);
+
+    // Calcular puntos desde SquadronPointsHistory para cada invitación
+    const squadronInvites = await Promise.all(
+      (userWithInvitations?.invitations || [])
+        .filter((inv: any) =>
+          inv.status === 'pending' &&
+          inv.squadronId &&
+          inv.squadronId.isActive &&
+          inv.squadronId.members.length < 4
+        )
+        .map(async (invitation: any) => {
+          console.log(`✅ [INVITATIONS] Invitación pendiente: ${invitation.squadronId.name}`);
+
+          // Calcular puntos totales desde el historial (igual que en /ranking)
+          const pointsHistory = await SquadronPointsHistory.aggregate([
+            { $match: { squadronId: invitation.squadronId._id } },
+            { $group: { _id: null, totalPoints: { $sum: '$pointsChange' } } }
+          ]);
+
+          const totalPoints = pointsHistory.length > 0 ? pointsHistory[0].totalPoints : 0;
+
+          return {
+            type: 'squadron',
+            squadronId: invitation.squadronId._id,
+            squadronName: invitation.squadronId.name,
+            squadronTag: invitation.squadronId.tag,
+            colors: invitation.squadronId.colors,
+            division: invitation.squadronId.division,
+            fairRacingAverage: invitation.squadronId.fairRacingAverage,
+            totalPoints: totalPoints,
+            invitedBy: invitation.invitedBy,
+            invitedAt: invitation.createdAt,
+            _id: invitation._id,
+          };
+        })
+    );
 
     // Get event invitations
     const userSquadronId = user.squadron?.squadronId;
