@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
+import Toast from '@/components/Toast';
 import { EventCategoryConfig, EventCategory } from '@/types/squadron-events';
 
 export default function EventoPage() {
@@ -23,6 +24,7 @@ export default function EventoPage() {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [unregistering, setUnregistering] = useState(false);
   const [hasUnregistered, setHasUnregistered] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     if (token && params.id) {
@@ -164,17 +166,26 @@ export default function EventoPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Invitación enviada exitosamente. Tu compañero tiene 2 horas para aceptar.');
+        setToast({
+          message: 'Invitación enviada exitosamente. Tu compañero tiene 2 horas para aceptar.',
+          type: 'success'
+        });
         setSelectedTeammate(null);
         setSelectedKart(null);
         setShowKartModal(false);
         fetchEvent();
       } else {
-        alert(data.error || 'Error al enviar invitación');
+        setToast({
+          message: data.error || 'Error al enviar invitación',
+          type: 'error'
+        });
       }
     } catch (error) {
       console.error('Error inviting teammate:', error);
-      alert('Error al enviar invitación');
+      setToast({
+        message: 'Error al enviar invitación',
+        type: 'error'
+      });
     } finally {
       setInviting(false);
     }
@@ -606,6 +617,15 @@ export default function EventoPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );
