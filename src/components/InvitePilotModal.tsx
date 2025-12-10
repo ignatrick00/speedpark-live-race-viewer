@@ -26,6 +26,11 @@ export default function InvitePilotModal({ isOpen, onClose, onSuccess, token }: 
   const [isInviting, setIsInviting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<{
+    show: boolean;
+    pilotId: string;
+    pilotName: string;
+  }>({ show: false, pilotId: '', pilotName: '' });
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
@@ -63,8 +68,13 @@ export default function InvitePilotModal({ isOpen, onClose, onSuccess, token }: 
     }
   };
 
-  const handleInvite = async (pilotId: string, pilotName: string) => {
-    if (!confirm(`¿Invitar a ${pilotName} a tu escudería?`)) return;
+  const handleInviteClick = (pilotId: string, pilotName: string) => {
+    setConfirmDialog({ show: true, pilotId, pilotName });
+  };
+
+  const handleConfirmInvite = async () => {
+    const { pilotId } = confirmDialog;
+    setConfirmDialog({ show: false, pilotId: '', pilotName: '' });
 
     setIsInviting(true);
     setError('');
@@ -96,6 +106,10 @@ export default function InvitePilotModal({ isOpen, onClose, onSuccess, token }: 
     } finally {
       setIsInviting(false);
     }
+  };
+
+  const handleCancelInvite = () => {
+    setConfirmDialog({ show: false, pilotId: '', pilotName: '' });
   };
 
   const handleClose = () => {
@@ -210,7 +224,7 @@ export default function InvitePilotModal({ isOpen, onClose, onSuccess, token }: 
                     </div>
 
                     <button
-                      onClick={() => handleInvite(pilot._id, pilot.displayName)}
+                      onClick={() => handleInviteClick(pilot._id, pilot.displayName)}
                       disabled={isInviting}
                       className="px-6 py-2 bg-gradient-to-r from-electric-blue to-cyan-400 text-midnight font-bold rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -223,6 +237,34 @@ export default function InvitePilotModal({ isOpen, onClose, onSuccess, token }: 
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {confirmDialog.show && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+            <h3 className="text-xl font-racing text-electric-blue mb-4">
+              CONFIRMAR INVITACIÓN
+            </h3>
+            <p className="text-sky-blue mb-6 font-digital">
+              ¿Estás seguro que deseas invitar a <span className="text-white font-bold">{confirmDialog.pilotName}</span> a tu escudería?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelInvite}
+                className="flex-1 px-4 py-2 border-2 border-electric-blue/30 text-electric-blue rounded-lg hover:bg-electric-blue/10 transition-all font-racing"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={handleConfirmInvite}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-electric-blue to-cyan-400 text-midnight font-racing rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all"
+              >
+                INVITAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
