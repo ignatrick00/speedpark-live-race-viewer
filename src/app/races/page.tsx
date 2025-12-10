@@ -8,7 +8,7 @@ import { EventCategoryConfig } from '@/types/squadron-events';
 import { useRouter } from 'next/navigation';
 import JoinEventModal from '@/components/JoinEventModal';
 
-type ViewMode = 'selection' | 'championships' | 'championships-upcoming' | 'championships-past' | 'friendly' | 'friendly-upcoming' | 'friendly-past' | 'friendly-create';
+type ViewMode = 'selection' | 'championships' | 'championships-upcoming' | 'championships-past' | 'friendly' | 'friendly-upcoming' | 'friendly-past' | 'friendly-create' | 'my-registered-events';
 
 interface Participant {
   userId: string;
@@ -250,6 +250,7 @@ export default function RacesPage() {
           <SelectionView
             onSelectChampionships={() => setViewMode('championships')}
             onSelectFriendly={() => setViewMode('friendly')}
+            onSelectMyEvents={() => setViewMode('my-registered-events')}
           />
         )}
 
@@ -312,38 +313,47 @@ export default function RacesPage() {
             }}
           />
         )}
+
+        {viewMode === 'my-registered-events' && (
+          <MyRegisteredEventsView
+            token={token}
+            userId={user?.id}
+          />
+        )}
       </div>
     </div>
     </>
   );
 }
 
-// Selection View - Two big cards
+// Selection View - Three big cards
 function SelectionView({
   onSelectChampionships,
   onSelectFriendly,
+  onSelectMyEvents,
 }: {
   onSelectChampionships: () => void;
   onSelectFriendly: () => void;
+  onSelectMyEvents: () => void;
 }) {
   return (
-    <div className="grid md:grid-cols-2 gap-8">
+    <div className="grid md:grid-cols-3 gap-6">
       {/* Championships Card */}
       <button
         onClick={onSelectChampionships}
-        className="group relative bg-gradient-to-br from-midnight via-cyan-500/20 to-midnight border-2 border-cyan-400 rounded-2xl p-12 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-400/50"
+        className="group relative bg-gradient-to-br from-midnight via-cyan-500/20 to-midnight border-2 border-cyan-400 rounded-2xl p-10 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-400/50"
       >
         <div className="text-center">
-          <div className="text-8xl mb-6 group-hover:scale-110 transition-transform">
+          <div className="text-7xl mb-4 group-hover:scale-110 transition-transform">
             🏆
           </div>
-          <h2 className="text-4xl font-racing text-cyan-400 mb-4">
+          <h2 className="text-3xl font-racing text-cyan-400 mb-3">
             CAMPEONATOS
           </h2>
-          <p className="text-sky-blue/70 text-lg mb-6">
+          <p className="text-sky-blue/70 text-sm mb-4">
             Competencias oficiales organizadas
           </p>
-          <div className="inline-block px-6 py-3 bg-cyan-400/20 border border-cyan-400/50 text-cyan-300 rounded-lg font-racing">
+          <div className="inline-block px-4 py-2 bg-cyan-400/20 border border-cyan-400/50 text-cyan-300 rounded-lg font-racing text-sm">
             VER CAMPEONATOS
           </div>
         </div>
@@ -352,20 +362,41 @@ function SelectionView({
       {/* Friendly Races Card */}
       <button
         onClick={onSelectFriendly}
-        className="group relative bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue rounded-2xl p-12 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-electric-blue/50"
+        className="group relative bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue rounded-2xl p-10 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-electric-blue/50"
       >
         <div className="text-center">
-          <div className="text-8xl mb-6 group-hover:scale-110 transition-transform">
+          <div className="text-7xl mb-4 group-hover:scale-110 transition-transform">
             🤝
           </div>
-          <h2 className="text-4xl font-racing text-electric-blue mb-4">
+          <h2 className="text-3xl font-racing text-electric-blue mb-3">
             CARRERAS AMISTOSAS
           </h2>
-          <p className="text-sky-blue/70 text-lg mb-6">
+          <p className="text-sky-blue/70 text-sm mb-4">
             Crea o únete a carreras casuales
           </p>
-          <div className="inline-block px-6 py-3 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded-lg font-racing">
+          <div className="inline-block px-4 py-2 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded-lg font-racing text-sm">
             VER AMISTOSAS
+          </div>
+        </div>
+      </button>
+
+      {/* My Registered Events Card */}
+      <button
+        onClick={onSelectMyEvents}
+        className="group relative bg-gradient-to-br from-midnight via-purple-500/20 to-midnight border-2 border-purple-400 rounded-2xl p-10 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-400/50"
+      >
+        <div className="text-center">
+          <div className="text-7xl mb-4 group-hover:scale-110 transition-transform">
+            📋
+          </div>
+          <h2 className="text-3xl font-racing text-purple-400 mb-3">
+            MIS CARRERAS
+          </h2>
+          <p className="text-sky-blue/70 text-sm mb-4">
+            Eventos en los que estás inscrito
+          </p>
+          <div className="inline-block px-4 py-2 bg-purple-400/20 border border-purple-400/50 text-purple-300 rounded-lg font-racing text-sm">
+            VER MIS CARRERAS
           </div>
         </div>
       </button>
@@ -1720,6 +1751,72 @@ function RaceCard({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// My Registered Events View
+function MyRegisteredEventsView({ token, userId }: { token: string; userId?: string }) {
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMyEvents();
+  }, []);
+
+  const fetchMyEvents = async () => {
+    try {
+      const response = await fetch('/api/squadron-events/my-events', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data.events || []);
+      }
+    } catch (error) {
+      console.error('Error fetching my events:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-20">
+        <div className="animate-spin text-6xl mb-4">🏁</div>
+        <p className="text-sky-blue/70">Cargando tus carreras...</p>
+      </div>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-midnight via-purple-500/10 to-midnight border-2 border-purple-400/50 rounded-xl p-12 text-center">
+        <div className="text-6xl mb-4">📋</div>
+        <h3 className="text-2xl font-racing text-purple-400 mb-2">
+          NO ESTÁS INSCRITO EN NINGUNA CARRERA
+        </h3>
+        <p className="text-sky-blue/70 mb-6">
+          Explora los campeonatos y carreras amistosas para unirte
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-3xl">📋</span>
+        <h2 className="text-2xl font-racing text-purple-400">
+          MIS CARRERAS INSCRITAS
+        </h2>
+      </div>
+      {events.map((event) => (
+        <SquadronEventCard key={event._id} event={event} />
+      ))}
     </div>
   );
 }
