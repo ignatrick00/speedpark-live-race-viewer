@@ -3,6 +3,7 @@ import connectDB from '@/lib/mongodb';
 import Squadron from '@/models/Squadron';
 import WebUser from '@/models/WebUser';
 import FairRacingScore from '@/models/FairRacingScore';
+import SquadronEvent from '@/models/SquadronEvent';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -83,6 +84,41 @@ export async function POST(req: NextRequest) {
     if (!squadron.members.some((m: any) => m.toString() === memberId)) {
       return NextResponse.json(
         { error: 'Este piloto no pertenece a tu escudería' },
+        { status: 400 }
+      );
+    }
+
+    // Check if pilot is registered in any events with open registration
+    const now = new Date();
+    const eventsWithOpenRegistration = await SquadronEvent.find({
+      'participants.confirmedPilots.pilotId': memberId,
+      registrationDeadline: { $gt: now }
+    }).lean();
+
+    if (eventsWithOpenRegistration.length > 0) {
+      const eventNames = eventsWithOpenRegistration.map(e => e.name).join(', ');
+      return NextResponse.json(
+        {
+          error: `No puedes expulsar a este piloto porque está registrado en eventos con inscripciones abiertas: ${eventNames}. Primero debe retirarse de esos eventos.`,
+          eventsWithOpenRegistration: eventsWithOpenRegistration.map(e => ({ id: e._id, name: e.name }))
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check if pilot is registered in any events with closed registration
+    const eventsWithClosedRegistration = await SquadronEvent.find({
+      'participants.confirmedPilots.pilotId': memberId,
+      registrationDeadline: { $lte: now }
+    }).lean();
+
+    if (eventsWithClosedRegistration.length > 0) {
+      const eventNames = eventsWithClosedRegistration.map(e => e.name).join(', ');
+      return NextResponse.json(
+        {
+          error: `No puedes expulsar a este piloto porque está registrado en eventos con inscripciones cerradas: ${eventNames}. El piloto debe completar estos eventos antes de poder ser expulsado.`,
+          eventsWithClosedRegistration: eventsWithClosedRegistration.map(e => ({ id: e._id, name: e.name }))
+        },
         { status: 400 }
       );
     }

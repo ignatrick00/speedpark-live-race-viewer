@@ -76,10 +76,16 @@ export default function SquadronDashboardView({
   const [currentLogo, setCurrentLogo] = useState(squadron.logo || '');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState<{ memberId: string; memberName: string } | null>(null);
+  const [errorModal, setErrorModal] = useState<{ title: string; message: string; events?: { id: string; name: string }[] } | null>(null);
+
+  const handleLeaveClick = () => {
+    setShowLeaveConfirm(true);
+  };
 
   const handleLeave = async () => {
-    if (!confirm('¿Estás seguro de que quieres abandonar esta escudería?')) return;
-
+    setShowLeaveConfirm(false);
     setIsLeaving(true);
     setError('');
     try {
@@ -96,10 +102,18 @@ export default function SquadronDashboardView({
         // Reload page to clear all cached data
         window.location.reload();
       } else {
-        setError(data.error || 'Error al abandonar la escudería');
+        // Show error modal with event details if applicable
+        setErrorModal({
+          title: 'No puedes salir de la escudería',
+          message: data.error || 'Error al abandonar la escudería',
+          events: data.eventsWithOpenRegistration || data.eventsWithClosedRegistration
+        });
       }
     } catch (err) {
-      setError('Error de conexión');
+      setErrorModal({
+        title: 'Error',
+        message: 'Error de conexión'
+      });
     } finally {
       setIsLeaving(false);
     }
@@ -133,9 +147,15 @@ export default function SquadronDashboardView({
     }
   };
 
-  const handleRemoveMember = async (memberId: string, memberName: string) => {
-    if (!confirm(`¿Expulsar a ${memberName} de la escudería?`)) return;
+  const handleRemoveMemberClick = (memberId: string, memberName: string) => {
+    setShowRemoveConfirm({ memberId, memberName });
+  };
 
+  const handleRemoveMember = async () => {
+    if (!showRemoveConfirm) return;
+
+    const { memberId, memberName } = showRemoveConfirm;
+    setShowRemoveConfirm(null);
     setIsRemoving(true);
     setError('');
     try {
@@ -150,12 +170,21 @@ export default function SquadronDashboardView({
       const data = await response.json();
 
       if (data.success) {
+        setToast({ message: `${memberName} ha sido expulsado`, type: 'success' });
         onTransferCaptain(''); // Trigger refresh
       } else {
-        setError(data.error || 'Error al expulsar miembro');
+        // Show error modal with event details if applicable
+        setErrorModal({
+          title: 'No puedes expulsar a este piloto',
+          message: data.error || 'Error al expulsar miembro',
+          events: data.eventsWithOpenRegistration || data.eventsWithClosedRegistration
+        });
       }
     } catch (err) {
-      setError('Error de conexión');
+      setErrorModal({
+        title: 'Error',
+        message: 'Error de conexión'
+      });
     } finally {
       setIsRemoving(false);
     }
@@ -476,7 +505,7 @@ export default function SquadronDashboardView({
                 </div>
                 {isCaptain && member.role !== 'captain' && (
                   <button
-                    onClick={() => handleRemoveMember(member._id, getMemberDisplayName(member))}
+                    onClick={() => handleRemoveMemberClick(member._id, getMemberDisplayName(member))}
                     disabled={isRemoving}
                     className="px-3 py-2 bg-red-500/20 border border-red-500/50 text-red-300 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm"
                   >
@@ -516,7 +545,7 @@ export default function SquadronDashboardView({
         </p>
         <div className="flex gap-3">
           <button
-            onClick={handleLeave}
+            onClick={handleLeaveClick}
             disabled={isLeaving || isDeleting || (isCaptain && squadron.members.length > 1)}
             className="px-6 py-3 bg-red-500/20 border border-red-500 text-red-300 font-racing rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -649,6 +678,106 @@ export default function SquadronDashboardView({
           type={toast.type}
           onClose={() => setToast(null)}
         />
+      )}
+
+      {/* Leave Confirmation Modal */}
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gradient-to-br from-midnight via-red-900/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 max-w-md mx-4 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-2">
+                ¿ABANDONAR ESCUDERÍA?
+              </h3>
+              <p className="text-sky-blue/80 font-digital">
+                Estás seguro de que quieres abandonar esta escudería?
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-racing transition-all"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={handleLeave}
+                disabled={isLeaving}
+                className="flex-1 px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded-lg font-racing transition-all disabled:opacity-50"
+              >
+                {isLeaving ? 'PROCESANDO...' : 'ABANDONAR'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Member Confirmation Modal */}
+      {showRemoveConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gradient-to-br from-midnight via-red-900/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 max-w-md mx-4 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">🚫</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-2">
+                ¿EXPULSAR PILOTO?
+              </h3>
+              <p className="text-sky-blue/80 font-digital">
+                ¿Estás seguro de que quieres expulsar a {showRemoveConfirm.memberName} de la escudería?
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRemoveConfirm(null)}
+                className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-racing transition-all"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={handleRemoveMember}
+                disabled={isRemoving}
+                className="flex-1 px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded-lg font-racing transition-all disabled:opacity-50"
+              >
+                {isRemoving ? 'PROCESANDO...' : 'EXPULSAR'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal with Event Details */}
+      {errorModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gradient-to-br from-midnight via-red-900/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 max-w-2xl mx-4 shadow-2xl">
+            <div className="mb-6">
+              <div className="text-6xl mb-4 text-center">❌</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-4 text-center">
+                {errorModal.title}
+              </h3>
+              <p className="text-sky-blue/80 font-digital mb-4">
+                {errorModal.message}
+              </p>
+              {errorModal.events && errorModal.events.length > 0 && (
+                <div className="mt-4 p-4 bg-black/30 border border-red-500/30 rounded-lg">
+                  <p className="text-sm text-gray-400 mb-2">Eventos afectados:</p>
+                  <ul className="space-y-2">
+                    {errorModal.events.map(event => (
+                      <li key={event.id} className="text-white font-racing flex items-center gap-2">
+                        <span className="text-red-400">•</span>
+                        {event.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setErrorModal(null)}
+              className="w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-racing transition-all"
+            >
+              ENTENDIDO
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

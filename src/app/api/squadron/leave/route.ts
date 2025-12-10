@@ -3,6 +3,7 @@ import connectDB from '@/lib/mongodb';
 import Squadron from '@/models/Squadron';
 import WebUser from '@/models/WebUser';
 import FairRacingScore from '@/models/FairRacingScore';
+import SquadronEvent from '@/models/SquadronEvent';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -60,6 +61,41 @@ export async function POST(req: NextRequest) {
     }
 
     const isCaptain = user.squadron.role === 'captain';
+
+    // Check if pilot is registered in any events with open registration
+    const now = new Date();
+    const eventsWithOpenRegistration = await SquadronEvent.find({
+      'participants.confirmedPilots.pilotId': userId,
+      registrationDeadline: { $gt: now }
+    }).lean();
+
+    if (eventsWithOpenRegistration.length > 0) {
+      const eventNames = eventsWithOpenRegistration.map(e => e.name).join(', ');
+      return NextResponse.json(
+        {
+          error: `No puedes salir de la escudería porque estás registrado en eventos con inscripciones abiertas: ${eventNames}. Primero debes retirarte de esos eventos.`,
+          eventsWithOpenRegistration: eventsWithOpenRegistration.map(e => ({ id: e._id, name: e.name }))
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check if pilot is registered in any events with closed registration
+    const eventsWithClosedRegistration = await SquadronEvent.find({
+      'participants.confirmedPilots.pilotId': userId,
+      registrationDeadline: { $lte: now }
+    }).lean();
+
+    if (eventsWithClosedRegistration.length > 0) {
+      const eventNames = eventsWithClosedRegistration.map(e => e.name).join(', ');
+      return NextResponse.json(
+        {
+          error: `No puedes salir de la escudería porque estás registrado en eventos con inscripciones cerradas: ${eventNames}. Debes completar estos eventos antes de poder salir.`,
+          eventsWithClosedRegistration: eventsWithClosedRegistration.map(e => ({ id: e._id, name: e.name }))
+        },
+        { status: 400 }
+      );
+    }
 
     // Si es capitán y hay más miembros, debe transferir capitanía primero
     if (isCaptain && squadron.members.length > 1) {
