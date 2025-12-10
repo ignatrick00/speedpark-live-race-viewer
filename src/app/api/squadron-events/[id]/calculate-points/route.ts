@@ -173,6 +173,7 @@ export async function POST(
       squadronId: string;
       squadronName: string;
       totalPoints: number;
+      bestPosition: number;
       pilots: Array<{
         webUserId: string;
         driverName: string;
@@ -225,6 +226,7 @@ export async function POST(
           squadronId: squadron._id.toString(),
           squadronName: squadron.name,
           totalPoints: 0,
+          bestPosition: Infinity,
           pilots: []
         });
       }
@@ -238,6 +240,9 @@ export async function POST(
         individualPoints,
         kartNumber: driver.kartNumber
       });
+
+      // Actualizar mejor posición de la escudería
+      squadronData.bestPosition = Math.min(squadronData.bestPosition, finalPosition);
 
       const positionLabel = isDisqualified
         ? `DSQ (descalificado)`
@@ -283,9 +288,19 @@ export async function POST(
       event.adjustedResults = adjustedResults as any;
     }
 
-    // Convertir a array y ordenar por puntos totales
+    // Convertir a array y ordenar por puntos totales (con desempate por mejor posición)
     const squadrons = Array.from(squadronMap.values())
-      .sort((a, b) => b.totalPoints - a.totalPoints);
+      .sort((a, b) => {
+        // Primer criterio: Mayor puntaje total
+        if (b.totalPoints !== a.totalPoints) {
+          return b.totalPoints - a.totalPoints;
+        }
+
+        // Segundo criterio (desempate): Mejor posición individual
+        const bestPositionA = Math.min(...a.pilots.map(p => p.finalPosition));
+        const bestPositionB = Math.min(...b.pilots.map(p => p.finalPosition));
+        return bestPositionA - bestPositionB; // Menor posición = mejor
+      });
 
     console.log(`\n🏆 Escuderías participantes: ${squadrons.length}`);
 
@@ -307,13 +322,14 @@ export async function POST(
       const percentage = getPercentageForPosition(position);
       const pointsAwarded = Math.round((basePoints * percentage) / 100);
 
-      console.log(`${position}° ${squadron.squadronName}: ${squadron.totalPoints} pts → +${pointsAwarded} pts (${percentage}%)`);
+      console.log(`${position}° ${squadron.squadronName}: ${squadron.totalPoints} pts → +${pointsAwarded} pts (${percentage}%) [Mejor pos: ${squadron.bestPosition}°]`);
 
       return {
         ...squadron,
         position,
         percentageAwarded: percentage,
-        pointsAwarded
+        pointsAwarded,
+        bestPosition: squadron.bestPosition
       };
     });
 

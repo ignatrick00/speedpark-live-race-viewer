@@ -614,6 +614,12 @@ export default function EventoDetallePage() {
                             </div>
                             <div className="text-xs text-gray-400">
                               {squadron.percentageAwarded}% • {squadron.totalPoints} pts totales
+                              {/* Indicador de desempate */}
+                              {index > 0 && calculatedResults.squadrons[index - 1].totalPoints === squadron.totalPoints && (
+                                <div className="text-xs text-yellow-400 mt-1 font-bold">
+                                  🏆 Desempate: Mejor posición {squadron.bestPosition}°
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
