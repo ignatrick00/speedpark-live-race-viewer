@@ -21,6 +21,8 @@ export async function GET(
       );
     }
 
+    console.log(`🔍 Buscando eventos finalizados para escudería: ${id} (${squadron.name})`);
+
     // Buscar eventos finalizados donde participó esta escudería
     const events = await SquadronEvent.find({
       raceStatus: 'finalized',
@@ -30,6 +32,15 @@ export async function GET(
       .sort({ finalizedAt: -1 }) // Más recientes primero
       .limit(10)
       .lean();
+
+    console.log(`📊 Eventos encontrados: ${events.length}`);
+    if (events.length > 0) {
+      console.log(`📊 Primer evento:`, {
+        name: events[0].name,
+        raceStatus: events[0].raceStatus,
+        results: events[0].results?.length || 0
+      });
+    }
 
     // Formatear resultados para incluir solo la info de esta escudería
     const recentResults = events.map((event: any) => {

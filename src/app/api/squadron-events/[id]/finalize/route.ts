@@ -155,21 +155,25 @@ export async function POST(
     }
 
     // Actualizar estado del evento
+    const mongoose = require('mongoose');
     event.raceStatus = 'finalized';
     event.finalizedAt = new Date();
     event.results = calculatedResults.squadrons.map((s: any, index: number) => ({
-      squadronId: s.squadronId,
+      squadronId: new mongoose.Types.ObjectId(s.squadronId),
       position: index + 1,
       pointsEarned: s.pointsAwarded,
       totalTime: 0,
       bestLapTime: 0,
       pilots: s.pilots.map((p: any) => ({
-        pilotId: p.webUserId,
+        pilotId: new mongoose.Types.ObjectId(p.webUserId),
         lapTimes: [],
         bestLap: 0,
         position: p.finalPosition
       }))
     })) as any;
+
+    console.log(`📊 Guardando ${event.results.length} resultados en event.results`);
+    console.log(`📊 Primer resultado:`, JSON.stringify(event.results[0], null, 2));
 
     await event.save();
 
