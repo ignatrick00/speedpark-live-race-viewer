@@ -37,6 +37,8 @@ export async function GET(request: NextRequest) {
     })
       .populate('createdBy', 'email profile')
       .populate('participants.squadronId', 'name tag colors')
+      .populate('participants.confirmedPilots.pilotId', '_id email profile')
+      .populate('participants.pendingInvitations.pilotId', '_id email profile')
       .sort({ eventDate: 1 }) // Sort by event date ascending (soonest first)
       .lean();
 

@@ -1928,10 +1928,13 @@ function SquadronEventCard({
 }) {
   const categoryConfig = EventCategoryConfig[event.category as EventCategory];
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showPilotsModal, setShowPilotsModal] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [unregistering, setUnregistering] = useState(false);
+  const [showUnregisterConfirm, setShowUnregisterConfirm] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // Countdown timer for registration deadline
   useEffect(() => {
@@ -2027,6 +2030,57 @@ function SquadronEventCard({
   const handleViewPilotsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowPilotsModal(true);
+  };
+
+  const handleUnregisterClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onUnregister) {
+      // If parent provided handler, use it
+      onUnregister(e);
+    } else {
+      // Otherwise use internal handler
+      setShowUnregisterConfirm(true);
+    }
+  };
+
+  const handleConfirmUnregister = async () => {
+    setShowUnregisterConfirm(false);
+    setUnregistering(true);
+
+    try {
+      const response = await fetch(`/api/squadron-events/${event._id}/unregister`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setToast({
+          message: 'Te has retirado exitosamente del evento',
+          type: 'success'
+        });
+        // Reload to refresh event data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setToast({
+          message: data.error || 'Error al retirarse',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error unregistering:', error);
+      setToast({
+        message: 'Error al retirarse del evento',
+        type: 'error'
+      });
+    } finally {
+      setUnregistering(false);
+    }
   };
 
   return (
@@ -2128,47 +2182,42 @@ function SquadronEventCard({
       {/* Status and Join/Unregister Buttons */}
       <div className="flex items-center justify-between gap-2">
         <span className={`px-3 py-1 rounded-full text-xs font-racing ${
-          showUnregisterButton ? 'bg-green-600/20 text-green-400 border border-green-500/50' :
+          (showUnregisterButton || isUserRegistered) ? 'bg-green-600/20 text-green-400 border border-green-500/50' :
           event.status === 'published' ? 'bg-green-600/20 text-green-400 border border-green-500/50' :
           event.status === 'registration_open' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/50' :
           event.status === 'completed' ? 'bg-slate-600/20 text-slate-400 border border-slate-500/50' :
           'bg-yellow-600/20 text-yellow-400 border border-yellow-500/50'
         }`}>
-          {showUnregisterButton ? '✓ REGISTRADO' :
+          {(showUnregisterButton || isUserRegistered) ? '✓ REGISTRADO' :
            event.status === 'published' ? 'Publicado' :
            event.status === 'registration_open' ? 'Inscripciones Abiertas' :
            event.status === 'completed' ? 'Completado' :
            'Borrador'}
         </span>
 
-        {/* Unregister Button (for "My Events" view) */}
-        {showUnregisterButton && onUnregister && (
+        {/* Unregister Button - Shows when user is registered */}
+        {(showUnregisterButton || isUserRegistered) && (
           <button
-            onClick={onUnregister}
-            disabled={isUnregistering}
+            onClick={handleUnregisterClick}
+            disabled={isUnregistering || unregistering}
             className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm font-bold"
           >
-            {isUnregistering ? '⏳ PROCESANDO...' : '❌ RETIRARME'}
+            {(isUnregistering || unregistering) ? '⏳ PROCESANDO...' : '❌ RETIRARME'}
           </button>
         )}
 
-        {/* Join/Registered Button - Available for everyone including organizers (for regular view) */}
-        {!showUnregisterButton && (event.status === 'published' || event.status === 'registration_open') && !isRegistrationClosed && (
+        {/* Join Button - Shows when user is NOT registered */}
+        {!showUnregisterButton && !isUserRegistered && (event.status === 'published' || event.status === 'registration_open') && !isRegistrationClosed && (
           <button
             onClick={handleJoinClick}
-            disabled={isUserRegistered}
-            className={`px-4 py-2 rounded-lg font-racing transition-all ${
-              isUserRegistered
-                ? 'bg-green-600/20 border border-green-500/50 text-green-400 cursor-default'
-                : 'bg-purple-500/20 border border-purple-500/50 text-purple-400 hover:bg-purple-500/30'
-            }`}
+            className="px-4 py-2 rounded-lg font-racing transition-all bg-purple-500/20 border border-purple-500/50 text-purple-400 hover:bg-purple-500/30"
           >
-            {isUserRegistered ? '✓ REGISTRADO' : '🏆 UNIRSE'}
+            🏆 UNIRSE
           </button>
         )}
 
         {/* Registration Closed Message */}
-        {!showUnregisterButton && (event.status === 'published' || event.status === 'registration_open') && isRegistrationClosed && !isUserRegistered && (
+        {!showUnregisterButton && !isUserRegistered && (event.status === 'published' || event.status === 'registration_open') && isRegistrationClosed && (
           <span className="px-4 py-2 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg font-racing text-sm">
             🔒 INSCRIPCIONES CERRADAS
           </span>
@@ -2255,6 +2304,47 @@ function SquadronEventCard({
           </div>
         </div>
       </div>
+    )}
+
+    {/* Unregister Confirmation Modal */}
+    {showUnregisterConfirm && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setShowUnregisterConfirm(false)}>
+        <div className="bg-gradient-to-br from-midnight via-red-900/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h3 className="text-2xl font-racing text-red-400 mb-2">
+              ¿RETIRARSE DEL EVENTO?
+            </h3>
+            <p className="text-sky-blue/80 font-digital">
+              Solo tú serás retirado, tus compañeros de escudería seguirán participando.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowUnregisterConfirm(false)}
+              className="flex-1 px-6 py-3 bg-slate-600/20 border border-slate-500/50 text-slate-300 rounded-lg hover:bg-slate-600/30 transition-all font-racing"
+            >
+              CANCELAR
+            </button>
+            <button
+              onClick={handleConfirmUnregister}
+              disabled={unregistering}
+              className="flex-1 px-6 py-3 bg-red-500/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-500/30 transition-all font-racing disabled:opacity-50"
+            >
+              {unregistering ? '⏳ PROCESANDO...' : 'RETIRARME'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Toast Notification */}
+    {toast && (
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(null)}
+      />
     )}
     </>
   );
