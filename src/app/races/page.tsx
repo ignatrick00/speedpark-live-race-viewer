@@ -2098,6 +2098,43 @@ function SquadronEventCard({ event }: { event: any }) {
         </div>
       </div>
 
+      {/* Registered Competitors */}
+      {event.participants && event.participants.length > 0 && (
+        <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg">
+          <p className="text-purple-400 text-sm font-racing mb-3">👥 COMPETIDORES INSCRITOS</p>
+          <div className="space-y-2">
+            {event.participants.map((participant: any, index: number) => {
+              const confirmedCount = participant.confirmedPilots?.length || 0;
+              const pendingCount = participant.pendingInvitations?.filter((inv: any) => inv.status === 'pending').length || 0;
+              const totalPilots = confirmedCount + pendingCount;
+
+              return (
+                <div key={index} className="flex items-center justify-between bg-black/30 p-2 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🏁</span>
+                    <div>
+                      <p className="text-white font-racing text-sm">
+                        {participant.squadronId?.name || 'Escudería'}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {confirmedCount} confirmado{confirmedCount !== 1 ? 's' : ''}
+                        {pendingCount > 0 && ` • ${pendingCount} pendiente${pendingCount !== 1 ? 's' : ''}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-electric-blue font-racing text-lg">
+                      {totalPilots}/{event.maxPilotsPerSquadron}
+                    </p>
+                    <p className="text-xs text-slate-500">pilotos</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Status and Join Button */}
       <div className="flex items-center justify-between gap-2">
         <span className={`px-3 py-1 rounded-full text-xs font-racing ${
@@ -2279,6 +2316,43 @@ function MyRegisteredEventCard({ event, onUnregister, isUnregistering }: {
           </div>
         </div>
       </div>
+
+      {/* Registered Competitors */}
+      {event.participants && event.participants.length > 0 && (
+        <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg">
+          <p className="text-purple-400 text-sm font-racing mb-3">👥 COMPETIDORES INSCRITOS</p>
+          <div className="space-y-2">
+            {event.participants.map((participant: any, index: number) => {
+              const confirmedCount = participant.confirmedPilots?.length || 0;
+              const pendingCount = participant.pendingInvitations?.filter((inv: any) => inv.status === 'pending').length || 0;
+              const totalPilots = confirmedCount + pendingCount;
+
+              return (
+                <div key={index} className="flex items-center justify-between bg-black/30 p-2 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🏁</span>
+                    <div>
+                      <p className="text-white font-racing text-sm">
+                        {participant.squadronId?.name || 'Escudería'}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {confirmedCount} confirmado{confirmedCount !== 1 ? 's' : ''}
+                        {pendingCount > 0 && ` • ${pendingCount} pendiente${pendingCount !== 1 ? 's' : ''}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-electric-blue font-racing text-lg">
+                      {totalPilots}/{event.maxPilotsPerSquadron}
+                    </p>
+                    <p className="text-xs text-slate-500">pilotos</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Status and Unregister Button */}
       <div className="flex items-center justify-between gap-2">
