@@ -38,6 +38,8 @@ export async function GET(request: NextRequest) {
         .populate('participants.squadronId', 'name tag')
         .populate('participants.confirmedPilots.pilotId', '_id email profile')
         .populate('participants.pendingInvitations.pilotId', '_id email profile')
+        .populate('results.squadronId', 'name tag colors')
+        .populate('results.pilots.pilotId', '_id email profile')
         .sort({ eventDate: -1 });
     } else {
       // Public - only show published events
@@ -48,6 +50,8 @@ export async function GET(request: NextRequest) {
         .populate('participants.squadronId', 'name tag')
         .populate('participants.confirmedPilots.pilotId', '_id email profile')
         .populate('participants.pendingInvitations.pilotId', '_id email profile')
+        .populate('results.squadronId', 'name tag colors')
+        .populate('results.pilots.pilotId', '_id email profile')
         .sort({ eventDate: -1 });
     }
 

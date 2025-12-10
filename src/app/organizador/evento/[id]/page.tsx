@@ -846,45 +846,57 @@ export default function EventoDetallePage() {
               </button>
             )}
 
-            <button
-              onClick={() => setShowRaceSearchModal(true)}
-              className="px-6 py-3 bg-electric-blue text-black rounded-xl font-bold hover:bg-cyan-300 transition-all"
-            >
-              🔍 Buscar Carrera
-            </button>
+            {event.raceStatus !== 'finalized' && (
+              <button
+                onClick={() => setShowRaceSearchModal(true)}
+                className="px-6 py-3 bg-electric-blue text-black rounded-xl font-bold hover:bg-cyan-300 transition-all"
+              >
+                🔍 Buscar Carrera
+              </button>
+            )}
 
-            <button
-              onClick={() => router.push(`/organizador/evento/${event._id}/editar`)}
-              className="px-6 py-3 bg-purple-500 text-white rounded-xl font-bold hover:bg-purple-600 transition-all"
-            >
-              Editar Evento
-            </button>
-            <button
-              onClick={async () => {
-                if (!confirm('¿Estás seguro de eliminar este evento? Esta acción no se puede deshacer.')) return;
+            {event.raceStatus !== 'finalized' && (
+              <>
+                <button
+                  onClick={() => router.push(`/organizador/evento/${event._id}/editar`)}
+                  className="px-6 py-3 bg-purple-500 text-white rounded-xl font-bold hover:bg-purple-600 transition-all"
+                >
+                  Editar Evento
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('¿Estás seguro de eliminar este evento? Esta acción no se puede deshacer.')) return;
 
-                try {
-                  const response = await fetch(`/api/squadron-events/${event._id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                  });
+                    try {
+                      const response = await fetch(`/api/squadron-events/${event._id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                      });
 
-                  if (response.ok) {
-                    alert('Evento eliminado exitosamente');
-                    router.push('/organizador');
-                  } else {
-                    const data = await response.json();
-                    alert(data.error || 'Error al eliminar evento');
-                  }
-                } catch (error) {
-                  console.error('Error deleting event:', error);
-                  alert('Error al eliminar evento');
-                }
-              }}
-              className="px-6 py-3 bg-red-500/20 text-red-400 border border-red-500/50 rounded-xl font-bold hover:bg-red-500/30 transition-all"
-            >
-              🗑️ Eliminar Evento
-            </button>
+                      if (response.ok) {
+                        alert('Evento eliminado exitosamente');
+                        router.push('/organizador');
+                      } else {
+                        const data = await response.json();
+                        alert(data.error || 'Error al eliminar evento');
+                      }
+                    } catch (error) {
+                      console.error('Error deleting event:', error);
+                      alert('Error al eliminar evento');
+                    }
+                  }}
+                  className="px-6 py-3 bg-red-500/20 text-red-400 border border-red-500/50 rounded-xl font-bold hover:bg-red-500/30 transition-all"
+                >
+                  🗑️ Eliminar Evento
+                </button>
+              </>
+            )}
+
+            {event.raceStatus === 'finalized' && (
+              <div className="px-6 py-3 bg-green-500/20 text-green-400 border border-green-500/50 rounded-xl font-bold text-center">
+                ✅ Evento Finalizado
+              </div>
+            )}
           </div>
         </div>
 
