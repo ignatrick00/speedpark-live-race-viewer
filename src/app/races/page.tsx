@@ -8,7 +8,7 @@ import { EventCategoryConfig } from '@/types/squadron-events';
 import { useRouter } from 'next/navigation';
 import JoinEventModal from '@/components/JoinEventModal';
 
-type ViewMode = 'selection' | 'championships' | 'friendly-join' | 'friendly-create';
+type ViewMode = 'selection' | 'championships' | 'championships-upcoming' | 'championships-past' | 'friendly-join' | 'friendly-create';
 
 interface Participant {
   userId: string;
@@ -255,7 +255,23 @@ export default function RacesPage() {
         )}
 
         {viewMode === 'championships' && (
-          <ChampionshipsView
+          <ChampionshipsSelectionView
+            onSelectUpcoming={() => setViewMode('championships-upcoming')}
+            onSelectPast={() => setViewMode('championships-past')}
+            onBack={() => setViewMode('selection')}
+          />
+        )}
+
+        {viewMode === 'championships-upcoming' && (
+          <ChampionshipsUpcomingView
+            races={championshipRaces}
+            isLoading={isLoading}
+            onRefresh={fetchRaces}
+          />
+        )}
+
+        {viewMode === 'championships-past' && (
+          <ChampionshipsPastView
             races={championshipRaces}
             isLoading={isLoading}
             onRefresh={fetchRaces}
@@ -412,8 +428,78 @@ function SelectionView({
   );
 }
 
-// Championships View
-function ChampionshipsView({
+// Championships Selection View - Similar to Friendly Options
+function ChampionshipsSelectionView({
+  onSelectUpcoming,
+  onSelectPast,
+  onBack,
+}: {
+  onSelectUpcoming: () => void;
+  onSelectPast: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <div className="bg-gradient-to-br from-midnight via-cyan-500/20 to-midnight border-2 border-cyan-400 rounded-2xl p-8">
+      <div className="text-center mb-8">
+        <div className="text-6xl mb-4">🏆</div>
+        <h2 className="text-3xl font-racing text-cyan-400 mb-2">
+          CAMPEONATOS
+        </h2>
+        <p className="text-sky-blue/70">¿Qué deseas ver?</p>
+      </div>
+
+      <div className="space-y-4">
+        <button
+          onClick={onSelectUpcoming}
+          className="w-full group bg-gradient-to-r from-cyan-400/30 to-cyan-400/10 border-2 border-cyan-400/50 rounded-xl p-6 hover:bg-cyan-400/20 transition-all hover:scale-105 hover:shadow-lg hover:shadow-cyan-400/30"
+        >
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <h3 className="text-2xl font-racing text-cyan-400 mb-1">
+                PRÓXIMAS CARRERAS
+              </h3>
+              <p className="text-sky-blue/60 text-sm">
+                Campeonatos futuros y disponibles
+              </p>
+            </div>
+            <div className="text-4xl group-hover:scale-110 transition-transform">
+              🏁
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={onSelectPast}
+          className="w-full group bg-gradient-to-r from-slate-500/30 to-slate-500/10 border-2 border-slate-400/50 rounded-xl p-6 hover:bg-slate-500/20 transition-all hover:scale-105 hover:shadow-lg hover:shadow-slate-400/30"
+        >
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <h3 className="text-2xl font-racing text-slate-300 mb-1">
+                CARRERAS PASADAS
+              </h3>
+              <p className="text-sky-blue/60 text-sm">
+                Historial de campeonatos completados
+              </p>
+            </div>
+            <div className="text-4xl group-hover:scale-110 transition-transform">
+              📚
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={onBack}
+          className="w-full px-4 py-3 border border-sky-blue/30 text-sky-blue/70 rounded-lg hover:bg-sky-blue/10 transition-all"
+        >
+          CANCELAR
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Championships Upcoming View
+function ChampionshipsUpcomingView({
   races,
   isLoading,
   onRefresh,
@@ -434,7 +520,13 @@ function ChampionshipsView({
       const response = await fetch('/api/squadron-events');
       if (response.ok) {
         const data = await response.json();
-        setSquadronEvents(data.events || []);
+        // Filter only upcoming/active events
+        const upcomingEvents = (data.events || []).filter((event: any) => {
+          const eventDate = new Date(event.eventDate);
+          const now = new Date();
+          return eventDate >= now || event.status === 'published' || event.status === 'registration_open';
+        });
+        setSquadronEvents(upcomingEvents);
       }
     } catch (error) {
       console.error('Error fetching squadron events:', error);
@@ -447,7 +539,7 @@ function ChampionshipsView({
     return (
       <div className="text-center py-20">
         <div className="animate-spin text-6xl mb-4">🏁</div>
-        <p className="text-sky-blue/70">Cargando campeonatos...</p>
+        <p className="text-sky-blue/70">Cargando próximas carreras...</p>
       </div>
     );
   }
@@ -457,10 +549,10 @@ function ChampionshipsView({
       <div className="bg-gradient-to-br from-midnight via-cyan-500/10 to-midnight border-2 border-cyan-400/50 rounded-xl p-12 text-center">
         <div className="text-6xl mb-4">🏆</div>
         <h3 className="text-2xl font-racing text-cyan-400 mb-2">
-          NO HAY CAMPEONATOS ACTIVOS
+          NO HAY PRÓXIMAS CARRERAS
         </h3>
         <p className="text-sky-blue/70 mb-6">
-          Los campeonatos son creados por organizadores
+          No hay campeonatos programados próximamente
         </p>
         <p className="text-sm text-sky-blue/50">
           Mantente atento para futuras competencias
@@ -471,6 +563,90 @@ function ChampionshipsView({
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-3xl">🏁</span>
+        <h2 className="text-2xl font-racing text-cyan-400">
+          PRÓXIMAS CARRERAS
+        </h2>
+      </div>
+      {squadronEvents.map((event) => (
+        <SquadronEventCard key={event._id} event={event} />
+      ))}
+    </div>
+  );
+}
+
+// Championships Past View
+function ChampionshipsPastView({
+  races,
+  isLoading,
+  onRefresh,
+}: {
+  races: Race[];
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [squadronEvents, setSquadronEvents] = useState<any[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchSquadronEvents();
+  }, []);
+
+  const fetchSquadronEvents = async () => {
+    try {
+      const response = await fetch('/api/squadron-events');
+      if (response.ok) {
+        const data = await response.json();
+        // Filter only past/completed events
+        const pastEvents = (data.events || []).filter((event: any) => {
+          const eventDate = new Date(event.eventDate);
+          const now = new Date();
+          return eventDate < now || event.status === 'completed';
+        });
+        setSquadronEvents(pastEvents);
+      }
+    } catch (error) {
+      console.error('Error fetching squadron events:', error);
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  if (eventsLoading) {
+    return (
+      <div className="text-center py-20">
+        <div className="animate-spin text-6xl mb-4">🏁</div>
+        <p className="text-sky-blue/70">Cargando carreras pasadas...</p>
+      </div>
+    );
+  }
+
+  if (squadronEvents.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-midnight via-slate-500/10 to-midnight border-2 border-slate-400/50 rounded-xl p-12 text-center">
+        <div className="text-6xl mb-4">📚</div>
+        <h3 className="text-2xl font-racing text-slate-300 mb-2">
+          NO HAY CARRERAS PASADAS
+        </h3>
+        <p className="text-sky-blue/70 mb-6">
+          Aún no se han completado campeonatos
+        </p>
+        <p className="text-sm text-sky-blue/50">
+          El historial aparecerá aquí una vez finalizados los eventos
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-3xl">📚</span>
+        <h2 className="text-2xl font-racing text-slate-300">
+          CARRERAS PASADAS
+        </h2>
+      </div>
       {squadronEvents.map((event) => (
         <SquadronEventCard key={event._id} event={event} />
       ))}
