@@ -177,14 +177,23 @@ export default function InboxPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert(accept ? '¡Invitación aceptada! Te has unido a la clase grupal.' : 'Invitación rechazada');
+        setToast({
+          message: accept ? '¡Invitación aceptada! Te has unido a la clase grupal.' : 'Invitación rechazada',
+          type: accept ? 'success' : 'info'
+        });
         fetchInvitations();
       } else {
-        alert(data.error || 'Error al responder invitación');
+        setToast({
+          message: data.error || 'Error al responder invitación',
+          type: 'error'
+        });
       }
     } catch (error) {
       console.error('Error responding to class invitation:', error);
-      alert('Error al responder invitación');
+      setToast({
+        message: 'Error al responder invitación',
+        type: 'error'
+      });
     } finally {
       setResponding(null);
     }
@@ -205,14 +214,23 @@ export default function InboxPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert(accept ? 'Has aceptado la invitación al evento!' : 'Invitación rechazada');
+        setToast({
+          message: accept ? 'Has aceptado la invitación al evento!' : 'Invitación rechazada',
+          type: accept ? 'success' : 'info'
+        });
         fetchInvitations();
       } else {
-        alert(data.error || 'Error al responder invitación');
+        setToast({
+          message: data.error || 'Error al responder invitación',
+          type: 'error'
+        });
       }
     } catch (error) {
       console.error('Error responding to event invitation:', error);
-      alert('Error al responder invitación');
+      setToast({
+        message: 'Error al responder invitación',
+        type: 'error'
+      });
     } finally {
       setResponding(null);
     }
