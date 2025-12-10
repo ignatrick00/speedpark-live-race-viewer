@@ -371,6 +371,14 @@ export default function SquadronDashboard() {
                 onTransferCaptain={() => fetchMySquadron()}
                 token={token || ''}
               />
+
+              {/* Recent Results */}
+              {squadron && (
+                <SquadronRecentResults
+                  squadronId={squadron._id}
+                  token={token || ''}
+                />
+              )}
             </>
           ) : null}
         </div>
@@ -395,6 +403,135 @@ export default function SquadronDashboard() {
         }}
         token={token || ''}
       />
+    </div>
+  );
+}
+
+// Squadron Recent Results Component
+function SquadronRecentResults({ squadronId, token }: { squadronId: string; token: string }) {
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRecentResults();
+  }, [squadronId]);
+
+  const fetchRecentResults = async () => {
+    try {
+      const response = await fetch(`/api/squadron/${squadronId}/recent-results`);
+      if (response.ok) {
+        const data = await response.json();
+        setResults(data.results || []);
+      }
+    } catch (error) {
+      console.error('Error fetching recent results:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-br from-midnight via-purple-900/20 to-midnight border-2 border-purple-500/50 rounded-xl p-8 mt-8">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">🏁</div>
+          <p className="text-sky-blue/70">Cargando resultados...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (results.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-midnight via-purple-900/20 to-midnight border-2 border-purple-500/50 rounded-xl p-8 mt-8">
+        <div className="flex items-center gap-3 mb-6">
+          <span className="text-3xl">📊</span>
+          <h2 className="text-2xl font-racing text-purple-400">ÚLTIMOS RESULTADOS</h2>
+        </div>
+        <div className="text-center py-8">
+          <div className="text-6xl mb-4">🏆</div>
+          <p className="text-gray-400">Aún no hay resultados registrados</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Los resultados de campeonatos aparecerán aquí
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-midnight via-purple-900/20 to-midnight border-2 border-purple-500/50 rounded-xl p-8 mt-8">
+      <div className="flex items-center gap-3 mb-6">
+        <span className="text-3xl">📊</span>
+        <h2 className="text-2xl font-racing text-purple-400">ÚLTIMOS RESULTADOS</h2>
+      </div>
+
+      <div className="space-y-4">
+        {results.map((result) => {
+          const positionEmoji =
+            result.position === 1 ? '🥇' :
+            result.position === 2 ? '🥈' :
+            result.position === 3 ? '🥉' :
+            `${result.position}°`;
+
+          return (
+            <div
+              key={result.eventId}
+              className="bg-black/30 border border-purple-500/20 rounded-lg p-4 hover:bg-black/40 transition-all"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-white font-bold text-lg">{result.eventName}</h3>
+                  </div>
+                  <p className="text-sm text-gray-400">
+                    {new Date(result.finalizedAt || result.eventDate).toLocaleDateString('es-CL', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                  <p className="text-xs text-gray-500">{result.location}</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl mb-1">{positionEmoji}</div>
+                  <p className="text-electric-blue font-bold text-lg">
+                    +{result.pointsEarned} pts
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {result.position}° de {result.totalSquadrons}
+                  </p>
+                </div>
+              </div>
+
+              {/* Pilots who participated */}
+              {result.pilots && result.pilots.length > 0 && (
+                <div className="border-t border-purple-500/20 pt-3 mt-3">
+                  <p className="text-xs text-gray-400 mb-2">Pilotos:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {result.pilots.map((pilot: any, idx: number) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-1 bg-purple-500/10 border border-purple-500/30 rounded text-xs text-white"
+                      >
+                        {pilot.pilotId?.profile?.alias ||
+                         `${pilot.pilotId?.profile?.firstName} ${pilot.pilotId?.profile?.lastName}` ||
+                         'Piloto'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {results.length >= 10 && (
+        <p className="text-center text-gray-500 text-sm mt-4">
+          Mostrando los últimos 10 resultados
+        </p>
+      )}
     </div>
   );
 }

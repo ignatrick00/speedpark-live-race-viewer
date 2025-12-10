@@ -574,13 +574,17 @@ function ChampionshipsPastView({
       const response = await fetch('/api/squadron-events');
       if (response.ok) {
         const data = await response.json();
-        // Filter only past/completed events
-        const pastEvents = (data.events || []).filter((event: any) => {
-          const eventDate = new Date(event.eventDate);
-          const now = new Date();
-          return eventDate < now || event.status === 'completed';
+        // Filter only finalized events (completed with results)
+        const finalizedEvents = (data.events || []).filter((event: any) => {
+          return event.raceStatus === 'finalized';
         });
-        setSquadronEvents(pastEvents);
+        // Sort by finalized date descending (most recent first)
+        finalizedEvents.sort((a: any, b: any) => {
+          const dateA = new Date(a.finalizedAt || a.eventDate);
+          const dateB = new Date(b.finalizedAt || b.eventDate);
+          return dateB.getTime() - dateA.getTime();
+        });
+        setSquadronEvents(finalizedEvents);
       }
     } catch (error) {
       console.error('Error fetching squadron events:', error);
@@ -620,12 +624,99 @@ function ChampionshipsPastView({
       <div className="flex items-center gap-2 mb-4">
         <span className="text-3xl">📚</span>
         <h2 className="text-2xl font-racing text-slate-300">
-          CARRERAS PASADAS
+          CAMPEONATOS FINALIZADOS
         </h2>
       </div>
       {squadronEvents.map((event) => (
-        <SquadronEventCard key={event._id} event={event} />
+        <FinalizedEventCard key={event._id} event={event} />
       ))}
+    </div>
+  );
+}
+
+// Finalized Event Card - Shows results and classification
+function FinalizedEventCard({ event }: { event: any }) {
+  const router = useRouter();
+  const categoryConfig = EventCategoryConfig[event.category as any];
+
+  return (
+    <div
+      onClick={() => router.push(`/evento/${event._id}`)}
+      className="bg-gradient-to-br from-midnight via-slate-800/50 to-midnight border-2 border-green-500/30 rounded-xl p-6 cursor-pointer hover:scale-[1.02] transition-all hover:shadow-xl hover:shadow-green-500/20"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">{categoryConfig?.icon || '🏆'}</span>
+            <h3 className="text-2xl font-racing text-white">{event.name}</h3>
+          </div>
+          <p className="text-sm text-gray-400">{event.description}</p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <span className="px-3 py-1 bg-green-600/20 text-green-400 border border-green-500/50 rounded-full text-xs font-racing">
+            ✅ FINALIZADO
+          </span>
+          <span className="text-xs text-gray-400">
+            {new Date(event.finalizedAt || event.eventDate).toLocaleDateString('es-CL')}
+          </span>
+        </div>
+      </div>
+
+      {/* Event Info */}
+      <div className="grid grid-cols-3 gap-3 mb-4 text-sm">
+        <div className="bg-black/30 p-2 rounded">
+          <p className="text-gray-400 text-xs">Categoría</p>
+          <p className="text-white font-bold">{categoryConfig?.name}</p>
+        </div>
+        <div className="bg-black/30 p-2 rounded">
+          <p className="text-gray-400 text-xs">Ubicación</p>
+          <p className="text-white font-bold">{event.location}</p>
+        </div>
+        <div className="bg-black/30 p-2 rounded">
+          <p className="text-gray-400 text-xs">Escuderías</p>
+          <p className="text-white font-bold">{event.results?.length || 0}</p>
+        </div>
+      </div>
+
+      {/* Results - Top 3 */}
+      {event.results && event.results.length > 0 && (
+        <div className="border-t border-slate-700 pt-4">
+          <p className="text-xs text-gray-400 mb-3 font-racing">🏆 CLASIFICACIÓN FINAL</p>
+          <div className="space-y-2">
+            {event.results.slice(0, 3).map((result: any, index: number) => (
+              <div
+                key={result.squadronId?._id || index}
+                className="flex items-center justify-between bg-black/20 p-3 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">
+                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                  </span>
+                  <div>
+                    <p className="text-white font-bold">
+                      {result.squadronId?.name || 'Escudería'}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {result.pilots?.length || 0} pilotos
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-electric-blue font-bold text-lg">
+                    +{result.pointsEarned} pts
+                  </p>
+                </div>
+              </div>
+            ))}
+            {event.results.length > 3 && (
+              <p className="text-xs text-gray-400 text-center mt-2">
+                +{event.results.length - 3} escuderías más
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
