@@ -14,6 +14,8 @@ export default function EventoDetallePage() {
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showRaceSearchModal, setShowRaceSearchModal] = useState(false);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   // Race search states
   const [races, setRaces] = useState<any[]>([]);
@@ -831,26 +833,7 @@ export default function EventoDetallePage() {
           <div className="flex gap-4 flex-wrap">
             {event.status === 'draft' && (
               <button
-                onClick={async () => {
-                  if (!confirm('¿Publicar este evento? Los corredores podrán verlo y registrarse.')) return;
-
-                  try {
-                    const response = await fetch(`/api/squadron-events/${event._id}/publish`, {
-                      method: 'POST',
-                      headers: { 'Authorization': `Bearer ${token}` },
-                    });
-
-                    if (response.ok) {
-                      alert('Evento publicado exitosamente');
-                      fetchEvent();
-                    } else {
-                      const data = await response.json();
-                      alert(data.error || 'Error al publicar evento');
-                    }
-                  } catch (error) {
-                    alert('Error al publicar evento');
-                  }
-                }}
+                onClick={() => setShowPublishConfirm(true)}
                 className="px-6 py-3 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition-all"
               >
                 📢 Publicar Evento
@@ -1371,6 +1354,60 @@ export default function EventoDetallePage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Publish Confirmation Modal */}
+        {showPublishConfirm && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="bg-gradient-to-br from-midnight via-purple-900/20 to-midnight border-2 border-purple-500/50 rounded-xl p-8 max-w-md mx-4 shadow-2xl">
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-4">📢</div>
+                <h3 className="text-2xl font-racing text-purple-400 mb-2">
+                  ¿PUBLICAR ESTE EVENTO?
+                </h3>
+                <p className="text-sky-blue/80 font-digital">
+                  Los corredores podrán verlo y registrarse
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPublishConfirm(false)}
+                  disabled={publishing}
+                  className="flex-1 px-6 py-3 border-2 border-purple-400/30 text-purple-400 rounded-lg hover:bg-purple-400/10 transition-all font-racing disabled:opacity-50"
+                >
+                  CANCELAR
+                </button>
+                <button
+                  onClick={async () => {
+                    setPublishing(true);
+                    try {
+                      const response = await fetch(`/api/squadron-events/${event._id}/publish`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                      });
+
+                      if (response.ok) {
+                        setShowPublishConfirm(false);
+                        fetchEvent();
+                      } else {
+                        const data = await response.json();
+                        alert(data.error || 'Error al publicar evento');
+                      }
+                    } catch (error) {
+                      alert('Error al publicar evento');
+                    } finally {
+                      setPublishing(false);
+                    }
+                  }}
+                  disabled={publishing}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg hover:shadow-green-500/50 transition-all font-racing disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {publishing ? 'PUBLICANDO...' : 'PUBLICAR'}
+                </button>
               </div>
             </div>
           </div>
