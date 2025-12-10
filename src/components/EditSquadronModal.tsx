@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { uploadSquadronLogoWithProgress } from '@/lib/image-upload';
 
 interface EditSquadronModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ interface EditSquadronModalProps {
     secondary: string;
   };
   currentRecruitmentMode: 'open' | 'invite-only';
+  currentLogo?: string;
+  squadronId: string;
 }
 
 export default function EditSquadronModal({
@@ -25,14 +28,20 @@ export default function EditSquadronModal({
   currentDescription,
   currentColors,
   currentRecruitmentMode,
+  currentLogo,
+  squadronId,
 }: EditSquadronModalProps) {
   const [name, setName] = useState(currentName);
   const [description, setDescription] = useState(currentDescription);
   const [primaryColor, setPrimaryColor] = useState(currentColors.primary);
   const [secondaryColor, setSecondaryColor] = useState(currentColors.secondary);
   const [recruitmentMode, setRecruitmentMode] = useState<'open' | 'invite-only'>(currentRecruitmentMode);
+  const [logo, setLogo] = useState(currentLogo || '');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -41,9 +50,72 @@ export default function EditSquadronModal({
       setPrimaryColor(currentColors.primary);
       setSecondaryColor(currentColors.secondary);
       setRecruitmentMode(currentRecruitmentMode);
+      setLogo(currentLogo || '');
       setError('');
     }
-  }, [isOpen, currentName, currentDescription, currentColors, currentRecruitmentMode]);
+  }, [isOpen, currentName, currentDescription, currentColors, currentRecruitmentMode, currentLogo]);
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate
+    if (!file.type.startsWith('image/')) {
+      setError('Solo se permiten imágenes');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Imagen muy grande (máx 5MB)');
+      return;
+    }
+
+    setUploadingLogo(true);
+    setUploadProgress(0);
+    setError('');
+
+    try {
+      // Upload to R2
+      const result = await uploadSquadronLogoWithProgress(
+        file,
+        squadronId,
+        token,
+        (progress) => setUploadProgress(progress)
+      );
+
+      if (!result.success) {
+        setError(result.error || 'Error al subir imagen');
+        return;
+      }
+
+      // Update logo in database
+      const response = await fetch('/api/squadron/update-logo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ logoUrl: result.url }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setLogo(result.url!);
+        setError('');
+      } else {
+        setError(data.error || 'Error al guardar logo');
+      }
+    } catch (error) {
+      setError('Error de conexión');
+    } finally {
+      setUploadingLogo(false);
+      setUploadProgress(0);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +209,63 @@ export default function EditSquadronModal({
                 required
                 className="w-full px-4 py-3 bg-midnight/80 border border-electric-blue/30 rounded-lg text-sky-blue placeholder-sky-blue/40 focus:outline-none focus:border-electric-blue font-digital"
               />
+            </div>
+
+            {/* Logo Upload */}
+            <div>
+              <label className="block text-sky-blue text-sm mb-2">Logo de la Escudería</label>
+              <div className="flex items-center gap-4">
+                {/* Logo Preview */}
+                <div className="relative group">
+                  {logo ? (
+                    <img
+                      src={logo}
+                      alt="Logo"
+                      className="w-24 h-24 rounded-lg border-2 border-electric-blue/50 object-cover"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-lg border-2 border-electric-blue/50 bg-midnight/50 flex items-center justify-center">
+                      <span className="text-4xl">🏁</span>
+                    </div>
+                  )}
+
+                  {uploadingLogo && (
+                    <div className="absolute inset-0 bg-black/70 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-electric-blue text-sm mb-1">{uploadProgress}%</div>
+                        <div className="w-16 h-1 bg-midnight rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-electric-blue transition-all"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Button */}
+                <div className="flex-1">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingLogo || loading}
+                    className="px-4 py-2 bg-electric-blue/20 text-electric-blue border border-electric-blue/50 rounded-lg hover:bg-electric-blue/30 transition-all disabled:opacity-50 font-racing text-sm"
+                  >
+                    {uploadingLogo ? 'SUBIENDO...' : logo ? '📷 CAMBIAR LOGO' : '📷 SUBIR LOGO'}
+                  </button>
+                  <p className="text-xs text-sky-blue/50 mt-2">
+                    JPG, PNG, WebP o GIF • Máx 5MB
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Description */}

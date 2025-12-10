@@ -1,20 +1,24 @@
-name = "karteando-video-upload"
-main = "upload-video.ts"
+name = "karteando-upload"
+main = "upload-handler.ts"
 compatibility_date = "2024-01-01"
 
-# R2 Bucket binding
+# R2 Bucket bindings
 [[r2_buckets]]
 binding = "EVIDENCE_BUCKET"
 bucket_name = "karteando-evidence"
 
+[[r2_buckets]]
+binding = "ASSETS_BUCKET"
+bucket_name = "karteando-assets"
+
 # Environment variables
 [vars]
-ALLOWED_ORIGINS = "https://karteando.cl,https://www.karteando.cl"
+ALLOWED_ORIGINS = "https://karteando.cl,https://www.karteando.cl,http://localhost:3000,http://192.168.1.17:3000"
 
 # Secrets (set with: wrangler secret put JWT_SECRET)
 # JWT_SECRET = "your-secret-here"
 
-# Custom domain for upload endpoint
+# Custom domain for upload endpoints
 [[routes]]
-pattern = "upload.karteando.cl/video"
+pattern = "upload.karteando.cl/*"
 zone_name = "karteando.cl"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Toast from './Toast';
 
 interface MyInvitationsCardProps {
   token: string;
@@ -35,6 +36,7 @@ export default function MyInvitationsCard({ token, onAccept }: MyInvitationsCard
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     fetchInvitations();
@@ -62,8 +64,6 @@ export default function MyInvitationsCard({ token, onAccept }: MyInvitationsCard
   };
 
   const handleAccept = async (invitationId: string, squadronName: string) => {
-    if (!confirm(`¿Aceptar invitación de ${squadronName}?`)) return;
-
     setProcessingId(invitationId);
     setError('');
     try {
@@ -78,20 +78,28 @@ export default function MyInvitationsCard({ token, onAccept }: MyInvitationsCard
       const data = await response.json();
 
       if (data.success) {
+        setToast({
+          message: `¡Te has unido a ${squadronName}!`,
+          type: 'success'
+        });
         onAccept();
       } else {
-        setError(data.error || 'Error al aceptar invitación');
+        setToast({
+          message: data.error || 'Error al aceptar invitación',
+          type: 'error'
+        });
       }
     } catch (err) {
-      setError('Error de conexión');
+      setToast({
+        message: 'Error de conexión',
+        type: 'error'
+      });
     } finally {
       setProcessingId(null);
     }
   };
 
   const handleReject = async (invitationId: string) => {
-    if (!confirm('¿Rechazar esta invitación?')) return;
-
     setProcessingId(invitationId);
     setError('');
     try {
@@ -106,12 +114,22 @@ export default function MyInvitationsCard({ token, onAccept }: MyInvitationsCard
       const data = await response.json();
 
       if (data.success) {
+        setToast({
+          message: 'Invitación rechazada',
+          type: 'info'
+        });
         await fetchInvitations();
       } else {
-        setError(data.error || 'Error al rechazar invitación');
+        setToast({
+          message: data.error || 'Error al rechazar invitación',
+          type: 'error'
+        });
       }
     } catch (err) {
-      setError('Error de conexión');
+      setToast({
+        message: 'Error de conexión',
+        type: 'error'
+      });
     } finally {
       setProcessingId(null);
     }
@@ -225,6 +243,15 @@ export default function MyInvitationsCard({ token, onAccept }: MyInvitationsCard
           </div>
         ))}
       </div>
+
+      {/* Toast notifications */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

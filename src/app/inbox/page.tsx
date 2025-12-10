@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import { EventCategoryConfig, EventCategory } from '@/types/squadron-events';
+import Toast from '@/components/Toast';
 
 // Countdown timer component
 function CountdownTimer({ expiresAt }: { expiresAt: string }) {
@@ -55,6 +56,7 @@ export default function InboxPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [responding, setResponding] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -136,14 +138,23 @@ export default function InboxPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert(accept ? `Te has unido a ${squadronName}!` : 'Invitación rechazada');
+        setToast({
+          message: accept ? `¡Te has unido a ${squadronName}!` : 'Invitación rechazada',
+          type: accept ? 'success' : 'info'
+        });
         fetchInvitations();
       } else {
-        alert(data.error || 'Error al responder invitación');
+        setToast({
+          message: data.error || 'Error al responder invitación',
+          type: 'error'
+        });
       }
     } catch (error) {
       console.error('Error responding to squadron invitation:', error);
-      alert('Error al responder invitación');
+      setToast({
+        message: 'Error al responder invitación',
+        type: 'error'
+      });
     } finally {
       setResponding(null);
     }
@@ -567,6 +578,15 @@ export default function InboxPage() {
           </div>
         )}
       </div>
+
+      {/* Toast notifications */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

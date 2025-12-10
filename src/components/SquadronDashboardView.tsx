@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import InvitePilotModal from './InvitePilotModal';
 import JoinRequestsModal from './JoinRequestsModal';
 import EditSquadronModal from './EditSquadronModal';
 import SentInvitationsCard from './SentInvitationsCard';
+import Toast from './Toast';
+import { uploadSquadronLogoWithProgress } from '@/lib/image-upload';
 
 interface Member {
   _id: string;
@@ -25,6 +27,7 @@ interface Squadron {
   squadronId: string;
   name: string;
   description: string;
+  logo?: string;
   colors: {
     primary: string;
     secondary: string;
@@ -68,6 +71,11 @@ export default function SquadronDashboardView({
   const [isRemoving, setIsRemoving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [currentLogo, setCurrentLogo] = useState(squadron.logo || '');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLeave = async () => {
     if (!confirm('¿Estás seguro de que quieres abandonar esta escudería?')) return;
@@ -206,6 +214,67 @@ export default function SquadronDashboardView({
     return member.email.split('@')[0];
   };
 
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate
+    if (!file.type.startsWith('image/')) {
+      setToast({ message: 'Solo se permiten imágenes', type: 'error' });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({ message: 'Imagen muy grande (máx 5MB)', type: 'error' });
+      return;
+    }
+
+    setUploadingLogo(true);
+    setUploadProgress(0);
+
+    try {
+      // Upload to R2
+      const result = await uploadSquadronLogoWithProgress(
+        file,
+        squadron._id,
+        token,
+        (progress) => setUploadProgress(progress)
+      );
+
+      if (!result.success) {
+        setToast({ message: result.error || 'Error al subir imagen', type: 'error' });
+        return;
+      }
+
+      // Update logo in database
+      const response = await fetch('/api/squadron/update-logo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ logoUrl: result.url }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCurrentLogo(result.url!);
+        setToast({ message: 'Logo actualizado exitosamente', type: 'success' });
+      } else {
+        setToast({ message: data.error || 'Error al guardar logo', type: 'error' });
+      }
+    } catch (error) {
+      setToast({ message: 'Error de conexión', type: 'error' });
+    } finally {
+      setUploadingLogo(false);
+      setUploadProgress(0);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {error && (
@@ -230,6 +299,50 @@ export default function SquadronDashboardView({
         <div className="relative z-10">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
+              {/* Squadron Logo */}
+              <div className="relative group">
+                {currentLogo ? (
+                  <img
+                    src={currentLogo}
+                    alt={`${squadron.name} logo`}
+                    className="w-20 h-20 rounded-lg border-2 border-electric-blue/50 object-cover"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-lg border-2 border-electric-blue/50 bg-midnight/50 flex items-center justify-center">
+                    <span className="text-3xl">🏁</span>
+                  </div>
+                )}
+
+                {isCaptain && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                    className="absolute inset-0 bg-black/70 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  >
+                    {uploadingLogo ? (
+                      <div className="text-center">
+                        <div className="text-electric-blue text-sm mb-1">{uploadProgress}%</div>
+                        <div className="w-12 h-1 bg-midnight rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-electric-blue transition-all"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-white text-sm font-racing">📷 CAMBIAR</span>
+                    )}
+                  </button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                />
+              </div>
+
               {/* Squadron Colors */}
               <div className="flex gap-2">
                 <div
@@ -525,7 +638,18 @@ export default function SquadronDashboardView({
         currentDescription={squadron.description}
         currentColors={squadron.colors}
         currentRecruitmentMode={squadron.recruitmentMode}
+        currentLogo={currentLogo}
+        squadronId={squadron._id}
       />
+
+      {/* Toast notifications */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
