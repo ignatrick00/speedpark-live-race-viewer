@@ -31,10 +31,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Filtro por modo de reclutamiento
-    if (recruitmentMode === 'open') {
-      filters.recruitmentMode = 'open';
-    } else if (recruitmentMode === 'invite-only') {
+    // Por defecto, solo mostrar escuaderías abiertas (open)
+    // Solo mostrar invite-only si se solicita explícitamente
+    if (recruitmentMode === 'invite-only') {
       filters.recruitmentMode = 'invite-only';
+    } else if (recruitmentMode === 'all') {
+      // Si explícitamente pide "all", mostrar ambas
+      // No agregar filtro de recruitmentMode
+    } else {
+      // Por defecto (incluyendo cuando recruitmentMode === 'open'), solo mostrar open
+      filters.recruitmentMode = 'open';
     }
 
     // Filtro por fair racing mínimo
