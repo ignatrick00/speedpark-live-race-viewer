@@ -3,6 +3,7 @@ import connectDB from '@/lib/mongodb';
 import Squadron from '@/models/Squadron';
 import WebUser from '@/models/WebUser';
 import FairRacingScore from '@/models/FairRacingScore';
+import SquadronPointsHistory from '@/models/SquadronPointsHistory';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -131,6 +132,14 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    // Calcular puntos totales desde SquadronPointsHistory (igual que /ranking)
+    const pointsHistory = await SquadronPointsHistory.aggregate([
+      { $match: { squadronId: squadron._id } },
+      { $group: { _id: null, totalPoints: { $sum: '$pointsChange' } } }
+    ]);
+
+    const totalPoints = pointsHistory.length > 0 ? pointsHistory[0].totalPoints : 0;
+
     // Estadísticas de la escudería
     const stats = {
       memberCount: squadron.members.length,
@@ -151,6 +160,7 @@ export async function GET(req: NextRequest) {
       hasSquadron: true,
       squadron: {
         ...squadron,
+        totalPoints: totalPoints, // Override con puntos calculados desde historial
         members: membersWithDetails,
         stats,
       },
