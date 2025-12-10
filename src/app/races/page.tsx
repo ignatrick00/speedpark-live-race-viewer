@@ -1919,6 +1919,7 @@ function SquadronEventCard({ event }: { event: any }) {
   const router = useRouter();
   const { user } = useAuth();
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showPilotsModal, setShowPilotsModal] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   // Countdown timer for registration deadline
@@ -2012,6 +2013,11 @@ function SquadronEventCard({ event }: { event: any }) {
     setShowJoinModal(true);
   };
 
+  const handleViewPilotsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowPilotsModal(true);
+  };
+
   return (
     <>
       <div
@@ -2069,6 +2075,16 @@ function SquadronEventCard({ event }: { event: any }) {
         </div>
       </div>
 
+      {/* View Pilots Button */}
+      {event.participants && event.participants.length > 0 && (
+        <button
+          onClick={handleViewPilotsClick}
+          className="w-full mb-4 px-4 py-2 bg-purple-500/20 border border-purple-500/50 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-all font-racing text-sm"
+        >
+          👥 VER PILOTOS INSCRITOS ({event.participants.length} escuderías)
+        </button>
+      )}
+
       {/* Registration Deadline Countdown */}
       <div className="mb-4 p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-lg">
         <div className="flex items-center justify-between">
@@ -2097,43 +2113,6 @@ function SquadronEventCard({ event }: { event: any }) {
           </div>
         </div>
       </div>
-
-      {/* Registered Competitors */}
-      {event.participants && event.participants.length > 0 && (
-        <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg">
-          <p className="text-purple-400 text-sm font-racing mb-3">👥 COMPETIDORES INSCRITOS</p>
-          <div className="space-y-2">
-            {event.participants.map((participant: any, index: number) => {
-              const confirmedCount = participant.confirmedPilots?.length || 0;
-              const pendingCount = participant.pendingInvitations?.filter((inv: any) => inv.status === 'pending').length || 0;
-              const totalPilots = confirmedCount + pendingCount;
-
-              return (
-                <div key={index} className="flex items-center justify-between bg-black/30 p-2 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🏁</span>
-                    <div>
-                      <p className="text-white font-racing text-sm">
-                        {participant.squadronId?.name || 'Escudería'}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {confirmedCount} confirmado{confirmedCount !== 1 ? 's' : ''}
-                        {pendingCount > 0 && ` • ${pendingCount} pendiente${pendingCount !== 1 ? 's' : ''}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-electric-blue font-racing text-lg">
-                      {totalPilots}/{event.maxPilotsPerSquadron}
-                    </p>
-                    <p className="text-xs text-slate-500">pilotos</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Status and Join Button */}
       <div className="flex items-center justify-between gap-2">
@@ -2184,6 +2163,75 @@ function SquadronEventCard({ event }: { event: any }) {
         }}
       />
     )}
+
+    {/* Pilots Modal */}
+    {showPilotsModal && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setShowPilotsModal(false)}>
+        <div className="bg-gradient-to-br from-midnight via-purple-900/20 to-midnight border-2 border-purple-500/50 rounded-xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-racing text-purple-400">
+              👥 PILOTOS INSCRITOS
+            </h3>
+            <button
+              onClick={() => setShowPilotsModal(false)}
+              className="text-purple-400 hover:text-white transition-colors text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {event.participants && event.participants.length > 0 ? (
+              event.participants.map((participant: any, index: number) => (
+                <div key={index} className="bg-black/30 border border-purple-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-2xl">🏁</span>
+                    <h4 className="text-xl font-racing text-white">
+                      {participant.squadronId?.name || 'Escudería'}
+                    </h4>
+                  </div>
+
+                  {/* Confirmed Pilots */}
+                  {participant.confirmedPilots && participant.confirmedPilots.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-sm text-green-400 font-racing mb-2">✓ Confirmados:</p>
+                      <div className="space-y-1">
+                        {participant.confirmedPilots.map((pilot: any, pIndex: number) => (
+                          <div key={pIndex} className="flex items-center gap-2 text-sm text-white ml-4">
+                            <span className="text-green-400">•</span>
+                            <span>{pilot.pilotId?.profile?.alias || `${pilot.pilotId?.profile?.firstName} ${pilot.pilotId?.profile?.lastName}` || pilot.pilotId?.email || 'Piloto'}</span>
+                            {pilot.kartNumber && <span className="text-electric-blue">| Kart #{pilot.kartNumber}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pending Invitations */}
+                  {participant.pendingInvitations && participant.pendingInvitations.filter((inv: any) => inv.status === 'pending').length > 0 && (
+                    <div>
+                      <p className="text-sm text-yellow-400 font-racing mb-2">⏳ Pendientes:</p>
+                      <div className="space-y-1">
+                        {participant.pendingInvitations
+                          .filter((inv: any) => inv.status === 'pending')
+                          .map((inv: any, iIndex: number) => (
+                            <div key={iIndex} className="flex items-center gap-2 text-sm text-white ml-4">
+                              <span className="text-yellow-400">•</span>
+                              <span>{inv.pilotId?.profile?.alias || `${inv.pilotId?.profile?.firstName} ${inv.pilotId?.profile?.lastName}` || inv.pilotId?.email || 'Piloto'}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-slate-400">No hay escuderías inscritas aún</p>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }
@@ -2196,6 +2244,7 @@ function MyRegisteredEventCard({ event, onUnregister, isUnregistering }: {
 }) {
   const categoryConfig = EventCategoryConfig[event.category as keyof typeof EventCategoryConfig];
   const router = useRouter();
+  const [showPilotsModal, setShowPilotsModal] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   // Countdown timer for registration deadline
@@ -2234,7 +2283,13 @@ function MyRegisteredEventCard({ event, onUnregister, isUnregistering }: {
     router.push(`/evento/${event._id}`);
   };
 
+  const handleViewPilotsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowPilotsModal(true);
+  };
+
   return (
+    <>
     <div
       onClick={handleCardClick}
       className="bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-sm border-2 border-slate-700/50 rounded-xl p-6 hover:border-electric-blue/50 transition-all shadow-lg hover:shadow-electric-blue/20 cursor-pointer hover:scale-[1.02]"
@@ -2317,41 +2372,14 @@ function MyRegisteredEventCard({ event, onUnregister, isUnregistering }: {
         </div>
       </div>
 
-      {/* Registered Competitors */}
+      {/* View Pilots Button */}
       {event.participants && event.participants.length > 0 && (
-        <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg">
-          <p className="text-purple-400 text-sm font-racing mb-3">👥 COMPETIDORES INSCRITOS</p>
-          <div className="space-y-2">
-            {event.participants.map((participant: any, index: number) => {
-              const confirmedCount = participant.confirmedPilots?.length || 0;
-              const pendingCount = participant.pendingInvitations?.filter((inv: any) => inv.status === 'pending').length || 0;
-              const totalPilots = confirmedCount + pendingCount;
-
-              return (
-                <div key={index} className="flex items-center justify-between bg-black/30 p-2 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🏁</span>
-                    <div>
-                      <p className="text-white font-racing text-sm">
-                        {participant.squadronId?.name || 'Escudería'}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {confirmedCount} confirmado{confirmedCount !== 1 ? 's' : ''}
-                        {pendingCount > 0 && ` • ${pendingCount} pendiente${pendingCount !== 1 ? 's' : ''}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-electric-blue font-racing text-lg">
-                      {totalPilots}/{event.maxPilotsPerSquadron}
-                    </p>
-                    <p className="text-xs text-slate-500">pilotos</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <button
+          onClick={handleViewPilotsClick}
+          className="w-full mb-4 px-4 py-2 bg-purple-500/20 border border-purple-500/50 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-all font-racing text-sm"
+        >
+          👥 VER PILOTOS INSCRITOS ({event.participants.length} escuderías)
+        </button>
       )}
 
       {/* Status and Unregister Button */}
@@ -2369,5 +2397,75 @@ function MyRegisteredEventCard({ event, onUnregister, isUnregistering }: {
         </button>
       </div>
     </div>
+
+    {/* Pilots Modal */}
+    {showPilotsModal && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setShowPilotsModal(false)}>
+        <div className="bg-gradient-to-br from-midnight via-purple-900/20 to-midnight border-2 border-purple-500/50 rounded-xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-racing text-purple-400">
+              👥 PILOTOS INSCRITOS
+            </h3>
+            <button
+              onClick={() => setShowPilotsModal(false)}
+              className="text-purple-400 hover:text-white transition-colors text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {event.participants && event.participants.length > 0 ? (
+              event.participants.map((participant: any, index: number) => (
+                <div key={index} className="bg-black/30 border border-purple-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-2xl">🏁</span>
+                    <h4 className="text-xl font-racing text-white">
+                      {participant.squadronId?.name || 'Escudería'}
+                    </h4>
+                  </div>
+
+                  {/* Confirmed Pilots */}
+                  {participant.confirmedPilots && participant.confirmedPilots.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-sm text-green-400 font-racing mb-2">✓ Confirmados:</p>
+                      <div className="space-y-1">
+                        {participant.confirmedPilots.map((pilot: any, pIndex: number) => (
+                          <div key={pIndex} className="flex items-center gap-2 text-sm text-white ml-4">
+                            <span className="text-green-400">•</span>
+                            <span>{pilot.pilotId?.profile?.alias || `${pilot.pilotId?.profile?.firstName} ${pilot.pilotId?.profile?.lastName}` || pilot.pilotId?.email || 'Piloto'}</span>
+                            {pilot.kartNumber && <span className="text-electric-blue">| Kart #{pilot.kartNumber}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pending Invitations */}
+                  {participant.pendingInvitations && participant.pendingInvitations.filter((inv: any) => inv.status === 'pending').length > 0 && (
+                    <div>
+                      <p className="text-sm text-yellow-400 font-racing mb-2">⏳ Pendientes:</p>
+                      <div className="space-y-1">
+                        {participant.pendingInvitations
+                          .filter((inv: any) => inv.status === 'pending')
+                          .map((inv: any, iIndex: number) => (
+                            <div key={iIndex} className="flex items-center gap-2 text-sm text-white ml-4">
+                              <span className="text-yellow-400">•</span>
+                              <span>{inv.pilotId?.profile?.alias || `${inv.pilotId?.profile?.firstName} ${inv.pilotId?.profile?.lastName}` || inv.pilotId?.email || 'Piloto'}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-slate-400">No hay escuderías inscritas aún</p>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
