@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Squadron from '@/models/Squadron';
+import SquadronPointsHistory from '@/models/SquadronPointsHistory';
 
 export async function GET(req: NextRequest) {
   try {
@@ -69,19 +70,32 @@ export async function GET(req: NextRequest) {
       Squadron.countDocuments(filters),
     ]);
 
-    // Agregar metadata de espacios disponibles
-    const squadronsWithMeta = squadrons.map((squadron: any) => ({
-      ...squadron,
-      stats: {
-        memberCount: squadron.members.length,
-        availableSpots: 4 - squadron.members.length,
-        isFull: squadron.members.length >= 4,
-        winRate: squadron.totalRaces > 0
-          ? ((squadron.totalVictories / squadron.totalRaces) * 100).toFixed(1) + '%'
-          : '0%',
-        averageFairRacing: squadron.fairRacingAverage || 0,
-      }
-    }));
+    // Calcular puntos desde SquadronPointsHistory para cada escudería
+    const squadronsWithMeta = await Promise.all(
+      squadrons.map(async (squadron: any) => {
+        // Calcular puntos totales desde historial
+        const pointsHistory = await SquadronPointsHistory.aggregate([
+          { $match: { squadronId: squadron._id } },
+          { $group: { _id: null, totalPoints: { $sum: '$pointsChange' } } }
+        ]);
+
+        const totalPoints = pointsHistory.length > 0 ? pointsHistory[0].totalPoints : 0;
+
+        return {
+          ...squadron,
+          totalPoints: totalPoints, // Override con puntos calculados desde historial
+          stats: {
+            memberCount: squadron.members.length,
+            availableSpots: 4 - squadron.members.length,
+            isFull: squadron.members.length >= 4,
+            winRate: squadron.totalRaces > 0
+              ? ((squadron.totalVictories / squadron.totalRaces) * 100).toFixed(1) + '%'
+              : '0%',
+            averageFairRacing: squadron.fairRacingAverage || 0,
+          }
+        };
+      })
+    );
 
     return NextResponse.json({
       success: true,
