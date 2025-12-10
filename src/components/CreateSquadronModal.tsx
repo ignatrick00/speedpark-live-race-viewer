@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { uploadSquadronLogoWithProgress } from '@/lib/image-upload';
 
 interface CreateSquadronModalProps {
   isOpen: boolean;
@@ -24,9 +26,40 @@ export default function CreateSquadronModal({ isOpen, onClose, onSuccess, token 
   const [primaryColor, setPrimaryColor] = useState('#00D4FF');
   const [secondaryColor, setSecondaryColor] = useState('#0057B8');
   const [recruitmentMode, setRecruitmentMode] = useState<'open' | 'invite-only'>('open');
+  const [logo, setLogo] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [nameError, setNameError] = useState('');
+  const [mounted, setMounted] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Bloquear scroll
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    } else {
+      // Restaurar scroll
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [isOpen]);
 
   // Validación de nombre en tiempo real
   const handleNameChange = (value: string) => {
@@ -45,6 +78,32 @@ export default function CreateSquadronModal({ isOpen, onClose, onSuccess, token 
     setSecondaryColor(preset.secondary);
   };
 
+  const handleLogoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      setError('Solo se permiten imágenes');
+      return;
+    }
+
+    // Validar tamaño (máx 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Imagen muy grande (máx 5MB)');
+      return;
+    }
+
+    // Guardar archivo y crear preview
+    setLogoFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogo(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -60,6 +119,7 @@ export default function CreateSquadronModal({ isOpen, onClose, onSuccess, token 
     console.log('🏁 Creating squadron:', { name, description, colors: { primary: primaryColor, secondary: secondaryColor }, recruitmentMode });
 
     try {
+      // 1. Crear escudería primero (sin logo)
       const response = await fetch('/api/squadron/create', {
         method: 'POST',
         headers: {
@@ -81,20 +141,55 @@ export default function CreateSquadronModal({ isOpen, onClose, onSuccess, token 
       const data = await response.json();
       console.log('📦 Response data:', data);
 
-      if (response.ok && data.success) {
-        console.log('✅ Squadron created successfully');
-        // Resetear form
-        setName('');
-        setDescription('');
-        setPrimaryColor('#00D4FF');
-        setSecondaryColor('#0057B8');
-        setRecruitmentMode('open');
-        onSuccess();
-        onClose();
-      } else {
+      if (!response.ok || !data.success) {
         console.error('❌ Error creating squadron:', data.error);
         setError(data.error || 'Error al crear la escudería');
+        return;
       }
+
+      console.log('✅ Squadron created successfully');
+
+      // 2. Si hay logo, subirlo ahora
+      if (logoFile && data.squadron?._id) {
+        console.log('📸 Uploading logo...');
+        setUploadingLogo(true);
+
+        const uploadResult = await uploadSquadronLogoWithProgress(
+          logoFile,
+          data.squadron._id,
+          token,
+          (progress) => setUploadProgress(progress)
+        );
+
+        if (uploadResult.success && uploadResult.url) {
+          // Actualizar logo en la escudería recién creada
+          await fetch('/api/squadron/update-logo', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ logoUrl: uploadResult.url }),
+          });
+          console.log('✅ Logo uploaded successfully');
+        } else {
+          console.warn('⚠️ Logo upload failed, but squadron was created');
+        }
+
+        setUploadingLogo(false);
+      }
+
+      // 3. Resetear form y cerrar
+      setName('');
+      setDescription('');
+      setPrimaryColor('#00D4FF');
+      setSecondaryColor('#0057B8');
+      setRecruitmentMode('open');
+      setLogo('');
+      setLogoFile(null);
+      onSuccess();
+      onClose();
+
     } catch (error) {
       console.error('❌ Connection error:', error);
       setError('Error de conexión: ' + (error instanceof Error ? error.message : String(error)));
@@ -109,14 +204,16 @@ export default function CreateSquadronModal({ isOpen, onClose, onSuccess, token 
       setDescription('');
       setError('');
       setNameError('');
+      setLogo('');
+      setLogoFile(null);
       onClose();
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={handleClose}>
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" onClick={handleClose}>
       <div
         className="relative w-full max-w-2xl max-h-[90vh] bg-gradient-to-br from-midnight via-rb-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl shadow-2xl animate-glow overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -200,6 +297,64 @@ export default function CreateSquadronModal({ isOpen, onClose, onSuccess, token 
               <p className="text-sky-blue/60 text-xs font-digital mt-1 text-right">
                 {description.length}/500
               </p>
+            </div>
+
+            {/* Logo */}
+            <div>
+              <label className="block text-sm font-digital text-sky-blue mb-2">
+                LOGO DE ESCUDERÍA (Opcional)
+              </label>
+              <div className="flex items-center gap-4">
+                {/* Logo Preview */}
+                <div className="relative group">
+                  {logo ? (
+                    <img
+                      src={logo}
+                      alt="Logo preview"
+                      className="w-24 h-24 rounded-lg border-2 border-electric-blue/50 object-cover"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-lg border-2 border-electric-blue/30 bg-midnight/50 flex items-center justify-center">
+                      <span className="text-4xl">🏁</span>
+                    </div>
+                  )}
+                  {uploadingLogo && (
+                    <div className="absolute inset-0 bg-black/70 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-electric-blue text-sm mb-1">{uploadProgress}%</div>
+                        <div className="w-16 h-1 bg-midnight rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-electric-blue transition-all"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Button */}
+                <div className="flex-1">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-electric-blue/20 text-electric-blue border border-electric-blue/50 rounded-lg hover:bg-electric-blue/30 transition-all disabled:opacity-50 font-digital text-sm"
+                  >
+                    {logo ? '📷 CAMBIAR LOGO' : '📷 SUBIR LOGO'}
+                  </button>
+                  <p className="text-xs text-sky-blue/50 mt-2">
+                    JPG, PNG, WebP o GIF • Máx 5MB
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    onChange={handleLogoSelect}
+                    className="hidden"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Colores */}
@@ -361,4 +516,6 @@ export default function CreateSquadronModal({ isOpen, onClose, onSuccess, token 
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
