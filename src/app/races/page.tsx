@@ -428,7 +428,7 @@ function SelectionView({
   );
 }
 
-// Championships Selection View - Similar to Friendly Options
+// Championships Selection View - Two Columns
 function ChampionshipsSelectionView({
   onSelectUpcoming,
   onSelectPast,
@@ -439,59 +439,58 @@ function ChampionshipsSelectionView({
   onBack: () => void;
 }) {
   return (
-    <div className="bg-gradient-to-br from-midnight via-cyan-500/20 to-midnight border-2 border-cyan-400 rounded-2xl p-8">
-      <div className="text-center mb-8">
-        <div className="text-6xl mb-4">🏆</div>
-        <h2 className="text-3xl font-racing text-cyan-400 mb-2">
-          CAMPEONATOS
-        </h2>
-        <p className="text-sky-blue/70">¿Qué deseas ver?</p>
-      </div>
-
-      <div className="space-y-4">
+    <div>
+      <div className="grid md:grid-cols-2 gap-8 mb-6">
+        {/* Próximas Carreras Card */}
         <button
           onClick={onSelectUpcoming}
-          className="w-full group bg-gradient-to-r from-cyan-400/30 to-cyan-400/10 border-2 border-cyan-400/50 rounded-xl p-6 hover:bg-cyan-400/20 transition-all hover:scale-105 hover:shadow-lg hover:shadow-cyan-400/30"
+          className="group relative bg-gradient-to-br from-midnight via-cyan-400/20 to-midnight border-2 border-cyan-400 rounded-2xl p-12 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-400/50"
         >
-          <div className="flex items-center justify-between">
-            <div className="text-left">
-              <h3 className="text-2xl font-racing text-cyan-400 mb-1">
-                PRÓXIMAS CARRERAS
-              </h3>
-              <p className="text-sky-blue/60 text-sm">
-                Campeonatos futuros y disponibles
-              </p>
-            </div>
-            <div className="text-4xl group-hover:scale-110 transition-transform">
+          <div className="text-center">
+            <div className="text-8xl mb-6 group-hover:scale-110 transition-transform">
               🏁
             </div>
+            <h2 className="text-4xl font-racing text-cyan-400 mb-4">
+              PRÓXIMAS CARRERAS
+            </h2>
+            <p className="text-sky-blue/70 text-lg mb-6">
+              Campeonatos futuros y disponibles
+            </p>
+            <div className="inline-block px-6 py-3 bg-cyan-400/20 border border-cyan-400/50 text-cyan-300 rounded-lg font-racing">
+              VER PRÓXIMAS
+            </div>
           </div>
         </button>
 
+        {/* Carreras Pasadas Card */}
         <button
           onClick={onSelectPast}
-          className="w-full group bg-gradient-to-r from-slate-500/30 to-slate-500/10 border-2 border-slate-400/50 rounded-xl p-6 hover:bg-slate-500/20 transition-all hover:scale-105 hover:shadow-lg hover:shadow-slate-400/30"
+          className="group relative bg-gradient-to-br from-midnight via-slate-500/20 to-midnight border-2 border-slate-400 rounded-2xl p-12 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-slate-400/50"
         >
-          <div className="flex items-center justify-between">
-            <div className="text-left">
-              <h3 className="text-2xl font-racing text-slate-300 mb-1">
-                CARRERAS PASADAS
-              </h3>
-              <p className="text-sky-blue/60 text-sm">
-                Historial de campeonatos completados
-              </p>
-            </div>
-            <div className="text-4xl group-hover:scale-110 transition-transform">
+          <div className="text-center">
+            <div className="text-8xl mb-6 group-hover:scale-110 transition-transform">
               📚
+            </div>
+            <h2 className="text-4xl font-racing text-slate-300 mb-4">
+              CARRERAS PASADAS
+            </h2>
+            <p className="text-sky-blue/70 text-lg mb-6">
+              Historial de campeonatos completados
+            </p>
+            <div className="inline-block px-6 py-3 bg-slate-400/20 border border-slate-400/50 text-slate-300 rounded-lg font-racing">
+              VER HISTORIAL
             </div>
           </div>
         </button>
+      </div>
 
+      {/* Back Button */}
+      <div className="text-center">
         <button
           onClick={onBack}
-          className="w-full px-4 py-3 border border-sky-blue/30 text-sky-blue/70 rounded-lg hover:bg-sky-blue/10 transition-all"
+          className="px-6 py-3 border border-sky-blue/30 text-sky-blue/70 rounded-lg hover:bg-sky-blue/10 transition-all"
         >
-          CANCELAR
+          ← VOLVER
         </button>
       </div>
     </div>
