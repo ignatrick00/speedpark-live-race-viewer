@@ -25,6 +25,7 @@ export default function EventoPage() {
   const [unregistering, setUnregistering] = useState(false);
   const [hasUnregistered, setHasUnregistered] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [showUnregisterConfirm, setShowUnregisterConfirm] = useState(false);
 
   useEffect(() => {
     if (token && params.id) {
@@ -191,12 +192,14 @@ export default function EventoPage() {
     }
   };
 
-  const handleUnregister = async () => {
-    if (!confirm('¿Estás seguro de desregistrarte del evento? Solo tú serás eliminado, tus compañeros de escudería seguirán participando.')) {
-      return;
-    }
+  const handleUnregisterClick = () => {
+    setShowUnregisterConfirm(true);
+  };
 
+  const handleConfirmUnregister = async () => {
+    setShowUnregisterConfirm(false);
     setUnregistering(true);
+
     try {
       const response = await fetch(`/api/squadron-events/${params.id}/unregister`, {
         method: 'POST',
@@ -208,16 +211,25 @@ export default function EventoPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Te has desregistrado exitosamente del evento');
+        setToast({
+          message: 'Te has desregistrado exitosamente del evento',
+          type: 'success'
+        });
         setHasUnregistered(true);
         fetchEvent();
       } else {
-        alert(data.error || 'Error al desregistrarse');
+        setToast({
+          message: data.error || 'Error al desregistrarse',
+          type: 'error'
+        });
         setUnregistering(false);
       }
     } catch (error) {
       console.error('Error unregistering:', error);
-      alert('Error al desregistrarse del evento');
+      setToast({
+        message: 'Error al desregistrarse del evento',
+        type: 'error'
+      });
       setUnregistering(false);
     }
   };
@@ -348,7 +360,7 @@ export default function EventoPage() {
               <h3 className="text-2xl font-racing text-purple-400">Mi Equipo</h3>
               {!hasUnregistered && (
                 <button
-                  onClick={handleUnregister}
+                  onClick={handleUnregisterClick}
                   disabled={unregistering}
                   className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm font-bold"
                 >
@@ -613,6 +625,40 @@ export default function EventoPage() {
                 className="flex-1 px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all disabled:opacity-50 font-racing"
               >
                 {inviting ? 'ENVIANDO...' : '📨 CONFIRMAR INVITACIÓN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unregister Confirmation Modal */}
+      {showUnregisterConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gradient-to-br from-midnight via-red-900/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 max-w-md mx-4 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-2">
+                ¿DESREGISTRARSE DEL EVENTO?
+              </h3>
+              <p className="text-sky-blue/80 font-digital">
+                Solo tú serás eliminado, tus compañeros de escudería seguirán participando.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowUnregisterConfirm(false)}
+                disabled={unregistering}
+                className="flex-1 px-6 py-3 border-2 border-sky-blue/30 text-sky-blue rounded-lg hover:bg-sky-blue/10 transition-all font-racing disabled:opacity-50"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={handleConfirmUnregister}
+                disabled={unregistering}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:shadow-lg hover:shadow-red-500/50 transition-all font-racing disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {unregistering ? 'PROCESANDO...' : 'DESREGISTRAR'}
               </button>
             </div>
           </div>
