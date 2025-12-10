@@ -1862,9 +1862,10 @@ function MyRegisteredEventsView({ token, userId }: { token: string; userId?: str
         </h2>
       </div>
       {events.map((event) => (
-        <MyRegisteredEventCard
+        <SquadronEventCard
           key={event._id}
           event={event}
+          showUnregisterButton={true}
           onUnregister={(e) => handleUnregisterClick(event._id, e)}
           isUnregistering={unregisteringEventId === event._id}
         />
@@ -1914,7 +1915,17 @@ function MyRegisteredEventsView({ token, userId }: { token: string; userId?: str
 }
 
 // Component for displaying squadron events
-function SquadronEventCard({ event }: { event: any }) {
+function SquadronEventCard({
+  event,
+  showUnregisterButton = false,
+  onUnregister,
+  isUnregistering = false
+}: {
+  event: any;
+  showUnregisterButton?: boolean;
+  onUnregister?: (e: React.MouseEvent) => void;
+  isUnregistering?: boolean;
+}) {
   const categoryConfig = EventCategoryConfig[event.category as EventCategory];
   const router = useRouter();
   const { user } = useAuth();
@@ -2114,22 +2125,35 @@ function SquadronEventCard({ event }: { event: any }) {
         </div>
       </div>
 
-      {/* Status and Join Button */}
+      {/* Status and Join/Unregister Buttons */}
       <div className="flex items-center justify-between gap-2">
         <span className={`px-3 py-1 rounded-full text-xs font-racing ${
+          showUnregisterButton ? 'bg-green-600/20 text-green-400 border border-green-500/50' :
           event.status === 'published' ? 'bg-green-600/20 text-green-400 border border-green-500/50' :
           event.status === 'registration_open' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/50' :
           event.status === 'completed' ? 'bg-slate-600/20 text-slate-400 border border-slate-500/50' :
           'bg-yellow-600/20 text-yellow-400 border border-yellow-500/50'
         }`}>
-          {event.status === 'published' ? 'Publicado' :
+          {showUnregisterButton ? '✓ REGISTRADO' :
+           event.status === 'published' ? 'Publicado' :
            event.status === 'registration_open' ? 'Inscripciones Abiertas' :
            event.status === 'completed' ? 'Completado' :
            'Borrador'}
         </span>
 
-        {/* Join/Registered Button - Available for everyone including organizers */}
-        {(event.status === 'published' || event.status === 'registration_open') && !isRegistrationClosed && (
+        {/* Unregister Button (for "My Events" view) */}
+        {showUnregisterButton && onUnregister && (
+          <button
+            onClick={onUnregister}
+            disabled={isUnregistering}
+            className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm font-bold"
+          >
+            {isUnregistering ? '⏳ PROCESANDO...' : '❌ RETIRARME'}
+          </button>
+        )}
+
+        {/* Join/Registered Button - Available for everyone including organizers (for regular view) */}
+        {!showUnregisterButton && (event.status === 'published' || event.status === 'registration_open') && !isRegistrationClosed && (
           <button
             onClick={handleJoinClick}
             disabled={isUserRegistered}
@@ -2144,7 +2168,7 @@ function SquadronEventCard({ event }: { event: any }) {
         )}
 
         {/* Registration Closed Message */}
-        {(event.status === 'published' || event.status === 'registration_open') && isRegistrationClosed && !isUserRegistered && (
+        {!showUnregisterButton && (event.status === 'published' || event.status === 'registration_open') && isRegistrationClosed && !isUserRegistered && (
           <span className="px-4 py-2 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg font-racing text-sm">
             🔒 INSCRIPCIONES CERRADAS
           </span>
@@ -2236,236 +2260,3 @@ function SquadronEventCard({ event }: { event: any }) {
   );
 }
 
-// Component for displaying registered events in "My Registered Events" view
-function MyRegisteredEventCard({ event, onUnregister, isUnregistering }: {
-  event: any;
-  onUnregister: (e: React.MouseEvent) => void;
-  isUnregistering: boolean;
-}) {
-  const categoryConfig = EventCategoryConfig[event.category as keyof typeof EventCategoryConfig];
-  const router = useRouter();
-  const [showPilotsModal, setShowPilotsModal] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState<string>('');
-
-  // Countdown timer for registration deadline
-  useEffect(() => {
-    const calculateTimeRemaining = () => {
-      const now = new Date().getTime();
-      const deadline = new Date(event.registrationDeadline).getTime();
-      const distance = deadline - now;
-
-      if (distance < 0) {
-        setTimeRemaining('Cerrado');
-        return;
-      }
-
-      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      if (days > 0) {
-        setTimeRemaining(`${days}d ${hours}h`);
-      } else if (hours > 0) {
-        setTimeRemaining(`${hours}h ${minutes}m`);
-      } else {
-        setTimeRemaining(`${minutes}m ${seconds}s`);
-      }
-    };
-
-    calculateTimeRemaining();
-    const interval = setInterval(calculateTimeRemaining, 1000);
-
-    return () => clearInterval(interval);
-  }, [event.registrationDeadline]);
-
-  const handleCardClick = () => {
-    router.push(`/evento/${event._id}`);
-  };
-
-  const handleViewPilotsClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowPilotsModal(true);
-  };
-
-  return (
-    <>
-    <div
-      onClick={handleCardClick}
-      className="bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-sm border-2 border-slate-700/50 rounded-xl p-6 hover:border-electric-blue/50 transition-all shadow-lg hover:shadow-electric-blue/20 cursor-pointer hover:scale-[1.02]"
-    >
-      {/* Category Badge */}
-      <div className={`inline-block px-4 py-1 rounded-full bg-gradient-to-r ${categoryConfig.color} text-white font-racing text-sm mb-4`}>
-        {categoryConfig.name}
-      </div>
-
-      {/* Event Name */}
-      <h3 className="text-2xl font-racing text-white mb-2">{event.name}</h3>
-
-      {/* Description */}
-      {event.description && (
-        <p className="text-slate-400 mb-4">{event.description}</p>
-      )}
-
-      {/* Event Details Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <p className="text-slate-500 text-sm">📅 Fecha</p>
-          <p className="text-white font-racing">
-            {new Date(event.eventDate).toLocaleDateString('es-CL', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-            })}
-          </p>
-        </div>
-        <div>
-          <p className="text-slate-500 text-sm">🕐 Hora</p>
-          <p className="text-electric-blue font-racing text-2xl">{event.eventTime || '19:00'}</p>
-        </div>
-        <div>
-          <p className="text-slate-500 text-sm">⏱️ Duración</p>
-          <p className="text-white font-racing">
-            {event.duration ? `${Math.floor(event.duration / 60)}h ${event.duration % 60}min` : '90min'}
-          </p>
-        </div>
-        <div>
-          <p className="text-slate-500 text-sm">📍 Ubicación</p>
-          <p className="text-white font-racing">{event.location}</p>
-        </div>
-        <div>
-          <p className="text-slate-500 text-sm">🏁 Escuderías</p>
-          <p className="text-white font-racing">{event.participants?.length || 0}/{event.maxSquadrons}</p>
-        </div>
-        <div>
-          <p className="text-slate-500 text-sm">🏆 Puntos Ganador</p>
-          <p className="text-electric-blue font-racing">{event.pointsForWinner}</p>
-        </div>
-      </div>
-
-      {/* Registration Deadline Countdown */}
-      <div className="mb-4 p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-orange-400 text-sm font-racing">⏰ Cierre de Inscripciones</p>
-            <p className="text-slate-300 text-xs">
-              {new Date(event.registrationDeadline).toLocaleDateString('es-CL', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className={`font-racing text-2xl ${
-              timeRemaining === 'Cerrado' ? 'text-red-500' :
-              timeRemaining.includes('d') ? 'text-green-400' :
-              timeRemaining.includes('h') && !timeRemaining.includes('m') ? 'text-yellow-400' :
-              'text-orange-400 animate-pulse'
-            }`}>
-              {timeRemaining || '...'}
-            </p>
-            <p className="text-slate-500 text-xs">restante</p>
-          </div>
-        </div>
-      </div>
-
-      {/* View Pilots Button */}
-      {event.participants && event.participants.length > 0 && (
-        <button
-          onClick={handleViewPilotsClick}
-          className="mb-4 px-4 py-2 bg-purple-500/20 border border-purple-500/50 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-all font-racing text-sm inline-block"
-        >
-          👥 VER PILOTOS INSCRITOS ({event.participants.length} escuderías)
-        </button>
-      )}
-
-      {/* Status and Unregister Button */}
-      <div className="flex items-center justify-between gap-2">
-        <span className="px-3 py-1 rounded-full text-xs font-racing bg-green-600/20 text-green-400 border border-green-500/50">
-          ✓ REGISTRADO
-        </span>
-
-        <button
-          onClick={onUnregister}
-          disabled={isUnregistering}
-          className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm font-bold"
-        >
-          {isUnregistering ? '⏳ PROCESANDO...' : '❌ RETIRARME'}
-        </button>
-      </div>
-    </div>
-
-    {/* Pilots Modal */}
-    {showPilotsModal && (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setShowPilotsModal(false)}>
-        <div className="bg-gradient-to-br from-midnight via-purple-900/20 to-midnight border-2 border-purple-500/50 rounded-xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-racing text-purple-400">
-              👥 PILOTOS INSCRITOS
-            </h3>
-            <button
-              onClick={() => setShowPilotsModal(false)}
-              className="text-purple-400 hover:text-white transition-colors text-2xl"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="space-y-6">
-            {event.participants && event.participants.length > 0 ? (
-              event.participants.map((participant: any, index: number) => (
-                <div key={index} className="bg-black/30 border border-purple-500/30 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-2xl">🏁</span>
-                    <h4 className="text-xl font-racing text-white">
-                      {participant.squadronId?.name || 'Escudería'}
-                    </h4>
-                  </div>
-
-                  {/* Confirmed Pilots */}
-                  {participant.confirmedPilots && participant.confirmedPilots.length > 0 && (
-                    <div className="mb-3">
-                      <p className="text-sm text-green-400 font-racing mb-2">✓ Confirmados:</p>
-                      <div className="space-y-1">
-                        {participant.confirmedPilots.map((pilot: any, pIndex: number) => (
-                          <div key={pIndex} className="flex items-center gap-2 text-sm text-white ml-4">
-                            <span className="text-green-400">•</span>
-                            <span>{pilot.pilotId?.profile?.alias || `${pilot.pilotId?.profile?.firstName} ${pilot.pilotId?.profile?.lastName}` || pilot.pilotId?.email || 'Piloto'}</span>
-                            {pilot.kartNumber && <span className="text-electric-blue">| Kart #{pilot.kartNumber}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pending Invitations */}
-                  {participant.pendingInvitations && participant.pendingInvitations.filter((inv: any) => inv.status === 'pending').length > 0 && (
-                    <div>
-                      <p className="text-sm text-yellow-400 font-racing mb-2">⏳ Pendientes:</p>
-                      <div className="space-y-1">
-                        {participant.pendingInvitations
-                          .filter((inv: any) => inv.status === 'pending')
-                          .map((inv: any, iIndex: number) => (
-                            <div key={iIndex} className="flex items-center gap-2 text-sm text-white ml-4">
-                              <span className="text-yellow-400">•</span>
-                              <span>{inv.pilotId?.profile?.alias || `${inv.pilotId?.profile?.firstName} ${inv.pilotId?.profile?.lastName}` || inv.pilotId?.email || 'Piloto'}</span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-slate-400">No hay escuderías inscritas aún</p>
-            )}
-          </div>
-        </div>
-      </div>
-    )}
-    </>
-  );
-}
