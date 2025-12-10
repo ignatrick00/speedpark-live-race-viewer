@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import { EventCategoryConfig } from '@/types/squadron-events';
 import { useRouter } from 'next/navigation';
 import JoinEventModal from '@/components/JoinEventModal';
+import Toast from '@/components/Toast';
 
 type ViewMode = 'selection' | 'championships' | 'championships-upcoming' | 'championships-past' | 'friendly' | 'friendly-upcoming' | 'friendly-past' | 'friendly-create' | 'my-registered-events';
 
@@ -1759,6 +1760,9 @@ function RaceCard({
 function MyRegisteredEventsView({ token, userId }: { token: string; userId?: string }) {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unregisteringEventId, setUnregisteringEventId] = useState<string | null>(null);
+  const [showUnregisterConfirm, setShowUnregisterConfirm] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     fetchMyEvents();
@@ -1780,6 +1784,49 @@ function MyRegisteredEventsView({ token, userId }: { token: string; userId?: str
       console.error('Error fetching my events:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUnregisterClick = (eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowUnregisterConfirm(eventId);
+  };
+
+  const handleConfirmUnregister = async (eventId: string) => {
+    setShowUnregisterConfirm(null);
+    setUnregisteringEventId(eventId);
+
+    try {
+      const response = await fetch(`/api/squadron-events/${eventId}/unregister`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setToast({
+          message: 'Te has retirado exitosamente del evento',
+          type: 'success'
+        });
+        // Refresh events list
+        fetchMyEvents();
+      } else {
+        setToast({
+          message: data.error || 'Error al retirarse',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error unregistering:', error);
+      setToast({
+        message: 'Error al retirarse del evento',
+        type: 'error'
+      });
+    } finally {
+      setUnregisteringEventId(null);
     }
   };
 
@@ -1815,8 +1862,53 @@ function MyRegisteredEventsView({ token, userId }: { token: string; userId?: str
         </h2>
       </div>
       {events.map((event) => (
-        <SquadronEventCard key={event._id} event={event} />
+        <MyRegisteredEventCard
+          key={event._id}
+          event={event}
+          onUnregister={(e) => handleUnregisterClick(event._id, e)}
+          isUnregistering={unregisteringEventId === event._id}
+        />
       ))}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Unregister Confirmation Modal */}
+      {showUnregisterConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gradient-to-br from-midnight via-red-900/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 max-w-md mx-4 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-2">
+                ¿RETIRARSE DEL EVENTO?
+              </h3>
+              <p className="text-sky-blue/80 font-digital">
+                Solo tú serás retirado, tus compañeros de escudería seguirán participando.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowUnregisterConfirm(null)}
+                className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-racing transition-all"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={() => handleConfirmUnregister(showUnregisterConfirm)}
+                className="flex-1 px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded-lg font-racing transition-all"
+              >
+                RETIRARME
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2056,5 +2148,152 @@ function SquadronEventCard({ event }: { event: any }) {
       />
     )}
     </>
+  );
+}
+
+// Component for displaying registered events in "My Registered Events" view
+function MyRegisteredEventCard({ event, onUnregister, isUnregistering }: {
+  event: any;
+  onUnregister: (e: React.MouseEvent) => void;
+  isUnregistering: boolean;
+}) {
+  const categoryConfig = EventCategoryConfig[event.category as keyof typeof EventCategoryConfig];
+  const router = useRouter();
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+  // Countdown timer for registration deadline
+  useEffect(() => {
+    const calculateTimeRemaining = () => {
+      const now = new Date().getTime();
+      const deadline = new Date(event.registrationDeadline).getTime();
+      const distance = deadline - now;
+
+      if (distance < 0) {
+        setTimeRemaining('Cerrado');
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h`);
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours}h ${minutes}m`);
+      } else {
+        setTimeRemaining(`${minutes}m ${seconds}s`);
+      }
+    };
+
+    calculateTimeRemaining();
+    const interval = setInterval(calculateTimeRemaining, 1000);
+
+    return () => clearInterval(interval);
+  }, [event.registrationDeadline]);
+
+  const handleCardClick = () => {
+    router.push(`/evento/${event._id}`);
+  };
+
+  return (
+    <div
+      onClick={handleCardClick}
+      className="bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 backdrop-blur-sm border-2 border-slate-700/50 rounded-xl p-6 hover:border-electric-blue/50 transition-all shadow-lg hover:shadow-electric-blue/20 cursor-pointer hover:scale-[1.02]"
+    >
+      {/* Category Badge */}
+      <div className={`inline-block px-4 py-1 rounded-full bg-gradient-to-r ${categoryConfig.color} text-white font-racing text-sm mb-4`}>
+        {categoryConfig.name}
+      </div>
+
+      {/* Event Name */}
+      <h3 className="text-2xl font-racing text-white mb-2">{event.name}</h3>
+
+      {/* Description */}
+      {event.description && (
+        <p className="text-slate-400 mb-4">{event.description}</p>
+      )}
+
+      {/* Event Details Grid */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <p className="text-slate-500 text-sm">📅 Fecha</p>
+          <p className="text-white font-racing">
+            {new Date(event.eventDate).toLocaleDateString('es-CL', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            })}
+          </p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-sm">🕐 Hora</p>
+          <p className="text-electric-blue font-racing text-2xl">{event.eventTime || '19:00'}</p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-sm">⏱️ Duración</p>
+          <p className="text-white font-racing">
+            {event.duration ? `${Math.floor(event.duration / 60)}h ${event.duration % 60}min` : '90min'}
+          </p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-sm">📍 Ubicación</p>
+          <p className="text-white font-racing">{event.location}</p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-sm">🏁 Escuderías</p>
+          <p className="text-white font-racing">{event.participants?.length || 0}/{event.maxSquadrons}</p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-sm">🏆 Puntos Ganador</p>
+          <p className="text-electric-blue font-racing">{event.pointsForWinner}</p>
+        </div>
+      </div>
+
+      {/* Registration Deadline Countdown */}
+      <div className="mb-4 p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-orange-400 text-sm font-racing">⏰ Cierre de Inscripciones</p>
+            <p className="text-slate-300 text-xs">
+              {new Date(event.registrationDeadline).toLocaleDateString('es-CL', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className={`font-racing text-2xl ${
+              timeRemaining === 'Cerrado' ? 'text-red-500' :
+              timeRemaining.includes('d') ? 'text-green-400' :
+              timeRemaining.includes('h') && !timeRemaining.includes('m') ? 'text-yellow-400' :
+              'text-orange-400 animate-pulse'
+            }`}>
+              {timeRemaining || '...'}
+            </p>
+            <p className="text-slate-500 text-xs">restante</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Status and Unregister Button */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="px-3 py-1 rounded-full text-xs font-racing bg-green-600/20 text-green-400 border border-green-500/50">
+          ✓ REGISTRADO
+        </span>
+
+        <button
+          onClick={onUnregister}
+          disabled={isUnregistering}
+          className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm font-bold"
+        >
+          {isUnregistering ? '⏳ PROCESANDO...' : '❌ RETIRARME'}
+        </button>
+      </div>
+    </div>
   );
 }

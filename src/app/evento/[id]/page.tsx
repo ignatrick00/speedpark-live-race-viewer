@@ -296,22 +296,11 @@ export default function EventoPage() {
                   <p className="text-gray-400">{event.description}</p>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                {myParticipation && !hasUnregistered && (
-                  <button
-                    onClick={handleUnregisterClick}
-                    disabled={unregistering}
-                    className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-full text-sm font-bold hover:bg-red-500/30 transition-all disabled:opacity-50"
-                  >
-                    {unregistering ? '⏳ PROCESANDO...' : '❌ RETIRARME'}
-                  </button>
-                )}
-                <span className={`px-4 py-2 rounded-full text-sm font-bold ${
-                  myParticipation ? 'bg-green-600/20 text-green-400 border border-green-500/50' : 'bg-gray-700 text-white'
-                }`}>
-                  {myParticipation ? '✓ REGISTRADO' : event.status}
-                </span>
-              </div>
+              <span className={`px-4 py-2 rounded-full text-sm font-bold ${
+                myParticipation ? 'bg-green-600/20 text-green-400 border border-green-500/50' : 'bg-gray-700 text-white'
+              }`}>
+                {myParticipation ? '✓ REGISTRADO' : event.status}
+              </span>
             </div>
 
             {/* Registration Deadline Timer */}
@@ -375,7 +364,7 @@ export default function EventoPage() {
                   disabled={unregistering}
                   className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 text-sm font-bold"
                 >
-                  {unregistering ? '⏳ DESREGISTRANDO...' : '❌ DESREGISTRARSE'}
+                  {unregistering ? '⏳ PROCESANDO...' : '❌ RETIRARME'}
                 </button>
               )}
             </div>
