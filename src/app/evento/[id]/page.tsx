@@ -212,14 +212,14 @@ export default function EventoPage() {
 
       if (response.ok) {
         setToast({
-          message: 'Te has desregistrado exitosamente del evento',
+          message: 'Te has retirado exitosamente del evento',
           type: 'success'
         });
         setHasUnregistered(true);
         fetchEvent();
       } else {
         setToast({
-          message: data.error || 'Error al desregistrarse',
+          message: data.error || 'Error al retirarse',
           type: 'error'
         });
         setUnregistering(false);
@@ -227,7 +227,7 @@ export default function EventoPage() {
     } catch (error) {
       console.error('Error unregistering:', error);
       setToast({
-        message: 'Error al desregistrarse del evento',
+        message: 'Error al retirarse del evento',
         type: 'error'
       });
       setUnregistering(false);
@@ -296,11 +296,22 @@ export default function EventoPage() {
                   <p className="text-gray-400">{event.description}</p>
                 )}
               </div>
-              <span className={`px-4 py-2 rounded-full text-sm font-bold ${
-                myParticipation ? 'bg-green-600/20 text-green-400 border border-green-500/50' : 'bg-gray-700 text-white'
-              }`}>
-                {myParticipation ? '✓ REGISTRADO' : event.status}
-              </span>
+              <div className="flex items-center gap-3">
+                {myParticipation && !hasUnregistered && (
+                  <button
+                    onClick={handleUnregisterClick}
+                    disabled={unregistering}
+                    className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-full text-sm font-bold hover:bg-red-500/30 transition-all disabled:opacity-50"
+                  >
+                    {unregistering ? '⏳ PROCESANDO...' : '❌ RETIRARME'}
+                  </button>
+                )}
+                <span className={`px-4 py-2 rounded-full text-sm font-bold ${
+                  myParticipation ? 'bg-green-600/20 text-green-400 border border-green-500/50' : 'bg-gray-700 text-white'
+                }`}>
+                  {myParticipation ? '✓ REGISTRADO' : event.status}
+                </span>
+              </div>
             </div>
 
             {/* Registration Deadline Timer */}
@@ -638,10 +649,10 @@ export default function EventoPage() {
             <div className="text-center mb-6">
               <div className="text-6xl mb-4">⚠️</div>
               <h3 className="text-2xl font-racing text-red-400 mb-2">
-                ¿DESREGISTRARSE DEL EVENTO?
+                ¿RETIRARSE DEL EVENTO?
               </h3>
               <p className="text-sky-blue/80 font-digital">
-                Solo tú serás eliminado, tus compañeros de escudería seguirán participando.
+                Solo tú serás retirado, tus compañeros de escudería seguirán participando.
               </p>
             </div>
 
@@ -658,7 +669,7 @@ export default function EventoPage() {
                 disabled={unregistering}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:shadow-lg hover:shadow-red-500/50 transition-all font-racing disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {unregistering ? 'PROCESANDO...' : 'DESREGISTRAR'}
+                {unregistering ? 'PROCESANDO...' : 'RETIRARME'}
               </button>
             </div>
           </div>
