@@ -8,7 +8,7 @@ import { EventCategoryConfig } from '@/types/squadron-events';
 import { useRouter } from 'next/navigation';
 import JoinEventModal from '@/components/JoinEventModal';
 
-type ViewMode = 'selection' | 'championships' | 'championships-upcoming' | 'championships-past' | 'friendly-join' | 'friendly-create';
+type ViewMode = 'selection' | 'championships' | 'championships-upcoming' | 'championships-past' | 'friendly' | 'friendly-upcoming' | 'friendly-past' | 'friendly-create';
 
 interface Participant {
   userId: string;
@@ -249,8 +249,7 @@ export default function RacesPage() {
         {viewMode === 'selection' && (
           <SelectionView
             onSelectChampionships={() => setViewMode('championships')}
-            onSelectFriendlyJoin={() => setViewMode('friendly-join')}
-            onSelectFriendlyCreate={() => setViewMode('friendly-create')}
+            onSelectFriendly={() => setViewMode('friendly')}
           />
         )}
 
@@ -278,8 +277,25 @@ export default function RacesPage() {
           />
         )}
 
-        {viewMode === 'friendly-join' && (
-          <FriendlyJoinView
+        {viewMode === 'friendly' && (
+          <FriendlySelectionView
+            onSelectUpcoming={() => setViewMode('friendly-upcoming')}
+            onSelectPast={() => setViewMode('friendly-past')}
+            onSelectCreate={() => setViewMode('friendly-create')}
+            onBack={() => setViewMode('selection')}
+          />
+        )}
+
+        {viewMode === 'friendly-upcoming' && (
+          <FriendlyUpcomingView
+            races={friendlyRaces}
+            isLoading={isLoading}
+            onRefresh={fetchRaces}
+          />
+        )}
+
+        {viewMode === 'friendly-past' && (
+          <FriendlyPastView
             races={friendlyRaces}
             isLoading={isLoading}
             onRefresh={fetchRaces}
@@ -305,15 +321,11 @@ export default function RacesPage() {
 // Selection View - Two big cards
 function SelectionView({
   onSelectChampionships,
-  onSelectFriendlyJoin,
-  onSelectFriendlyCreate,
+  onSelectFriendly,
 }: {
   onSelectChampionships: () => void;
-  onSelectFriendlyJoin: () => void;
-  onSelectFriendlyCreate: () => void;
+  onSelectFriendly: () => void;
 }) {
-  const [showFriendlyOptions, setShowFriendlyOptions] = useState(false);
-
   return (
     <div className="grid md:grid-cols-2 gap-8">
       {/* Championships Card */}
@@ -338,92 +350,25 @@ function SelectionView({
       </button>
 
       {/* Friendly Races Card */}
-      <div className="relative">
-        {!showFriendlyOptions ? (
-          <button
-            onClick={() => setShowFriendlyOptions(true)}
-            className="group w-full h-full bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue rounded-2xl p-12 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-electric-blue/50"
-          >
-            <div className="text-center">
-              <div className="text-8xl mb-6 group-hover:scale-110 transition-transform">
-                🤝
-              </div>
-              <h2 className="text-4xl font-racing text-electric-blue mb-4">
-                CARRERAS AMISTOSAS
-              </h2>
-              <p className="text-sky-blue/70 text-lg mb-6">
-                Crea o únete a carreras casuales
-              </p>
-              <div className="inline-block px-6 py-3 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded-lg font-racing">
-                SELECCIONAR
-              </div>
-            </div>
-          </button>
-        ) : (
-          <div className="bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue rounded-2xl p-8">
-            <div className="text-center mb-8">
-              <div className="text-6xl mb-4">🤝</div>
-              <h2 className="text-3xl font-racing text-electric-blue mb-2">
-                CARRERAS AMISTOSAS
-              </h2>
-              <p className="text-sky-blue/70">¿Qué deseas hacer?</p>
-            </div>
-
-            <div className="space-y-4">
-              <button
-                onClick={() => {
-                  console.log('🏁 Click UNIRTE A CARRERA');
-                  onSelectFriendlyJoin();
-                }}
-                className="w-full group bg-gradient-to-r from-electric-blue/30 to-electric-blue/10 border-2 border-electric-blue/50 rounded-xl p-6 hover:bg-electric-blue/20 transition-all hover:scale-105 hover:shadow-lg hover:shadow-electric-blue/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="text-left">
-                    <h3 className="text-2xl font-racing text-electric-blue mb-1">
-                      UNIRTE A CARRERA
-                    </h3>
-                    <p className="text-sky-blue/60 text-sm">
-                      Ve carreras disponibles y únete
-                    </p>
-                  </div>
-                  <div className="text-4xl group-hover:scale-110 transition-transform">
-                    🏁
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => {
-                  console.log('⭐ Click CREAR CARRERA');
-                  onSelectFriendlyCreate();
-                }}
-                className="w-full group bg-gradient-to-r from-gold/30 to-gold/10 border-2 border-gold/50 rounded-xl p-6 hover:bg-gold/20 transition-all hover:scale-105 hover:shadow-lg hover:shadow-gold/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="text-left">
-                    <h3 className="text-2xl font-racing text-gold mb-1">
-                      CREAR CARRERA
-                    </h3>
-                    <p className="text-sky-blue/60 text-sm">
-                      Organiza tu propia carrera amistosa
-                    </p>
-                  </div>
-                  <div className="text-4xl group-hover:scale-110 transition-transform">
-                    ➕
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setShowFriendlyOptions(false)}
-                className="w-full px-4 py-3 border border-sky-blue/30 text-sky-blue/70 rounded-lg hover:bg-sky-blue/10 transition-all"
-              >
-                CANCELAR
-              </button>
-            </div>
+      <button
+        onClick={onSelectFriendly}
+        className="group relative bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue rounded-2xl p-12 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-electric-blue/50"
+      >
+        <div className="text-center">
+          <div className="text-8xl mb-6 group-hover:scale-110 transition-transform">
+            🤝
           </div>
-        )}
-      </div>
+          <h2 className="text-4xl font-racing text-electric-blue mb-4">
+            CARRERAS AMISTOSAS
+          </h2>
+          <p className="text-sky-blue/70 text-lg mb-6">
+            Crea o únete a carreras casuales
+          </p>
+          <div className="inline-block px-6 py-3 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded-lg font-racing">
+            VER AMISTOSAS
+          </div>
+        </div>
+      </button>
     </div>
   );
 }
@@ -653,7 +598,302 @@ function ChampionshipsPastView({
   );
 }
 
-// Friendly Join View
+// Friendly Selection View - Three Options
+function FriendlySelectionView({
+  onSelectUpcoming,
+  onSelectPast,
+  onSelectCreate,
+  onBack,
+}: {
+  onSelectUpcoming: () => void;
+  onSelectPast: () => void;
+  onSelectCreate: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <div>
+      <div className="grid md:grid-cols-3 gap-6 mb-6">
+        {/* Próximas Carreras Card */}
+        <button
+          onClick={onSelectUpcoming}
+          className="group relative bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue rounded-2xl p-10 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-electric-blue/50"
+        >
+          <div className="text-center">
+            <div className="text-7xl mb-4 group-hover:scale-110 transition-transform">
+              🏁
+            </div>
+            <h2 className="text-3xl font-racing text-electric-blue mb-3">
+              PRÓXIMAS CARRERAS
+            </h2>
+            <p className="text-sky-blue/70 text-sm mb-4">
+              Carreras amistosas disponibles
+            </p>
+            <div className="inline-block px-4 py-2 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded-lg font-racing text-sm">
+              VER PRÓXIMAS
+            </div>
+          </div>
+        </button>
+
+        {/* Carreras Pasadas Card */}
+        <button
+          onClick={onSelectPast}
+          className="group relative bg-gradient-to-br from-midnight via-slate-500/20 to-midnight border-2 border-slate-400 rounded-2xl p-10 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-slate-400/50"
+        >
+          <div className="text-center">
+            <div className="text-7xl mb-4 group-hover:scale-110 transition-transform">
+              📚
+            </div>
+            <h2 className="text-3xl font-racing text-slate-300 mb-3">
+              CARRERAS PASADAS
+            </h2>
+            <p className="text-sky-blue/70 text-sm mb-4">
+              Historial de carreras completadas
+            </p>
+            <div className="inline-block px-4 py-2 bg-slate-400/20 border border-slate-400/50 text-slate-300 rounded-lg font-racing text-sm">
+              VER HISTORIAL
+            </div>
+          </div>
+        </button>
+
+        {/* Crear Carrera Card */}
+        <button
+          onClick={onSelectCreate}
+          className="group relative bg-gradient-to-br from-midnight via-gold/20 to-midnight border-2 border-gold rounded-2xl p-10 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-gold/50"
+        >
+          <div className="text-center">
+            <div className="text-7xl mb-4 group-hover:scale-110 transition-transform">
+              ➕
+            </div>
+            <h2 className="text-3xl font-racing text-gold mb-3">
+              CREAR CARRERA
+            </h2>
+            <p className="text-sky-blue/70 text-sm mb-4">
+              Organiza tu propia carrera
+            </p>
+            <div className="inline-block px-4 py-2 bg-gold/20 border border-gold/50 text-gold rounded-lg font-racing text-sm">
+              CREAR NUEVA
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Back Button */}
+      <div className="text-center">
+        <button
+          onClick={onBack}
+          className="px-6 py-3 border border-sky-blue/30 text-sky-blue/70 rounded-lg hover:bg-sky-blue/10 transition-all"
+        >
+          ← VOLVER
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Friendly Upcoming View
+function FriendlyUpcomingView({
+  races,
+  isLoading,
+  onRefresh,
+}: {
+  races: Race[];
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const { token, user } = useAuth();
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [selectedRace, setSelectedRace] = useState<Race | null>(null);
+
+  const handleJoinClick = (race: Race) => {
+    setSelectedRace(race);
+    setShowJoinModal(true);
+  };
+
+  const handleDeleteRace = async (raceId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta carrera?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/races/friendly/${raceId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Carrera eliminada exitosamente');
+        onRefresh();
+      } else {
+        alert(data.error || 'Error al eliminar la carrera');
+      }
+    } catch (error) {
+      console.error('Error deleting race:', error);
+      alert('Error al eliminar la carrera');
+    }
+  };
+
+  const handleConfirmRace = async (raceId: string) => {
+    if (!confirm('¿Confirmar esta carrera? Los participantes no podrán unirse después.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/races/friendly/${raceId}/confirm`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Carrera confirmada exitosamente');
+        onRefresh();
+      } else {
+        alert(data.error || 'Error al confirmar la carrera');
+      }
+    } catch (error) {
+      console.error('Error confirming race:', error);
+      alert('Error al confirmar la carrera');
+    }
+  };
+
+  // Filter upcoming races only
+  const upcomingRaces = races.filter(race => {
+    const raceDate = new Date(race.date);
+    const now = new Date();
+    return raceDate >= now;
+  });
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-20">
+        <div className="animate-spin text-6xl mb-4">🏁</div>
+        <p className="text-sky-blue/70">Cargando próximas carreras...</p>
+      </div>
+    );
+  }
+
+  if (upcomingRaces.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-midnight via-electric-blue/10 to-midnight border-2 border-electric-blue/50 rounded-xl p-12 text-center">
+        <div className="text-6xl mb-4">🏁</div>
+        <h3 className="text-2xl font-racing text-electric-blue mb-2">
+          NO HAY PRÓXIMAS CARRERAS
+        </h3>
+        <p className="text-sky-blue/70 mb-6">
+          No hay carreras amistosas programadas próximamente
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-3xl">🏁</span>
+          <h2 className="text-2xl font-racing text-electric-blue">
+            PRÓXIMAS CARRERAS AMISTOSAS
+          </h2>
+        </div>
+        {upcomingRaces.map((race) => (
+          <RaceCard
+            key={race._id}
+            race={race}
+            currentUserId={user?.id}
+            onJoinClick={() => handleJoinClick(race)}
+            onDeleteClick={() => handleDeleteRace(race._id)}
+            onConfirmClick={() => handleConfirmRace(race._id)}
+          />
+        ))}
+      </div>
+
+      {/* Join Modal */}
+      {showJoinModal && selectedRace && (
+        <JoinRaceModal
+          race={selectedRace}
+          token={token}
+          onClose={() => {
+            setShowJoinModal(false);
+            setSelectedRace(null);
+          }}
+          onSuccess={() => {
+            setShowJoinModal(false);
+            setSelectedRace(null);
+            onRefresh();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// Friendly Past View
+function FriendlyPastView({
+  races,
+  isLoading,
+  onRefresh,
+}: {
+  races: Race[];
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  // Filter past races only
+  const pastRaces = races.filter(race => {
+    const raceDate = new Date(race.date);
+    const now = new Date();
+    return raceDate < now;
+  });
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-20">
+        <div className="animate-spin text-6xl mb-4">🏁</div>
+        <p className="text-sky-blue/70">Cargando carreras pasadas...</p>
+      </div>
+    );
+  }
+
+  if (pastRaces.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-midnight via-slate-500/10 to-midnight border-2 border-slate-400/50 rounded-xl p-12 text-center">
+        <div className="text-6xl mb-4">📚</div>
+        <h3 className="text-2xl font-racing text-slate-300 mb-2">
+          NO HAY CARRERAS PASADAS
+        </h3>
+        <p className="text-sky-blue/70 mb-6">
+          Aún no se han completado carreras amistosas
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-3xl">📚</span>
+        <h2 className="text-2xl font-racing text-slate-300">
+          CARRERAS AMISTOSAS PASADAS
+        </h2>
+      </div>
+      {pastRaces.map((race) => (
+        <RaceCard
+          key={race._id}
+          race={race}
+          currentUserId={undefined}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Friendly Join View (DEPRECATED - keeping for backwards compatibility)
 function FriendlyJoinView({
   races,
   isLoading,
