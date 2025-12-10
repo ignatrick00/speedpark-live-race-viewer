@@ -1795,6 +1795,9 @@ function SquadronEventCard({ event }: { event: any }) {
   const isUserRegistered = isUserConfirmed || isUserInvited;
   const squadronRegisteredButNotUser = squadronParticipation && !isUserRegistered;
 
+  // Check if registration is closed
+  const isRegistrationClosed = new Date(event.registrationDeadline) < new Date();
+
   console.log(`📊 Event: ${event.name}`);
   console.log(`   User ID: ${userId}`);
   console.log(`   Squadron ID: ${userSquadronId}`);
@@ -1921,7 +1924,7 @@ function SquadronEventCard({ event }: { event: any }) {
         </span>
 
         {/* Join/Registered Button - Available for everyone including organizers */}
-        {(event.status === 'published' || event.status === 'registration_open') && (
+        {(event.status === 'published' || event.status === 'registration_open') && !isRegistrationClosed && (
           <button
             onClick={handleJoinClick}
             disabled={isUserRegistered}
@@ -1933,6 +1936,13 @@ function SquadronEventCard({ event }: { event: any }) {
           >
             {isUserRegistered ? '✓ REGISTRADO' : '🏆 UNIRSE'}
           </button>
+        )}
+
+        {/* Registration Closed Message */}
+        {(event.status === 'published' || event.status === 'registration_open') && isRegistrationClosed && !isUserRegistered && (
+          <span className="px-4 py-2 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg font-racing text-sm">
+            🔒 INSCRIPCIONES CERRADAS
+          </span>
         )}
       </div>
     </div>
