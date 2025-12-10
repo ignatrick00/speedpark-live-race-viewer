@@ -31,12 +31,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Find all events where the user is registered (either confirmed or invited)
+    // Find all events where the user is CONFIRMED (not just invited)
     const events = await SquadronEvent.find({
-      $or: [
-        { 'participants.confirmedPilots.pilotId': userId },
-        { 'participants.pendingInvitations.pilotId': userId }
-      ]
+      'participants.confirmedPilots.pilotId': userId
     })
       .populate('createdBy', 'email profile')
       .populate('participants.squadronId', 'name tag colors')
