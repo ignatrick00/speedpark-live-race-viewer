@@ -110,3 +110,92 @@ export async function DELETE(
     );
   }
 }
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await connectDB();
+
+    // Verify authentication
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    let userId: string;
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      userId = decoded.userId;
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Token inválido' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user is organizer
+    const user = await WebUser.findById(userId);
+    if (!user || user.email !== 'icabreraquezada@gmail.com') {
+      return NextResponse.json(
+        { error: 'No tienes permisos de organizador' },
+        { status: 403 }
+      );
+    }
+
+    // Find and verify event ownership
+    const event = await SquadronEvent.findById(params.id);
+    if (!event) {
+      return NextResponse.json(
+        { error: 'Evento no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    if (event.createdBy.toString() !== userId) {
+      return NextResponse.json(
+        { error: 'No tienes permisos para editar este evento' },
+        { status: 403 }
+      );
+    }
+
+    // Get update data from request body
+    const body = await request.json();
+
+    // Update event fields
+    event.name = body.name || event.name;
+    event.description = body.description || event.description;
+    event.category = body.category || event.category;
+    event.eventDate = body.eventDate ? new Date(body.eventDate) : event.eventDate;
+    event.eventTime = body.eventTime || event.eventTime;
+    event.duration = body.duration !== undefined ? body.duration : event.duration;
+    event.registrationDeadline = body.registrationDeadline ? new Date(body.registrationDeadline) : event.registrationDeadline;
+    event.location = body.location || event.location;
+    event.maxSquadrons = body.maxSquadrons !== undefined ? body.maxSquadrons : event.maxSquadrons;
+    event.minPilotsPerSquadron = body.minPilotsPerSquadron !== undefined ? body.minPilotsPerSquadron : event.minPilotsPerSquadron;
+    event.maxPilotsPerSquadron = body.maxPilotsPerSquadron !== undefined ? body.maxPilotsPerSquadron : event.maxPilotsPerSquadron;
+    event.pointsForWinner = body.pointsForWinner !== undefined ? body.pointsForWinner : event.pointsForWinner;
+    event.pointsDistribution = body.pointsDistribution || event.pointsDistribution;
+
+    await event.save();
+
+    return NextResponse.json({
+      success: true,
+      message: 'Evento actualizado exitosamente',
+      event,
+    });
+
+  } catch (error: any) {
+    console.error('Error updating event:', error);
+    return NextResponse.json(
+      { error: 'Error al actualizar evento', details: error.message },
+      { status: 500 }
+    );
+  }
+}
