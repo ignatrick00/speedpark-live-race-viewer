@@ -1730,6 +1730,39 @@ function SquadronEventCard({ event }: { event: any }) {
   const router = useRouter();
   const { user } = useAuth();
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+  // Countdown timer for registration deadline
+  useEffect(() => {
+    const calculateTimeRemaining = () => {
+      const now = new Date().getTime();
+      const deadline = new Date(event.registrationDeadline).getTime();
+      const distance = deadline - now;
+
+      if (distance < 0) {
+        setTimeRemaining('Cerrado');
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h`);
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours}h ${minutes}m`);
+      } else {
+        setTimeRemaining(`${minutes}m ${seconds}s`);
+      }
+    };
+
+    calculateTimeRemaining();
+    const interval = setInterval(calculateTimeRemaining, 1000);
+
+    return () => clearInterval(interval);
+  }, [event.registrationDeadline]);
 
   const isOrganizer = user?.email === 'icabreraquezada@gmail.com';
   const userSquadronId = (user as any)?.squadron?.squadronId;
@@ -1841,6 +1874,35 @@ function SquadronEventCard({ event }: { event: any }) {
         <div>
           <p className="text-slate-500 text-sm">🏆 Puntos Ganador</p>
           <p className="text-electric-blue font-racing">{event.pointsForWinner}</p>
+        </div>
+      </div>
+
+      {/* Registration Deadline Countdown */}
+      <div className="mb-4 p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-orange-400 text-sm font-racing">⏰ Cierre de Inscripciones</p>
+            <p className="text-slate-300 text-xs">
+              {new Date(event.registrationDeadline).toLocaleDateString('es-CL', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className={`font-racing text-2xl ${
+              timeRemaining === 'Cerrado' ? 'text-red-500' :
+              timeRemaining.includes('d') ? 'text-green-400' :
+              timeRemaining.includes('h') && !timeRemaining.includes('m') ? 'text-yellow-400' :
+              'text-orange-400 animate-pulse'
+            }`}>
+              {timeRemaining || '...'}
+            </p>
+            <p className="text-slate-500 text-xs">restante</p>
+          </div>
         </div>
       </div>
 
