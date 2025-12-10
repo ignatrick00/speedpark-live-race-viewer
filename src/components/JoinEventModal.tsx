@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import Toast from '@/components/Toast';
 
 interface JoinEventModalProps {
   event: any;
@@ -18,6 +19,7 @@ export default function JoinEventModal({ event, onClose, onSuccess }: JoinEventM
   const [loading, setLoading] = useState(true);
   const [selectedKart, setSelectedKart] = useState<number | null>(null);
   const [occupiedKarts, setOccupiedKarts] = useState<number[]>([]);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     fetchSquadronAndKarts();
@@ -55,12 +57,12 @@ export default function JoinEventModal({ event, onClose, onSuccess }: JoinEventM
 
   const handleJoin = async () => {
     if (!squadron) {
-      alert('Debes pertenecer a una escudería');
+      setToast({ message: 'Debes pertenecer a una escudería', type: 'error' });
       return;
     }
 
     if (!selectedKart) {
-      alert('Por favor selecciona un kart');
+      setToast({ message: 'Por favor selecciona un kart', type: 'info' });
       return;
     }
 
@@ -78,14 +80,16 @@ export default function JoinEventModal({ event, onClose, onSuccess }: JoinEventM
       const data = await response.json();
 
       if (response.ok) {
-        alert('¡Registrado exitosamente! Redirigiendo a tu evento...');
-        router.push(`/evento/${event._id}`);
+        setToast({ message: '¡Registrado exitosamente! Redirigiendo...', type: 'success' });
+        setTimeout(() => {
+          router.push(`/evento/${event._id}`);
+        }, 1500);
       } else {
-        alert(data.error || 'Error al registrarse');
+        setToast({ message: data.error || 'Error al registrarse', type: 'error' });
       }
     } catch (error) {
       console.error('Error joining event:', error);
-      alert('Error al registrarse en el evento');
+      setToast({ message: 'Error al registrarse en el evento', type: 'error' });
     } finally {
       setIsJoining(false);
     }
@@ -229,6 +233,15 @@ export default function JoinEventModal({ event, onClose, onSuccess }: JoinEventM
           </>
         )}
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
