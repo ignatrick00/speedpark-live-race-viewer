@@ -59,7 +59,7 @@ export default function Navbar() {
   return (
     <>
       <nav className="relative z-20 border-b border-blue-800/30 bg-black/90 backdrop-blur-sm">
-        <div className="w-full pr-2 sm:pr-4 py-3 sm:py-4">
+        <div className="w-full px-2 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             {/* Logo - Clickable */}
             <a href="/" className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink-0 hover:opacity-80 transition-opacity">
@@ -80,26 +80,27 @@ export default function Navbar() {
               </div>
             </a>
 
-            {/* Navigation Links & Auth */}
+            {/* Desktop Navigation Links - Centered */}
+            <div className="hidden lg:flex items-center space-x-4 xl:space-x-6 absolute left-1/2 transform -translate-x-1/2">
+              <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                En Pista
+              </a>
+              <a href="/clases" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                Clases
+              </a>
+              <a
+                href="/races"
+                className="relative px-4 py-2 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold uppercase tracking-wider text-sm rounded-lg hover:scale-110 hover:shadow-2xl hover:shadow-red-500/50 transition-all duration-300 animate-pulse"
+              >
+                🔥 COMPETIR 🔥
+              </a>
+              <a href="/ranking" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                Ranking
+              </a>
+            </div>
+
+            {/* Auth Section */}
             <div className="flex items-center space-x-2 sm:space-x-6 min-w-0">
-              {/* Desktop Navigation Links */}
-              <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
-                <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  En Pista
-                </a>
-                <a href="/clases" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Clases
-                </a>
-                <a
-                  href="/races"
-                  className="relative px-4 py-2 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold uppercase tracking-wider text-sm rounded-lg hover:scale-110 hover:shadow-2xl hover:shadow-red-500/50 transition-all duration-300 animate-pulse"
-                >
-                  🔥 COMPETIR 🔥
-                </a>
-                <a href="/ranking" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Ranking
-                </a>
-              </div>
 
               {/* Mobile Menu Button */}
               <button
