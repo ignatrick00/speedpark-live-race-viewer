@@ -2714,6 +2714,20 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                           paddingTop: '20px',
                           cursor: 'pointer'
                         }}
+                        formatter={(value: string) => {
+                          // Resaltar el nombre si está seleccionado
+                          const isSelected = highlightedDriver === value;
+                          return (
+                            <span style={{
+                              fontWeight: isSelected ? 'bold' : 'normal',
+                              fontSize: isSelected ? '1.1em' : '1em',
+                              color: isSelected ? '#fff' : '#9ca3af',
+                              textDecoration: isSelected ? 'underline' : 'none'
+                            }}>
+                              {value}
+                            </span>
+                          );
+                        }}
                       />
                       {raceResults.map((driver: any, idx: number) => {
                         // Generar colores distintos para cada piloto (más colores para más pilotos)
@@ -2743,14 +2757,33 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                               r: isHighlighted && highlightedDriver === driver.driverName ? 5 : 4,
                               strokeWidth: 2,
                               fill: colors[idx % colors.length],
-                              fillOpacity: opacity
+                              fillOpacity: opacity,
+                              cursor: 'pointer'
                             }}
                             activeDot={{
                               r: 8,
                               strokeWidth: 3,
-                              fill: colors[idx % colors.length]
+                              fill: colors[idx % colors.length],
+                              cursor: 'pointer',
+                              onClick: () => {
+                                // Toggle highlight cuando se hace click en la línea
+                                if (highlightedDriver === driver.driverName) {
+                                  setHighlightedDriver(null);
+                                } else {
+                                  setHighlightedDriver(driver.driverName);
+                                }
+                              }
                             }}
                             connectNulls={true}
+                            onClick={() => {
+                              // Toggle highlight cuando se hace click en la línea
+                              if (highlightedDriver === driver.driverName) {
+                                setHighlightedDriver(null);
+                              } else {
+                                setHighlightedDriver(driver.driverName);
+                              }
+                            }}
+                            style={{ cursor: 'pointer' }}
                           />
                         );
                       })}
