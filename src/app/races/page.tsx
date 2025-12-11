@@ -2691,7 +2691,6 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                         label={{ value: 'Vuelta', position: 'insideBottom', offset: -5, fill: '#0ea5e9' }}
                       />
                       <YAxis
-                        reversed
                         stroke="#0ea5e9"
                         label={{ value: 'Posición', angle: -90, position: 'insideLeft', fill: '#0ea5e9' }}
                         domain={[1, 'auto']}
