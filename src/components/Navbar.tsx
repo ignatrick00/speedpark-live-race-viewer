@@ -99,9 +99,6 @@ export default function Navbar() {
                 <a href="/races" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Competir
                 </a>
-                <a href="/reglas" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Reglas
-                </a>
                 {user && isOrganizer && (
                   <a href="/eventos-racing" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                     Eventos
@@ -228,9 +225,6 @@ export default function Navbar() {
                 </a>
                 <a href="/races" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Competir
-                </a>
-                <a href="/reglas" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Reglas
                 </a>
                 {user && isOrganizer && (
                   <a href="/eventos-racing" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">

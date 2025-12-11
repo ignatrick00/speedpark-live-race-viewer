@@ -339,7 +339,7 @@ function SelectionView({
   onSelectMyEvents: () => void;
 }) {
   return (
-    <div className="grid md:grid-cols-3 gap-6">
+    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
       {/* Championships Card */}
       <button
         onClick={onSelectChampionships}
@@ -402,6 +402,27 @@ function SelectionView({
           </div>
         </div>
       </button>
+
+      {/* Rules Card */}
+      <a
+        href="/reglas"
+        className="group relative bg-gradient-to-br from-midnight via-yellow-500/20 to-midnight border-2 border-yellow-400 rounded-2xl p-10 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-400/50"
+      >
+        <div className="text-center">
+          <div className="text-7xl mb-4 group-hover:scale-110 transition-transform">
+            📖
+          </div>
+          <h2 className="text-3xl font-racing text-yellow-400 mb-3">
+            REGLAS
+          </h2>
+          <p className="text-sky-blue/70 text-sm mb-4">
+            Normativa y reglamentos
+          </p>
+          <div className="inline-block px-4 py-2 bg-yellow-400/20 border border-yellow-400/50 text-yellow-300 rounded-lg font-racing text-sm">
+            VER REGLAS
+          </div>
+        </div>
+      </a>
     </div>
   );
 }
