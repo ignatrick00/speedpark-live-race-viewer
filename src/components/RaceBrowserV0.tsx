@@ -331,6 +331,7 @@ export default function RaceBrowserV0() {
                       stroke="#0ea5e9"
                       label={{ value: 'Posición', angle: -90, position: 'insideLeft', fill: '#0ea5e9' }}
                       domain={[1, 'auto']}
+                      ticks={Array.from({ length: raceResults.length }, (_, i) => i + 1)}
                     />
                     <Legend
                       iconType="line"
