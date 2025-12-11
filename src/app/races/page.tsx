@@ -2744,15 +2744,9 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                               strokeWidth: 2,
                               fill: colors[idx % colors.length],
                               fillOpacity: opacity,
-                              cursor: 'pointer'
-                            }}
-                            activeDot={{
-                              r: 8,
-                              strokeWidth: 3,
-                              fill: colors[idx % colors.length],
                               cursor: 'pointer',
                               onClick: () => {
-                                // Toggle highlight cuando se hace click en la línea
+                                // Toggle highlight cuando se hace click en el punto
                                 if (highlightedDriver === driver.driverName) {
                                   setHighlightedDriver(null);
                                 } else {
@@ -2760,6 +2754,7 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                                 }
                               }
                             }}
+                            activeDot={false}
                             connectNulls={true}
                             onClick={() => {
                               // Toggle highlight cuando se hace click en la línea
