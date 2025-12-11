@@ -2564,7 +2564,10 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
         {/* Resultados de la carrera */}
         <div className="p-6">
           {loading && (
-            <div className="text-center text-gray-400 py-12">Cargando resultados...</div>
+            <div className="text-center py-12">
+              <div className="inline-block text-8xl animate-spin">🏁</div>
+              <p className="text-gray-400 mt-4">Cargando resultados...</p>
+            </div>
           )}
 
           {/* Tabla de resultados de carrera */}
