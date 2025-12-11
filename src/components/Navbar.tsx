@@ -11,6 +11,7 @@ export default function Navbar() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [invitationCount, setInvitationCount] = useState(0);
 
   // Fetch invitation count
@@ -101,27 +102,10 @@ export default function Navbar() {
                 <a href="/reglas" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Reglas
                 </a>
-                {user && (
-                  <>
-                    {isOrganizer && (
-                      <>
-                        <a href="/eventos-racing" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                          Eventos
-                        </a>
-                      </>
-                    )}
-                    <a href="/amigos" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                      Amigos
-                    </a>
-                    <a href="/inbox" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm relative">
-                      Inbox
-                      {invitationCount > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                          {invitationCount}
-                        </span>
-                      )}
-                    </a>
-                  </>
+                {user && isOrganizer && (
+                  <a href="/eventos-racing" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                    Eventos
+                  </a>
                 )}
               </div>
 
@@ -148,21 +132,48 @@ export default function Navbar() {
                 </div>
               ) : user ? (
                 <div className="flex items-center space-x-2 sm:space-x-4">
-                  {/* User info */}
-                  <div className="text-right hidden md:block">
-                    <p className="text-cyan-400 font-medium text-sm">
-                      {user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`}
-                    </p>
-                  </div>
+                  {/* User Dropdown Button */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowUserDropdown(!showUserDropdown)}
+                      className="px-2 sm:px-4 py-1.5 sm:py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium text-xs sm:text-sm flex items-center gap-2"
+                    >
+                      <span className="sm:hidden">🏆</span>
+                      <span className="hidden sm:inline">🏆 {user.profile.alias || user.profile.firstName}</span>
+                      <svg className={`w-4 h-4 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
 
-                  {/* Dashboard button */}
-                  <a
-                    href="/dashboard"
-                    className="px-2 sm:px-4 py-1.5 sm:py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium text-xs sm:text-sm"
-                  >
-                    <span className="sm:hidden">🏆</span>
-                    <span className="hidden sm:inline">🏆 Dashboard</span>
-                  </a>
+                    {/* Dropdown Menu */}
+                    {showUserDropdown && (
+                      <div className="absolute right-0 mt-2 w-48 bg-black/95 backdrop-blur-sm border border-cyan-400/30 rounded-lg shadow-xl shadow-cyan-400/20 overflow-hidden z-50">
+                        <a
+                          href="/amigos"
+                          className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30"
+                        >
+                          Amigos
+                        </a>
+                        <a
+                          href="/inbox"
+                          className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30 relative"
+                        >
+                          Inbox
+                          {invitationCount > 0 && (
+                            <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                              {invitationCount}
+                            </span>
+                          )}
+                        </a>
+                        <a
+                          href="/dashboard"
+                          className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm"
+                        >
+                          Dashboard
+                        </a>
+                      </div>
+                    )}
+                  </div>
 
                   {/* User avatar */}
                   <div className="w-8 h-8 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full flex items-center justify-center border border-cyan-400/50">
@@ -221,27 +232,10 @@ export default function Navbar() {
                 <a href="/reglas" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Reglas
                 </a>
-                {user && (
-                  <>
-                    {isOrganizer && (
-                      <>
-                        <a href="/eventos-racing" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                          Eventos
-                        </a>
-                      </>
-                    )}
-                    <a href="/amigos" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                      Amigos
-                    </a>
-                    <a href="/inbox" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm flex items-center gap-2">
-                      Inbox
-                      {invitationCount > 0 && (
-                        <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                          {invitationCount}
-                        </span>
-                      )}
-                    </a>
-                  </>
+                {user && isOrganizer && (
+                  <a href="/eventos-racing" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
+                    Eventos
+                  </a>
                 )}
               </div>
             </div>
