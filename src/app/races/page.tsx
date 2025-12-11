@@ -2659,6 +2659,23 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                       })()}
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
+                      <defs>
+                        {raceResults.slice(0, 10).map((driver: any, idx: number) => {
+                          const colors = [
+                            '#fbbf24', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6',
+                            '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#a855f7'
+                          ];
+                          return (
+                            <filter key={`glow-${idx}`} id={`glow-${idx}`}>
+                              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                              <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                              </feMerge>
+                            </filter>
+                          );
+                        })}
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                       <XAxis
                         dataKey="vuelta"
@@ -2682,6 +2699,9 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                         labelStyle={{ color: '#0ea5e9' }}
                         formatter={(value: any, name: string) => [`P${value}`, name]}
                         labelFormatter={(label) => `Vuelta ${label}`}
+                        cursor={false}
+                        shared={false}
+                        isAnimationActive={false}
                       />
                       <Legend
                         wrapperStyle={{ paddingTop: '20px' }}
