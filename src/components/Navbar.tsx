@@ -81,7 +81,7 @@ export default function Navbar() {
             </a>
 
             {/* Desktop Navigation Links - Centered */}
-            <div className="hidden lg:flex items-center space-x-4 xl:space-x-6 absolute left-1/2 transform -translate-x-1/2">
+            <div className="hidden lg:flex items-center space-x-8 xl:space-x-12 absolute left-1/2 transform -translate-x-1/2">
               <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                 En Pista
               </a>
