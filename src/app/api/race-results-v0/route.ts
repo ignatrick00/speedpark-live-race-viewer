@@ -124,26 +124,35 @@ export async function GET(request: Request) {
       totalDrivers: race.totalDrivers,
       totalLaps: race.totalLaps,
       drivers: driversWithSquadrons
-        .map(driver => ({
-          driverName: driver.driverName,
-          finalPosition: driver.finalPosition,
-          kartNumber: driver.kartNumber,
-          totalLaps: driver.totalLaps,
-          bestTime: driver.bestTime,
-          lastTime: driver.lastTime,
-          averageTime: driver.averageTime,
-          gapToLeader: driver.gapToLeader,
-          squadronName: driver.squadronName,
-          webUserId: driver.webUserId,
-          laps: driver.laps.map(lap => ({
-            lapNumber: lap.lapNumber,
-            time: lap.time,
-            position: lap.position,
-            timestamp: lap.timestamp,
-            gapToLeader: lap.gapToLeader,
-            isPersonalBest: lap.isPersonalBest
-          }))
-        }))
+        .map(driver => {
+          // Encontrar la mejor vuelta absoluta (menor tiempo, excluyendo vuelta 0)
+          const validLaps = driver.laps.filter((lap: any) => lap.lapNumber > 0 && lap.time > 0);
+          const bestLapTime = validLaps.length > 0
+            ? Math.min(...validLaps.map((lap: any) => lap.time))
+            : null;
+
+          return {
+            driverName: driver.driverName,
+            finalPosition: driver.finalPosition,
+            kartNumber: driver.kartNumber,
+            totalLaps: driver.totalLaps,
+            bestTime: driver.bestTime,
+            lastTime: driver.lastTime,
+            averageTime: driver.averageTime,
+            gapToLeader: driver.gapToLeader,
+            squadronName: driver.squadronName,
+            webUserId: driver.webUserId,
+            laps: driver.laps.map((lap: any) => ({
+              lapNumber: lap.lapNumber,
+              time: lap.time,
+              position: lap.position,
+              timestamp: lap.timestamp,
+              gapToLeader: lap.gapToLeader,
+              // Solo marcar como personal best si es exactamente la mejor vuelta absoluta
+              isPersonalBest: lap.lapNumber > 0 && lap.time > 0 && lap.time === bestLapTime
+            }))
+          };
+        })
         .sort((a, b) => a.finalPosition - b.finalPosition) // Ordenar por posición
     };
 
