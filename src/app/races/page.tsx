@@ -496,8 +496,12 @@ function ChampionshipsUpcomingView({
       const response = await fetch('/api/squadron-events');
       if (response.ok) {
         const data = await response.json();
-        // Filter only upcoming/active events
+        // Filter only upcoming/active events (exclude finalized or in_review)
         const upcomingEvents = (data.events || []).filter((event: any) => {
+          // Excluir eventos finalizados o en revisión
+          if (event.raceStatus === 'finalized' || event.raceStatus === 'in_review') {
+            return false;
+          }
           const eventDate = new Date(event.eventDate);
           const now = new Date();
           return eventDate >= now || event.status === 'published' || event.status === 'registration_open';
@@ -564,6 +568,7 @@ function ChampionshipsPastView({
 }) {
   const [squadronEvents, setSquadronEvents] = useState<any[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
 
   useEffect(() => {
     fetchSquadronEvents();
@@ -620,28 +625,42 @@ function ChampionshipsPastView({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-3xl">📚</span>
-        <h2 className="text-2xl font-racing text-slate-300">
-          CAMPEONATOS FINALIZADOS
-        </h2>
+    <>
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-3xl">📚</span>
+          <h2 className="text-2xl font-racing text-slate-300">
+            CAMPEONATOS FINALIZADOS
+          </h2>
+        </div>
+        {squadronEvents.map((event) => (
+          <FinalizedEventCard
+            key={event._id}
+            event={event}
+            onViewResults={setSelectedEvent}
+          />
+        ))}
       </div>
-      {squadronEvents.map((event) => (
-        <FinalizedEventCard key={event._id} event={event} />
-      ))}
-    </div>
+
+      {/* Modal de resultados completos */}
+      {selectedEvent && (
+        <EventResultsModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
+    </>
   );
 }
 
 // Finalized Event Card - Shows results and classification
-function FinalizedEventCard({ event }: { event: any }) {
+function FinalizedEventCard({ event, onViewResults }: { event: any; onViewResults: (event: any) => void }) {
   const router = useRouter();
   const categoryConfig = EventCategoryConfig[event.category as any];
 
   return (
     <div
-      onClick={() => router.push(`/evento/${event._id}`)}
+      onClick={() => onViewResults(event)}
       className="bg-gradient-to-br from-midnight via-slate-800/50 to-midnight border-2 border-green-500/30 rounded-xl p-6 cursor-pointer hover:scale-[1.02] transition-all hover:shadow-xl hover:shadow-green-500/20"
     >
       {/* Header */}
@@ -2438,6 +2457,273 @@ function SquadronEventCard({
       />
     )}
     </>
+  );
+}
+
+// Modal de resultados completos del evento
+function EventResultsModal({ event, onClose }: { event: any; onClose: () => void }) {
+  const categoryConfig = EventCategoryConfig[event.category as any];
+  const [raceResults, setRaceResults] = useState<any[]>([]);
+  const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (event.linkedRaceSessionId) {
+      fetchRaceResults();
+    }
+  }, [event.linkedRaceSessionId]);
+
+  const fetchRaceResults = async () => {
+    if (!event.linkedRaceSessionId) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/race-results-v0?sessionId=${encodeURIComponent(event.linkedRaceSessionId)}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setRaceResults(data.race.drivers);
+      }
+    } catch (error) {
+      console.error('Error fetching race results:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (timeMs: number) => {
+    if (!timeMs || timeMs === 0) return '--:--';
+    const minutes = Math.floor(timeMs / 60000);
+    const seconds = ((timeMs % 60000) / 1000).toFixed(3);
+    return `${minutes}:${parseFloat(seconds).toFixed(3).padStart(6, '0')}`;
+  };
+
+  const getPositionColor = (position: number) => {
+    if (position === 1) return 'text-gold';
+    if (position === 2) return 'text-gray-300';
+    if (position === 3) return 'text-orange-400';
+    return 'text-electric-blue';
+  };
+
+  const getMedalEmoji = (position: number) => {
+    if (position === 1) return '🥇';
+    if (position === 2) return '🥈';
+    if (position === 3) return '🥉';
+    return null;
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-gradient-to-br from-midnight via-slate-900 to-midnight border-2 border-green-500/50 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-gradient-to-r from-midnight to-slate-900 border-b border-green-500/30 p-6 z-10">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">{categoryConfig?.icon || '🏆'}</span>
+              <div>
+                <h2 className="text-3xl font-racing text-white">{event.name}</h2>
+                <p className="text-gray-400 text-sm">{event.description}</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-all"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4 text-sm flex-wrap">
+            <span className="px-3 py-1 bg-green-600/20 text-green-400 border border-green-500/50 rounded-full font-racing">
+              ✅ FINALIZADO
+            </span>
+            <span className="text-gray-400">
+              📅 {new Date(event.finalizedAt || event.eventDate).toLocaleDateString('es-CL', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+              })}
+            </span>
+            <span className="text-gray-400">
+              🏁 {event.location}
+            </span>
+            {!selectedDriver && (
+              <button
+                onClick={() => setSelectedDriver(null)}
+                className="text-electric-blue hover:text-cyan-400 font-bold ml-auto"
+              >
+                {selectedDriver ? '← Volver a resultados' : ''}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Resultados de la carrera */}
+        <div className="p-6">
+          {loading && (
+            <div className="text-center text-gray-400 py-12">Cargando resultados...</div>
+          )}
+
+          {/* Tabla de resultados de carrera */}
+          {!loading && !selectedDriver && raceResults.length > 0 && (
+            <>
+              <div className="mb-6">
+                <h3 className="text-2xl font-racing text-electric-blue mb-2">🏁 RESULTADOS DE CARRERA</h3>
+                <p className="text-gray-400 text-sm">Haz click en un piloto para ver sus tiempos por vuelta</p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-electric-blue/30">
+                      <th className="text-left p-3 text-electric-blue">Pos</th>
+                      <th className="text-left p-3 text-electric-blue">Piloto</th>
+                      <th className="text-center p-3 text-electric-blue">Kart</th>
+                      <th className="text-center p-3 text-electric-blue">Vueltas</th>
+                      <th className="text-right p-3 text-electric-blue">Mejor Vuelta</th>
+                      <th className="text-right p-3 text-electric-blue">Última Vuelta</th>
+                      <th className="text-right p-3 text-electric-blue">Promedio</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {raceResults.map((driver: any, idx: number) => (
+                      <tr
+                        key={idx}
+                        onClick={() => setSelectedDriver(driver)}
+                        className="border-b border-sky-blue/10 hover:bg-electric-blue/10 cursor-pointer transition-all"
+                      >
+                        <td className="p-3">
+                          <span className={`text-lg font-bold ${getPositionColor(driver.position)}`}>
+                            {getMedalEmoji(driver.position) || `#${driver.position}`}
+                          </span>
+                        </td>
+                        <td className="p-3 text-white font-semibold">{driver.driverName}</td>
+                        <td className="p-3 text-center text-sky-blue">#{driver.kartNumber}</td>
+                        <td className="p-3 text-center text-sky-blue">{driver.totalLaps}</td>
+                        <td className="p-3 text-right font-mono text-electric-blue">
+                          {formatTime(driver.bestTime)}
+                        </td>
+                        <td className="p-3 text-right font-mono text-sky-blue">
+                          {formatTime(driver.lastTime)}
+                        </td>
+                        <td className="p-3 text-right font-mono text-gray-400">
+                          {formatTime(driver.averageTime)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {/* Detalles del piloto seleccionado */}
+          {!loading && selectedDriver && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-2xl font-racing text-electric-blue mb-1">
+                    👤 {selectedDriver.driverName} - Análisis de Vueltas
+                  </h3>
+                  <p className="text-sm text-sky-blue/60">
+                    Posición: {selectedDriver.position} • Kart #{selectedDriver.kartNumber} • {selectedDriver.totalLaps} vueltas
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedDriver(null)}
+                  className="text-electric-blue hover:text-cyan-400 font-bold"
+                >
+                  ← Volver a resultados
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-4">
+                  <div className="text-sm text-sky-blue/60 mb-1">Mejor Vuelta</div>
+                  <div className="text-2xl font-mono font-bold text-gold">
+                    {formatTime(selectedDriver.bestTime)}
+                  </div>
+                </div>
+                <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-4">
+                  <div className="text-sm text-sky-blue/60 mb-1">Última Vuelta</div>
+                  <div className="text-2xl font-mono font-bold text-electric-blue">
+                    {formatTime(selectedDriver.lastTime)}
+                  </div>
+                </div>
+                <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-4">
+                  <div className="text-sm text-sky-blue/60 mb-1">Promedio</div>
+                  <div className="text-2xl font-mono font-bold text-gray-300">
+                    {formatTime(selectedDriver.averageTime)}
+                  </div>
+                </div>
+              </div>
+
+              {selectedDriver.laps && selectedDriver.laps.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-electric-blue/30">
+                        <th className="text-left p-3 text-electric-blue">Vuelta</th>
+                        <th className="text-right p-3 text-electric-blue">Tiempo</th>
+                        <th className="text-center p-3 text-electric-blue">Posición</th>
+                        <th className="text-right p-3 text-electric-blue">Gap</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedDriver.laps
+                        .sort((a: any, b: any) => a.lapNumber - b.lapNumber)
+                        .map((lap: any, idx: number) => (
+                          <tr
+                            key={idx}
+                            className={`border-b border-sky-blue/10 ${
+                              lap.isPersonalBest ? 'bg-gold/10' : ''
+                            }`}
+                          >
+                            <td className="p-3 text-white font-semibold">
+                              Vuelta {lap.lapNumber}
+                              {lap.isPersonalBest && <span className="ml-2 text-gold">⭐</span>}
+                            </td>
+                            <td className={`p-3 text-right font-mono font-bold ${
+                              lap.isPersonalBest ? 'text-gold' : 'text-electric-blue'
+                            }`}>
+                              {formatTime(lap.time)}
+                            </td>
+                            <td className="p-3 text-center text-sky-blue">P{lap.position}</td>
+                            <td className="p-3 text-right text-gray-400">{lap.gapToLeader || '-'}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  No hay datos de vueltas individuales para este piloto
+                </div>
+              )}
+            </>
+          )}
+
+          {!loading && raceResults.length === 0 && (
+            <div className="text-center py-12 text-gray-400">
+              <p>No hay resultados de carrera disponibles</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-gradient-to-r from-midnight to-slate-900 border-t border-green-500/30 p-4">
+          <button
+            onClick={onClose}
+            className="w-full px-6 py-3 bg-gradient-to-r from-electric-blue to-sky-blue text-midnight font-racing text-lg rounded-xl hover:from-sky-blue hover:to-electric-blue transition-all shadow-lg hover:shadow-electric-blue/50"
+          >
+            CERRAR
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
