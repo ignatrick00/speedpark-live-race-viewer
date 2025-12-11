@@ -2680,6 +2680,8 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                           color: '#fff'
                         }}
                         labelStyle={{ color: '#0ea5e9' }}
+                        formatter={(value: any, name: string) => [`P${value}`, name]}
+                        labelFormatter={(label) => `Vuelta ${label}`}
                       />
                       <Legend
                         wrapperStyle={{ paddingTop: '20px' }}
@@ -2697,9 +2699,10 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                             type="monotone"
                             dataKey={driver.driverName}
                             stroke={colors[idx % colors.length]}
-                            strokeWidth={2}
-                            dot={{ r: 4 }}
-                            activeDot={{ r: 6 }}
+                            strokeWidth={3}
+                            dot={{ r: 5, strokeWidth: 2, fill: colors[idx % colors.length] }}
+                            activeDot={{ r: 8, strokeWidth: 3, fill: colors[idx % colors.length] }}
+                            connectNulls={true}
                           />
                         );
                       })}
