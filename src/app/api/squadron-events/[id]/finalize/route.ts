@@ -156,8 +156,23 @@ export async function POST(
 
     // Actualizar estado del evento
     const mongoose = require('mongoose');
+
+    console.log(`\n🔍 [DEBUG] Datos recibidos de calculatedResults:`);
+    console.log(`📊 Total squadrons: ${calculatedResults.squadrons.length}`);
+    console.log(`📊 Primer squadron:`, {
+      squadronId: calculatedResults.squadrons[0].squadronId,
+      squadronName: calculatedResults.squadrons[0].squadronName,
+      pointsAwarded: calculatedResults.squadrons[0].pointsAwarded,
+      pilots: calculatedResults.squadrons[0].pilots.length
+    });
+
+    console.log(`\n🔍 [ANTES] event.raceStatus: ${event.raceStatus}`);
+
     event.raceStatus = 'finalized';
     event.finalizedAt = new Date();
+
+    console.log(`🔍 [DESPUÉS de asignar] event.raceStatus: ${event.raceStatus}`);
+
     event.results = calculatedResults.squadrons.map((s: any, index: number) => ({
       squadronId: new mongoose.Types.ObjectId(s.squadronId),
       position: index + 1,
@@ -172,13 +187,32 @@ export async function POST(
       }))
     })) as any;
 
-    console.log(`📊 Guardando ${event.results.length} resultados en event.results`);
-    console.log(`📊 Primer resultado:`, JSON.stringify(event.results[0], null, 2));
+    console.log(`\n📊 [DEBUG] Datos a guardar en event.results:`);
+    console.log(`📊 raceStatus: ${event.raceStatus}`);
+    console.log(`📊 Total results: ${event.results.length}`);
+    console.log(`📊 Primer resultado:`, {
+      squadronId: event.results[0].squadronId,
+      squadronIdType: event.results[0].squadronId.constructor.name,
+      position: event.results[0].position,
+      pointsEarned: event.results[0].pointsEarned,
+      pilots: event.results[0].pilots.length
+    });
+
+    // Force Mongoose to detect changes
+    event.markModified('raceStatus');
+    event.markModified('results');
+    event.markModified('finalizedAt');
+
+    console.log(`🔍 [ANTES de save] event.raceStatus: ${event.raceStatus}`);
 
     await event.save();
 
-    console.log(`✅ Evento finalizado exitosamente`);
-    console.log(`📌 Status cambiado a: finalized`);
+    console.log(`🔍 [DESPUÉS de save] Releyendo evento de BD...`);
+    const savedEvent = await SquadronEvent.findById(event._id);
+    console.log(`🔍 raceStatus en BD: ${savedEvent?.raceStatus}`);
+
+    console.log(`\n✅ Evento guardado exitosamente`);
+    console.log(`📌 raceStatus después de save: ${event.raceStatus}`);
 
     return NextResponse.json({
       success: true,
