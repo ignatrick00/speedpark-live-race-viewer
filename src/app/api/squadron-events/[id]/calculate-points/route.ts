@@ -48,10 +48,22 @@ export async function POST(
       return NextResponse.json({ error: 'raceSessionId es requerido' }, { status: 400 });
     }
 
-    // Obtener el evento
-    const event = await SquadronEvent.findById(params.id);
+    // Obtener el evento (forzar lectura fresca desde BD)
+    const event = await SquadronEvent.findOne({ _id: params.id });
     if (!event) {
       return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 });
+    }
+
+    console.log(`\n🔍 [CALCULATE-POINTS] Estado actual del evento: ${event.raceStatus}`);
+    console.log(`🔍 [CALCULATE-POINTS] Event ID: ${event._id}`);
+
+    // Si el evento ya está finalizado, no hacer nada
+    if (event.raceStatus === 'finalized') {
+      console.log(`⚠️  [CALCULATE-POINTS] Evento YA FINALIZADO - Abortando cálculo`);
+      return NextResponse.json({
+        error: 'El evento ya está finalizado. No se pueden recalcular puntos.',
+        raceStatus: 'finalized'
+      }, { status: 400 });
     }
 
     // Obtener la carrera
@@ -334,9 +346,13 @@ export async function POST(
     });
 
     // Guardar el evento con linkedRaceSessionId y adjustedResults
-    await event.save();
-
-    console.log(`\n💾 Evento guardado con carrera vinculada: ${raceSessionId}`);
+    // IMPORTANTE: Solo guardar si NO está finalizado (para no sobrescribir el estado 'finalized')
+    if (event.raceStatus !== 'finalized') {
+      await event.save();
+      console.log(`\n💾 Evento guardado con carrera vinculada: ${raceSessionId}`);
+    } else {
+      console.log(`\n⚠️  Evento YA FINALIZADO - NO se guarda para evitar sobrescribir estado`);
+    }
     if (sanctions.length > 0) {
       console.log(`   Resultados ajustados guardados (${adjustedResults.length} pilotos)`);
     }

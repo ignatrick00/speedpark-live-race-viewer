@@ -340,17 +340,32 @@ export default function EventoDetallePage() {
   };
 
   const finalizeEvent = async () => {
+    console.log('\n🚀 [FINALIZE] Iniciando proceso de finalización...');
+    console.log('📋 [FINALIZE] Event data:', {
+      eventId: event?._id,
+      linkedRaceSessionId: event?.linkedRaceSessionId,
+      raceStatus: event?.raceStatus,
+      sanctionsCount: sanctions.length
+    });
+
     if (!event?.linkedRaceSessionId) {
+      console.error('❌ [FINALIZE] No hay linkedRaceSessionId');
       alert('No hay carrera asociada');
       return;
     }
 
     const confirmMessage = `¿Publicar puntos finales?\n\nEsto hará:\n- Recalculará los puntos con las sanciones aplicadas\n- Aplicará los puntos a las escuderías\n- Enviará ${sanctions.length} notificaciones de sanciones\n- Bloqueará los resultados (no se podrán modificar)\n\n¿Continuar?`;
 
-    if (!confirm(confirmMessage)) return;
+    if (!confirm(confirmMessage)) {
+      console.log('⚠️ [FINALIZE] Usuario canceló');
+      return;
+    }
 
     try {
       setFinalizing(true);
+      console.log('\n📊 [FINALIZE STEP 1] Recalculando puntos...');
+      console.log('🔗 [FINALIZE] URL:', `/api/squadron-events/${params.id}/calculate-points`);
+      console.log('📦 [FINALIZE] Body:', { raceSessionId: event.linkedRaceSessionId });
 
       // First, recalculate points with current sanctions
       const calcResponse = await fetch(`/api/squadron-events/${params.id}/calculate-points`, {
@@ -362,12 +377,31 @@ export default function EventoDetallePage() {
         body: JSON.stringify({ raceSessionId: event.linkedRaceSessionId })
       });
 
+      console.log('📡 [FINALIZE] Calculate response status:', calcResponse.status);
+      console.log('📡 [FINALIZE] Calculate response ok:', calcResponse.ok);
+
       if (!calcResponse.ok) {
-        alert('Error al recalcular puntos');
+        const errorData = await calcResponse.json();
+        console.error('❌ [FINALIZE] Error en calculate-points:', errorData);
+
+        // Si el evento ya está finalizado, mostrar mensaje específico
+        if (errorData.raceStatus === 'finalized') {
+          alert('Este evento ya está finalizado. No se pueden modificar los resultados.');
+        } else {
+          alert(`Error al recalcular puntos: ${errorData.error || 'Error desconocido'}`);
+        }
         return;
       }
 
       const calcData = await calcResponse.json();
+      console.log('✅ [FINALIZE] Puntos calculados exitosamente');
+      console.log('📊 [FINALIZE] calcData:', calcData);
+      console.log('🏆 [FINALIZE] calcData.results:', calcData.results);
+      console.log('🏆 [FINALIZE] squadrons count:', calcData.results?.squadrons?.length);
+
+      console.log('\n📊 [FINALIZE STEP 2] Finalizando evento...');
+      console.log('🔗 [FINALIZE] URL:', `/api/squadron-events/${params.id}/finalize`);
+      console.log('📦 [FINALIZE] Body:', { calculatedResults: calcData.results });
 
       // Then finalize with calculated results
       const response = await fetch(`/api/squadron-events/${params.id}/finalize`, {
@@ -379,23 +413,33 @@ export default function EventoDetallePage() {
         body: JSON.stringify({ calculatedResults: calcData.results })
       });
 
+      console.log('📡 [FINALIZE] Finalize response status:', response.status);
+      console.log('📡 [FINALIZE] Finalize response ok:', response.ok);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ [FINALIZE] Evento finalizado exitosamente');
+        console.log('📊 [FINALIZE] Response data:', data);
+
         alert(`✅ Puntos finales publicados!\n\n` +
               `Puntos aplicados: ${data.appliedPoints?.length || 0} escuderías\n` +
               `Notificaciones enviadas: ${data.sanctionsNotified || 0} pilotos`);
 
         // Reload event to show finalized status
+        console.log('🔄 [FINALIZE] Recargando evento...');
         await fetchEvent();
+        console.log('✅ [FINALIZE] Proceso completado');
       } else {
         const error = await response.json();
+        console.error('❌ [FINALIZE] Error en finalize:', error);
         alert(error.error || 'Error al publicar resultados');
       }
     } catch (error) {
-      console.error('Error finalizing event:', error);
-      alert('Error al publicar resultados');
+      console.error('💥 [FINALIZE] Exception:', error);
+      alert(`Error al publicar resultados: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setFinalizing(false);
+      console.log('🏁 [FINALIZE] Proceso terminado (finally block)');
     }
   };
 

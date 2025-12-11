@@ -41,12 +41,19 @@ export async function GET(
     console.log(`📊 [DEBUG] Eventos con results: ${eventsWithResults.length}`);
     if (eventsWithResults.length > 0) {
       console.log(`📊 [DEBUG] Primer evento con results:`, {
+        _id: eventsWithResults[0]._id,
         name: eventsWithResults[0].name,
         raceStatus: eventsWithResults[0].raceStatus,
         resultsLength: eventsWithResults[0].results.length,
         firstSquadronId: eventsWithResults[0].results[0].squadronId
       });
     }
+
+    // Log ALL events with their IDs
+    console.log(`📊 [DEBUG] TODOS LOS EVENTOS EN BD:`);
+    allEvents.forEach((e: any, index: number) => {
+      console.log(`  ${index + 1}. _id: ${e._id}, name: "${e.name}", raceStatus: "${e.raceStatus}", results: ${e.results?.length || 0}`);
+    });
 
     // Buscar eventos finalizados donde participó esta escudería
     const events = await SquadronEvent.find({

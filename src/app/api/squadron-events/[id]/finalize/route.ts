@@ -15,8 +15,13 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  console.log(`\n\n🚨🚨🚨 [FINALIZE ENDPOINT] CALLED - Event ID: ${params.id}`);
+  console.log(`🚨 Process ID: ${process.pid}`);
+  console.log(`🚨 Timestamp: ${new Date().toISOString()}`);
+
   try {
     await connectDB();
+    console.log(`✅ [FINALIZE] DB connected`);
 
     // Verificar autenticación
     const authHeader = request.headers.get('authorization');
@@ -166,14 +171,22 @@ export async function POST(
       pilots: calculatedResults.squadrons[0].pilots.length
     });
 
-    console.log(`\n🔍 [ANTES] event.raceStatus: ${event.raceStatus}`);
+    console.log(`\n🔍 [CRITICAL DEBUG] Estado ANTES de modificar:`);
+    console.log(`   - event.raceStatus: ${event.raceStatus}`);
+    console.log(`   - event._id: ${event._id}`);
+    console.log(`   - event.isModified('raceStatus'): ${event.isModified('raceStatus')}`);
 
-    event.raceStatus = 'finalized';
-    event.finalizedAt = new Date();
+    // Actualizar estado del evento usando set() explícito
+    event.set('raceStatus', 'finalized');
+    event.set('finalizedAt', new Date());
 
-    console.log(`🔍 [DESPUÉS de asignar] event.raceStatus: ${event.raceStatus}`);
+    console.log(`\n🔍 [CRITICAL DEBUG] Estado DESPUÉS de set():`);
+    console.log(`   - event.raceStatus: ${event.raceStatus}`);
+    console.log(`   - event.get('raceStatus'): ${event.get('raceStatus')}`);
+    console.log(`   - event.isModified('raceStatus'): ${event.isModified('raceStatus')}`);
 
-    event.results = calculatedResults.squadrons.map((s: any, index: number) => ({
+    // Construir results
+    const resultsData = calculatedResults.squadrons.map((s: any, index: number) => ({
       squadronId: new mongoose.Types.ObjectId(s.squadronId),
       position: index + 1,
       pointsEarned: s.pointsAwarded,
@@ -185,31 +198,59 @@ export async function POST(
         bestLap: 0,
         position: p.finalPosition
       }))
-    })) as any;
+    }));
 
-    console.log(`\n📊 [DEBUG] Datos a guardar en event.results:`);
-    console.log(`📊 raceStatus: ${event.raceStatus}`);
-    console.log(`📊 Total results: ${event.results.length}`);
-    console.log(`📊 Primer resultado:`, {
-      squadronId: event.results[0].squadronId,
-      squadronIdType: event.results[0].squadronId.constructor.name,
-      position: event.results[0].position,
-      pointsEarned: event.results[0].pointsEarned,
-      pilots: event.results[0].pilots.length
-    });
+    event.set('results', resultsData);
 
-    // Force Mongoose to detect changes
-    event.markModified('raceStatus');
-    event.markModified('results');
-    event.markModified('finalizedAt');
+    console.log(`\n📊 [DEBUG] Datos a guardar:`);
+    console.log(`   - raceStatus: ${event.raceStatus}`);
+    console.log(`   - Total results: ${resultsData.length}`);
+    console.log(`   - event.isModified('results'): ${event.isModified('results')}`);
+    console.log(`   - event.isModified('finalizedAt'): ${event.isModified('finalizedAt')}`);
+    console.log(`   - event.modifiedPaths():`, event.modifiedPaths());
 
-    console.log(`🔍 [ANTES de save] event.raceStatus: ${event.raceStatus}`);
+    console.log(`\n🔍 [ANTES de save]:`);
+    console.log(`   - event.raceStatus: ${event.raceStatus}`);
+    console.log(`   - Validating document...`);
 
-    await event.save();
+    // Validar antes de guardar
+    const validationError = event.validateSync();
+    if (validationError) {
+      console.error(`❌ [VALIDATION ERROR]:`, validationError);
+      throw validationError;
+    }
+    console.log(`✅ [VALIDATION] Documento válido`);
 
-    console.log(`🔍 [DESPUÉS de save] Releyendo evento de BD...`);
-    const savedEvent = await SquadronEvent.findById(event._id);
-    console.log(`🔍 raceStatus en BD: ${savedEvent?.raceStatus}`);
+    // Guardar con opciones explícitas
+    const savedDoc = await event.save({ validateBeforeSave: true });
+
+    console.log(`\n🔍 [DESPUÉS de save]:`);
+    console.log(`   - savedDoc.raceStatus: ${savedDoc.raceStatus}`);
+    console.log(`   - savedDoc._id: ${savedDoc._id}`);
+
+    // Releer de BD con query fresca
+    const freshEvent = await SquadronEvent.findById(event._id).lean();
+    console.log(`\n🔍 [FRESH FROM DB - usando .lean()]:`);
+    console.log(`   - raceStatus: ${freshEvent?.raceStatus}`);
+    console.log(`   - finalizedAt: ${freshEvent?.finalizedAt}`);
+    console.log(`   - results.length: ${freshEvent?.results?.length || 0}`);
+
+    // Verificar conexión a BD
+    console.log(`\n🔍 [DB CONNECTION]:`);
+    console.log(`   - Connection name: ${mongoose.connection.name}`);
+    console.log(`   - Connection host: ${mongoose.connection.host}`);
+    console.log(`   - Connection state: ${mongoose.connection.readyState}`); // 1 = connected
+
+    // Hacer una query DIRECTA sin usar el modelo para verificar
+    const directQuery = await mongoose.connection.db.collection('squadronevents').findOne(
+      { _id: new mongoose.Types.ObjectId(event._id) },
+      { projection: { _id: 1, name: 1, raceStatus: 1, finalizedAt: 1 } }
+    );
+    console.log(`\n🔍 [DIRECT DB QUERY - sin Mongoose model]:`);
+    console.log(`   - _id: ${directQuery?._id}`);
+    console.log(`   - name: ${directQuery?.name}`);
+    console.log(`   - raceStatus: ${directQuery?.raceStatus}`);
+    console.log(`   - finalizedAt: ${directQuery?.finalizedAt}`);
 
     console.log(`\n✅ Evento guardado exitosamente`);
     console.log(`📌 raceStatus después de save: ${event.raceStatus}`);
