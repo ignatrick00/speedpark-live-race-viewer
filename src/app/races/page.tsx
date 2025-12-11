@@ -339,7 +339,7 @@ function SelectionView({
   onSelectMyEvents: () => void;
 }) {
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid md:grid-cols-2 gap-6">
       {/* Championships Card */}
       <button
         onClick={onSelectChampionships}
