@@ -2586,6 +2586,7 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                     <tr className="border-b border-electric-blue/30">
                       <th className="text-left p-3 text-electric-blue">Pos</th>
                       <th className="text-left p-3 text-electric-blue">Piloto</th>
+                      <th className="text-left p-3 text-electric-blue">Escudería</th>
                       <th className="text-center p-3 text-electric-blue">Kart</th>
                       <th className="text-center p-3 text-electric-blue">Vueltas</th>
                       <th className="text-right p-3 text-electric-blue">Mejor Vuelta</th>
@@ -2606,6 +2607,15 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                           </span>
                         </td>
                         <td className="p-3 text-white font-semibold">{driver.driverName}</td>
+                        <td className="p-3 text-left">
+                          {driver.squadronName ? (
+                            <span className="text-purple-400 font-medium text-sm">
+                              {driver.squadronName}
+                            </span>
+                          ) : (
+                            <span className="text-gray-600 text-xs italic">Sin escudería</span>
+                          )}
+                        </td>
                         <td className="p-3 text-center text-sky-blue">#{driver.kartNumber}</td>
                         <td className="p-3 text-center text-sky-blue">{driver.totalLaps}</td>
                         <td className="p-3 text-right font-mono text-electric-blue">
