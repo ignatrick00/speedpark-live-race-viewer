@@ -15,6 +15,7 @@ interface SquadronEvent {
   eventDate: string;
   registrationDeadline: string;
   status: string;
+  raceStatus?: string;
   participants: any[];
   maxSquadrons: number;
 }
@@ -76,7 +77,25 @@ export default function OrganizerPage() {
     return true;
   });
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (raceStatus: string | undefined, status: string) => {
+    // Si tiene raceStatus, usar ese estado (para eventos de campeonato)
+    if (raceStatus === 'finalized') {
+      return (
+        <span className="px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
+          Finalizado
+        </span>
+      );
+    }
+
+    if (raceStatus === 'in_review') {
+      return (
+        <span className="px-3 py-1 bg-cyan-500 text-white text-xs font-bold rounded-full">
+          En Revisión
+        </span>
+      );
+    }
+
+    // Usar el status normal para eventos sin raceStatus
     const badges: Record<string, { text: string; color: string }> = {
       draft: { text: 'Borrador', color: 'bg-gray-500' },
       published: { text: 'Publicado', color: 'bg-blue-500' },
@@ -216,13 +235,28 @@ export default function OrganizerPage() {
               {filteredEvents.map((event) => {
                 const config = EventCategoryConfig[event.category];
                 const participantCount = event.participants.filter((p: any) => p.status !== 'cancelled').length;
+                const isFinalized = event.raceStatus === 'finalized';
 
                 return (
                   <div
                     key={event._id}
                     onClick={() => router.push(`/organizador/evento/${event._id}`)}
-                    className={`group relative bg-gradient-to-br ${config.color}/10 border-2 border-transparent hover:border-white/20 rounded-2xl p-6 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl`}
+                    className={`group relative bg-gradient-to-br ${config.color}/10 border-2 border-transparent hover:border-white/20 rounded-2xl p-6 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
+                      isFinalized ? 'opacity-75' : ''
+                    }`}
                   >
+                    {/* Líneas cruzadas para eventos finalizados */}
+                    {isFinalized && (
+                      <>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                          <div className="w-full h-0.5 bg-red-500 transform rotate-12 opacity-60"></div>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                          <div className="w-full h-0.5 bg-red-500 transform -rotate-12 opacity-60"></div>
+                        </div>
+                      </>
+                    )}
+
                     {/* Card Content */}
                     <div className="relative z-10">
                       <div className="flex items-start justify-between mb-4">
@@ -234,7 +268,7 @@ export default function OrganizerPage() {
                             {event.name}
                           </h3>
                         </div>
-                        {getStatusBadge(event.status)}
+                        {getStatusBadge(event.raceStatus, event.status)}
                       </div>
 
                       {event.description && (
