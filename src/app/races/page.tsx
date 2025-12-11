@@ -2466,6 +2466,7 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
   const categoryConfig = EventCategoryConfig[event.category as any];
   const [raceResults, setRaceResults] = useState<any[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
+  const [highlightedDriver, setHighlightedDriver] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -2700,8 +2701,19 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                         isAnimationActive={false}
                       />
                       <Legend
-                        wrapperStyle={{ paddingTop: '20px' }}
                         iconType="line"
+                        onClick={(e: any) => {
+                          // Toggle highlight: si ya está seleccionado, deseleccionar
+                          if (highlightedDriver === e.dataKey) {
+                            setHighlightedDriver(null);
+                          } else {
+                            setHighlightedDriver(e.dataKey);
+                          }
+                        }}
+                        wrapperStyle={{
+                          paddingTop: '20px',
+                          cursor: 'pointer'
+                        }}
                       />
                       {raceResults.map((driver: any, idx: number) => {
                         // Generar colores distintos para cada piloto (más colores para más pilotos)
@@ -2713,15 +2725,31 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                           '#fcd34d', '#fca5a5', '#6ee7b7', '#93c5fd', '#c4b5fd',
                           '#fbcfe8', '#5eead4', '#fdba74', '#7dd3fc', '#d8b4fe'
                         ];
+
+                        // Determinar opacidad basado en si está resaltado
+                        const isHighlighted = highlightedDriver === null || highlightedDriver === driver.driverName;
+                        const opacity = isHighlighted ? 1 : 0.2;
+                        const strokeWidth = isHighlighted && highlightedDriver === driver.driverName ? 4 : 2.5;
+
                         return (
                           <Line
                             key={driver.driverName}
                             type="monotone"
                             dataKey={driver.driverName}
                             stroke={colors[idx % colors.length]}
-                            strokeWidth={2.5}
-                            dot={{ r: 4, strokeWidth: 2, fill: colors[idx % colors.length] }}
-                            activeDot={{ r: 8, strokeWidth: 3, fill: colors[idx % colors.length] }}
+                            strokeWidth={strokeWidth}
+                            strokeOpacity={opacity}
+                            dot={{
+                              r: isHighlighted && highlightedDriver === driver.driverName ? 5 : 4,
+                              strokeWidth: 2,
+                              fill: colors[idx % colors.length],
+                              fillOpacity: opacity
+                            }}
+                            activeDot={{
+                              r: 8,
+                              strokeWidth: 3,
+                              fill: colors[idx % colors.length]
+                            }}
                             connectNulls={true}
                           />
                         );
