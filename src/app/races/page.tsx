@@ -2599,8 +2599,8 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                         className="border-b border-sky-blue/10 hover:bg-electric-blue/10 cursor-pointer transition-all"
                       >
                         <td className="p-3">
-                          <span className={`text-lg font-bold ${getPositionColor(driver.position)}`}>
-                            {getMedalEmoji(driver.position) || `#${driver.position}`}
+                          <span className={`text-lg font-bold ${getPositionColor(driver.finalPosition || driver.position)}`}>
+                            {getMedalEmoji(driver.finalPosition || driver.position) || `#${driver.finalPosition || driver.position}`}
                           </span>
                         </td>
                         <td className="p-3 text-white font-semibold">{driver.driverName}</td>
@@ -2632,7 +2632,7 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                     👤 {selectedDriver.driverName} - Análisis de Vueltas
                   </h3>
                   <p className="text-sm text-sky-blue/60">
-                    Posición: {selectedDriver.position} • Kart #{selectedDriver.kartNumber} • {selectedDriver.totalLaps} vueltas
+                    Posición: {selectedDriver.finalPosition || selectedDriver.position} • Kart #{selectedDriver.kartNumber} • {selectedDriver.totalLaps} vueltas
                   </p>
                 </div>
                 <button
@@ -2694,7 +2694,7 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                             }`}>
                               {formatTime(lap.time)}
                             </td>
-                            <td className="p-3 text-center text-sky-blue">P{lap.position}</td>
+                            <td className="p-3 text-center text-sky-blue">P{lap.finalPosition || lap.position}</td>
                             <td className="p-3 text-right text-gray-400">{lap.gapToLeader || '-'}</td>
                           </tr>
                         ))}
