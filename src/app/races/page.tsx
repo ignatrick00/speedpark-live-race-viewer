@@ -2660,11 +2660,7 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                       margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                     >
                       <defs>
-                        {raceResults.slice(0, 10).map((driver: any, idx: number) => {
-                          const colors = [
-                            '#fbbf24', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6',
-                            '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#a855f7'
-                          ];
+                        {raceResults.map((driver: any, idx: number) => {
                           return (
                             <filter key={`glow-${idx}`} id={`glow-${idx}`}>
                               <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
@@ -2707,11 +2703,15 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                         wrapperStyle={{ paddingTop: '20px' }}
                         iconType="line"
                       />
-                      {raceResults.slice(0, 10).map((driver: any, idx: number) => {
-                        // Generar colores distintos para cada piloto
+                      {raceResults.map((driver: any, idx: number) => {
+                        // Generar colores distintos para cada piloto (más colores para más pilotos)
                         const colors = [
                           '#fbbf24', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6',
-                          '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#a855f7'
+                          '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#a855f7',
+                          '#f59e0b', '#dc2626', '#059669', '#2563eb', '#7c3aed',
+                          '#db2777', '#0d9488', '#ea580c', '#0284c7', '#9333ea',
+                          '#fcd34d', '#fca5a5', '#6ee7b7', '#93c5fd', '#c4b5fd',
+                          '#fbcfe8', '#5eead4', '#fdba74', '#7dd3fc', '#d8b4fe'
                         ];
                         return (
                           <Line
@@ -2719,8 +2719,8 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                             type="monotone"
                             dataKey={driver.driverName}
                             stroke={colors[idx % colors.length]}
-                            strokeWidth={3}
-                            dot={{ r: 5, strokeWidth: 2, fill: colors[idx % colors.length] }}
+                            strokeWidth={2.5}
+                            dot={{ r: 4, strokeWidth: 2, fill: colors[idx % colors.length] }}
                             activeDot={{ r: 8, strokeWidth: 3, fill: colors[idx % colors.length] }}
                             connectNulls={true}
                           />
@@ -2728,11 +2728,6 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                       })}
                     </LineChart>
                   </ResponsiveContainer>
-                  {raceResults.length > 10 && (
-                    <p className="text-center text-gray-400 text-sm mt-4">
-                      Mostrando top 10 pilotos. {raceResults.length - 10} pilotos adicionales ocultos para mejor visualización.
-                    </p>
-                  )}
                 </div>
               </div>
             </>
