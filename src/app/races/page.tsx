@@ -8,6 +8,7 @@ import { EventCategoryConfig } from '@/types/squadron-events';
 import { useRouter } from 'next/navigation';
 import JoinEventModal from '@/components/JoinEventModal';
 import Toast from '@/components/Toast';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 type ViewMode = 'selection' | 'championships' | 'championships-upcoming' | 'championships-past' | 'friendly' | 'friendly-upcoming' | 'friendly-past' | 'friendly-create' | 'my-registered-events';
 
@@ -2619,6 +2620,97 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Gráfico de fluctuación de posiciones */}
+              <div className="mt-8 pt-8 border-t border-electric-blue/20">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-racing text-electric-blue mb-2">📈 EVOLUCIÓN DE POSICIONES</h3>
+                  <p className="text-gray-400 text-sm">Fluctuación de posiciones vuelta por vuelta</p>
+                </div>
+
+                <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-6">
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart
+                      data={(() => {
+                        // Preparar datos para el gráfico
+                        if (raceResults.length === 0) return [];
+
+                        // Obtener el número máximo de vueltas
+                        const maxLaps = Math.max(...raceResults.map((d: any) => d.totalLaps || 0));
+
+                        // Crear un objeto para cada vuelta
+                        const chartData = [];
+                        for (let lapNum = 1; lapNum <= maxLaps; lapNum++) {
+                          const lapData: any = { vuelta: lapNum };
+
+                          // Para cada piloto, encontrar su posición en esa vuelta
+                          raceResults.forEach((driver: any) => {
+                            const lap = driver.laps?.find((l: any) => l.lapNumber === lapNum);
+                            if (lap) {
+                              lapData[driver.driverName] = lap.finalPosition || lap.position;
+                            }
+                          });
+
+                          chartData.push(lapData);
+                        }
+
+                        return chartData;
+                      })()}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis
+                        dataKey="vuelta"
+                        stroke="#0ea5e9"
+                        label={{ value: 'Vuelta', position: 'insideBottom', offset: -5, fill: '#0ea5e9' }}
+                      />
+                      <YAxis
+                        reversed
+                        stroke="#0ea5e9"
+                        label={{ value: 'Posición', angle: -90, position: 'insideLeft', fill: '#0ea5e9' }}
+                        domain={[1, 'auto']}
+                        ticks={Array.from({ length: raceResults.length }, (_, i) => i + 1)}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#0f172a',
+                          border: '1px solid #0ea5e9',
+                          borderRadius: '8px',
+                          color: '#fff'
+                        }}
+                        labelStyle={{ color: '#0ea5e9' }}
+                      />
+                      <Legend
+                        wrapperStyle={{ paddingTop: '20px' }}
+                        iconType="line"
+                      />
+                      {raceResults.slice(0, 10).map((driver: any, idx: number) => {
+                        // Generar colores distintos para cada piloto
+                        const colors = [
+                          '#fbbf24', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6',
+                          '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#a855f7'
+                        ];
+                        return (
+                          <Line
+                            key={driver.driverName}
+                            type="monotone"
+                            dataKey={driver.driverName}
+                            stroke={colors[idx % colors.length]}
+                            strokeWidth={2}
+                            dot={{ r: 4 }}
+                            activeDot={{ r: 6 }}
+                          />
+                        );
+                      })}
+                    </LineChart>
+                  </ResponsiveContainer>
+                  {raceResults.length > 10 && (
+                    <p className="text-center text-gray-400 text-sm mt-4">
+                      Mostrando top 10 pilotos. {raceResults.length - 10} pilotos adicionales ocultos para mejor visualización.
+                    </p>
+                  )}
+                </div>
               </div>
             </>
           )}
