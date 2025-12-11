@@ -2467,6 +2467,7 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
   const [raceResults, setRaceResults] = useState<any[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<any | null>(null);
   const [highlightedDriver, setHighlightedDriver] = useState<string | null>(null);
+  const [highlightedDriverTimes, setHighlightedDriverTimes] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -2772,6 +2773,143 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                                 setHighlightedDriver(null);
                               } else {
                                 setHighlightedDriver(driver.driverName);
+                              }
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        );
+                      })}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Gráfico de tiempos por vuelta */}
+              <div className="mt-8 pt-8 border-t border-electric-blue/20">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-racing text-electric-blue mb-2">⏱️ EVOLUCIÓN DE TIEMPOS</h3>
+                  <p className="text-gray-400 text-sm">Tiempos por vuelta de cada piloto</p>
+                </div>
+
+                <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-6">
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart
+                      data={(() => {
+                        // Preparar datos para el gráfico de tiempos
+                        if (raceResults.length === 0) return [];
+
+                        // Obtener el número máximo de vueltas
+                        const maxLaps = Math.max(...raceResults.map((d: any) => d.totalLaps || 0));
+
+                        // Crear un objeto para cada vuelta
+                        const chartData = [];
+                        for (let lapNum = 1; lapNum <= maxLaps; lapNum++) {
+                          const lapData: any = { vuelta: lapNum };
+
+                          // Para cada piloto, encontrar su tiempo en esa vuelta
+                          raceResults.forEach((driver: any) => {
+                            const lap = driver.laps?.find((l: any) => l.lapNumber === lapNum);
+                            if (lap && lap.time > 0) {
+                              // Convertir milisegundos a segundos para mejor visualización
+                              lapData[driver.driverName] = lap.time / 1000;
+                            }
+                          });
+
+                          chartData.push(lapData);
+                        }
+
+                        return chartData;
+                      })()}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis
+                        dataKey="vuelta"
+                        stroke="#0ea5e9"
+                        label={{ value: 'Vuelta', position: 'insideBottom', offset: -5, fill: '#0ea5e9' }}
+                      />
+                      <YAxis
+                        stroke="#0ea5e9"
+                        label={{ value: 'Tiempo (segundos)', angle: -90, position: 'insideLeft', fill: '#0ea5e9' }}
+                        domain={['auto', 'auto']}
+                        tickFormatter={(value) => value.toFixed(1)}
+                      />
+                      <Legend
+                        iconType="line"
+                        onClick={(e: any) => {
+                          // Toggle highlight: si ya está seleccionado, deseleccionar
+                          if (highlightedDriverTimes === e.dataKey) {
+                            setHighlightedDriverTimes(null);
+                          } else {
+                            setHighlightedDriverTimes(e.dataKey);
+                          }
+                        }}
+                        wrapperStyle={{
+                          paddingTop: '20px',
+                          cursor: 'pointer'
+                        }}
+                        formatter={(value: string) => {
+                          // Resaltar el nombre si está seleccionado
+                          const isSelected = highlightedDriverTimes === value;
+                          return (
+                            <span style={{
+                              fontWeight: isSelected ? 'bold' : 'normal',
+                              fontSize: isSelected ? '1.1em' : '1em',
+                              color: isSelected ? '#fff' : '#9ca3af',
+                              textDecoration: isSelected ? 'underline' : 'none'
+                            }}>
+                              {value}
+                            </span>
+                          );
+                        }}
+                      />
+                      {raceResults.map((driver: any, idx: number) => {
+                        // Generar colores distintos para cada piloto (mismos colores que el gráfico anterior)
+                        const colors = [
+                          '#fbbf24', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6',
+                          '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#a855f7',
+                          '#f59e0b', '#dc2626', '#059669', '#2563eb', '#7c3aed',
+                          '#db2777', '#0d9488', '#ea580c', '#0284c7', '#9333ea',
+                          '#fcd34d', '#fca5a5', '#6ee7b7', '#93c5fd', '#c4b5fd',
+                          '#fbcfe8', '#5eead4', '#fdba74', '#7dd3fc', '#d8b4fe'
+                        ];
+
+                        // Determinar opacidad basado en si está resaltado
+                        const isHighlighted = highlightedDriverTimes === null || highlightedDriverTimes === driver.driverName;
+                        const opacity = isHighlighted ? 1 : 0.2;
+                        const strokeWidth = isHighlighted && highlightedDriverTimes === driver.driverName ? 4 : 2.5;
+
+                        return (
+                          <Line
+                            key={driver.driverName}
+                            type="monotone"
+                            dataKey={driver.driverName}
+                            stroke={colors[idx % colors.length]}
+                            strokeWidth={strokeWidth}
+                            strokeOpacity={opacity}
+                            dot={{
+                              r: isHighlighted && highlightedDriverTimes === driver.driverName ? 5 : 4,
+                              strokeWidth: 2,
+                              fill: colors[idx % colors.length],
+                              fillOpacity: opacity,
+                              cursor: 'pointer',
+                              onClick: () => {
+                                // Toggle highlight cuando se hace click en el punto
+                                if (highlightedDriverTimes === driver.driverName) {
+                                  setHighlightedDriverTimes(null);
+                                } else {
+                                  setHighlightedDriverTimes(driver.driverName);
+                                }
+                              }
+                            }}
+                            activeDot={false}
+                            connectNulls={true}
+                            onClick={() => {
+                              // Toggle highlight cuando se hace click en la línea
+                              if (highlightedDriverTimes === driver.driverName) {
+                                setHighlightedDriverTimes(null);
+                              } else {
+                                setHighlightedDriverTimes(driver.driverName);
                               }
                             }}
                             style={{ cursor: 'pointer' }}
