@@ -90,9 +90,6 @@ export default function Navbar() {
                 <a href="/ranking" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Ranking
                 </a>
-                <a href="/squadron" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Escuderías
-                </a>
                 <a href="/clases" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Clases
                 </a>
@@ -140,6 +137,12 @@ export default function Navbar() {
                     {/* Dropdown Menu */}
                     {showUserDropdown && (
                       <div className="absolute right-0 mt-2 w-48 bg-black/95 backdrop-blur-sm border border-cyan-400/30 rounded-lg shadow-xl shadow-cyan-400/20 overflow-hidden z-50">
+                        <a
+                          href="/squadron"
+                          className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30"
+                        >
+                          Escuderías
+                        </a>
                         <a
                           href="/amigos"
                           className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30"
@@ -211,9 +214,6 @@ export default function Navbar() {
                 </a>
                 <a href="/ranking" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Ranking
-                </a>
-                <a href="/squadron" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Escuderías
                 </a>
                 <a href="/clases" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Clases
