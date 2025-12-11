@@ -2686,20 +2686,6 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
                         domain={[1, 'auto']}
                         ticks={Array.from({ length: raceResults.length }, (_, i) => i + 1)}
                       />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#0f172a',
-                          border: '1px solid #0ea5e9',
-                          borderRadius: '8px',
-                          color: '#fff'
-                        }}
-                        labelStyle={{ color: '#0ea5e9' }}
-                        formatter={(value: any, name: string) => [`P${value}`, name]}
-                        labelFormatter={(label) => `Vuelta ${label}`}
-                        cursor={false}
-                        shared={false}
-                        isAnimationActive={false}
-                      />
                       <Legend
                         iconType="line"
                         onClick={(e: any) => {
