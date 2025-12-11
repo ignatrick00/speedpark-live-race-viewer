@@ -84,8 +84,9 @@ export default function Navbar() {
             <div className="flex items-center space-x-2 sm:space-x-6 min-w-0">
               {/* Desktop Navigation Links */}
               <div className="hidden lg:flex items-center space-x-4 xl:space-x-6">
-                <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Circuito en Vivo
+                <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm text-center flex flex-col leading-tight">
+                  <span>Circuito</span>
+                  <span>en Vivo</span>
                 </a>
                 <a href="/ranking" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Ranking
@@ -209,8 +210,9 @@ export default function Navbar() {
           {showMobileMenu && (
             <div className="lg:hidden mt-4 pb-4 border-t border-blue-800/30 pt-4">
               <div className="flex flex-col space-y-3">
-                <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
-                  Circuito en Vivo
+                <a href="/" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm text-center flex flex-col leading-tight">
+                  <span>Circuito</span>
+                  <span>en Vivo</span>
                 </a>
                 <a href="/ranking" className="text-blue-300 hover:text-cyan-400 transition-colors font-medium uppercase tracking-wider text-sm">
                   Ranking
