@@ -110,7 +110,7 @@ export default function RaceHistoryTable({ races }: RaceHistoryTableProps) {
                   #{race.position}
                 </div>
                 <div className="text-sky-blue/80 text-xs">
-                  {formatTime(race.bestTime)}
+                  Mejor Tiempo: {formatTime(race.bestTime)}
                 </div>
               </div>
             </div>

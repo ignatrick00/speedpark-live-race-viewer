@@ -1,114 +1,157 @@
 'use client';
 
 import React from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface MonthlyData {
-  month: string;
-  races: number;
+interface RaceData {
+  date: Date;
   bestTime: number;
-  position: number;
+  sessionName: string;
 }
 
 interface ProgressChartProps {
-  monthlyData: MonthlyData[];
+  races: RaceData[];
 }
 
 function formatTime(milliseconds: number): string {
   const minutes = Math.floor(milliseconds / 60000);
-  const seconds = ((milliseconds % 60000) / 1000).toFixed(1);
-  return `${minutes}:${seconds.padStart(4, '0')}`;
+  const seconds = ((milliseconds % 60000) / 1000).toFixed(3);
+  return `${minutes}:${seconds.padStart(6, '0')}`;
 }
 
-function getBarHeight(value: number, max: number): number {
-  return Math.max((value / max) * 100, 5); // Minimum 5% height for visibility
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
 }
 
-function getPositionColor(position: number): string {
-  if (position <= 3) return 'bg-karting-gold';
-  if (position <= 5) return 'bg-electric-blue';
-  if (position <= 8) return 'bg-sky-blue';
-  return 'bg-rb-blue';
-}
+export default function ProgressChart({ races }: ProgressChartProps) {
+  console.log('📊 [ProgressChart] All races received:', races.map(r => ({
+    sessionName: r.sessionName,
+    bestTime: r.bestTime,
+    date: r.date
+  })));
 
-export default function ProgressChart({ monthlyData }: ProgressChartProps) {
-  const maxRaces = Math.max(...monthlyData.map(d => d.races), 1);
-  const bestOverallTime = Math.min(...monthlyData.map(d => d.bestTime));
-  const worstOverallTime = Math.max(...monthlyData.map(d => d.bestTime));
-  
+  // Get last 6 months of data (show ALL races, not filtered by type)
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const recentRaces = races
+    .filter(race => new Date(race.date) >= sixMonthsAgo)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  console.log('📊 [ProgressChart] Recent races (last 6 months):', recentRaces.length);
+
+  if (recentRaces.length === 0) {
+    return (
+      <div className="bg-midnight/60 border border-electric-blue/20 rounded-lg p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <span className="text-2xl">📈</span>
+          <h3 className="font-bold text-2xl text-electric-blue">PROGRESO MENSUAL</h3>
+        </div>
+        <div className="text-center py-8 text-sky-blue/60">
+          <p>No hay datos de carreras o clasificaciones en los últimos 6 meses</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Format session name helper
+  function formatSessionName(name: string): string {
+    // Remove [HEAT] and any other brackets
+    let formatted = name.replace(/\[HEAT\]/gi, '').replace(/\[.*?\]/g, '').trim();
+
+    // Extract number and type
+    const match = formatted.match(/(\d+)\s*-\s*(.+)/);
+    if (match) {
+      const number = match[1];
+      const type = match[2].toLowerCase().trim();
+
+      // Determine if it's Clasificación or Carrera
+      if (type.includes('clasificaci') || type.includes('premium')) {
+        return `Clasificación #${number}`;
+      } else if (type.includes('carrera')) {
+        return `Carrera #${number}`;
+      } else {
+        return `Sesión #${number}`;
+      }
+    }
+
+    return formatted;
+  }
+
+  // Prepare data for Recharts with formatted session names
+  const chartData = recentRaces.map((race, index) => ({
+    index: index + 1,
+    date: formatDate(new Date(race.date)),
+    label: `${formatDate(new Date(race.date))}\n${formatSessionName(race.sessionName)}`,
+    bestTime: race.bestTime,
+    sessionName: race.sessionName,
+    formattedSessionName: formatSessionName(race.sessionName)
+  }));
+
+  // Custom tooltip
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-midnight/95 border border-electric-blue/40 p-3 rounded-lg shadow-lg">
+          <p className="text-white font-medium">{data.date}</p>
+          <p className="text-sky-blue text-sm">{data.formattedSessionName}</p>
+          <p className="text-karting-gold font-bold">Tiempo: {formatTime(data.bestTime)}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="bg-midnight/60 border border-electric-blue/20 rounded-lg p-6">
       <div className="flex items-center gap-2 mb-6">
         <span className="text-2xl">📈</span>
         <h3 className="font-bold text-2xl text-electric-blue">PROGRESO MENSUAL</h3>
+        <span className="text-sky-blue/60 text-sm ml-auto">Últimos 6 meses</span>
       </div>
-      
-      <div className="grid grid-cols-6 gap-4">
-        {monthlyData.map((month, index) => {
-          const timePercent = worstOverallTime - bestOverallTime > 0 
-            ? ((worstOverallTime - month.bestTime) / (worstOverallTime - bestOverallTime)) * 100 
-            : 50;
-          
-          return (
-            <div key={month.month} className="text-center">
-              {/* Races Bar Chart */}
-              <div className="h-20 flex items-end mb-2">
-                <div className="w-full relative">
-                  <div 
-                    className="bg-electric-blue/30 w-full rounded-t transition-all duration-500 relative overflow-hidden"
-                    style={{ height: `${getBarHeight(month.races, maxRaces)}%` }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-electric-blue/60 to-electric-blue/20 rounded-t"></div>
-                  </div>
-                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-electric-blue text-xs font-bold">
-                    {month.races}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Month Label */}
-              <div className="text-sky-blue text-sm font-bold mb-2">
-                {month.month}
-              </div>
-              
-              {/* Best Time */}
-              <div className="text-karting-gold text-xs mb-1 font-medium">
-                {formatTime(month.bestTime)}
-              </div>
-              
-              {/* Position Indicator */}
-              <div className="flex justify-center">
-                <div className={`w-3 h-3 rounded-full ${getPositionColor(month.position)}`} 
-                     title={`Posición promedio: #${month.position}`}>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      
+
+      {/* Chart Container */}
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 212, 255, 0.1)" />
+          <XAxis
+            dataKey="label"
+            stroke="#9CA3AF"
+            tick={{ fill: '#9CA3AF', fontSize: 10 }}
+            angle={-45}
+            textAnchor="end"
+            height={100}
+            interval={0}
+          />
+          <YAxis
+            stroke="#9CA3AF"
+            tickFormatter={formatTime}
+            tick={{ fill: '#9CA3AF', fontSize: 12 }}
+            label={{ value: 'Tiempo', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9CA3AF' } }}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Line
+            type="monotone"
+            dataKey="bestTime"
+            stroke="#FFD700"
+            strokeWidth={3}
+            dot={{ fill: '#FFD700', strokeWidth: 2, r: 5, stroke: '#00d4ff' }}
+            activeDot={{ r: 7, fill: '#FFD700', stroke: '#00d4ff', strokeWidth: 3 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+
       {/* Legend */}
       <div className="mt-6 pt-4 border-t border-electric-blue/20">
-        <div className="grid grid-cols-2 gap-4 text-xs">
-          <div className="text-sky-blue/70">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 bg-electric-blue rounded"></div>
-              <span>Carreras por mes</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-karting-gold rounded"></div>
-              <span>Mejor tiempo</span>
-            </div>
+        <div className="flex items-center justify-center gap-6 text-xs text-sky-blue/70">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-karting-gold rounded-full"></div>
+            <span>Mejor tiempo por sesión</span>
           </div>
-          <div className="text-sky-blue/70">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 bg-karting-gold rounded-full"></div>
-              <span>Posición 1-3</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-rb-blue rounded-full"></div>
-              <span>Posición 8+</span>
-            </div>
-          </div>
+        </div>
+        <div className="text-center mt-2 text-xs text-sky-blue/60">
+          Mostrando {recentRaces.length} sesiones
         </div>
       </div>
     </div>

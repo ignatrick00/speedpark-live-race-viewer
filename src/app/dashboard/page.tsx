@@ -796,7 +796,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Progress Chart */}
-                <ProgressChart monthlyData={stats.monthlyProgression} />
+                <ProgressChart races={stats.recentRaces} />
 
                 {/* Recent Races */}
                 <RaceHistoryTable races={stats.recentRaces} />
