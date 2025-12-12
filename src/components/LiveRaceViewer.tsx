@@ -76,6 +76,7 @@ export default function LiveRaceViewer() {
   const bestLap = raceData?.bestLap || "--:--.---"
   const totalLaps = raceData?.totalLaps || 0
   const averageTime = raceData?.averageTime || "--:--.---"
+  const leaderLaps = drivers.length > 0 ? drivers[0].lap : 0
 
   // 🆕 Función para obtener mejores tiempos desde MongoDB
   const fetchBestTimes = async () => {
@@ -265,8 +266,8 @@ export default function LiveRaceViewer() {
 
           <div className="bg-black/30 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 text-center relative hover:border-blue-400/50 transition-colors">
             <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Vuelta de Carrera</p>
-            <p className="font-digital text-2xl text-white font-bold mb-2">{totalLaps || 0}</p>
-            <p className="text-blue-300 text-xs uppercase tracking-wider">VUELTAS</p>
+            <p className="font-digital text-2xl text-white font-bold mb-2">{leaderLaps || 0}</p>
+            <p className="text-blue-300 text-xs uppercase tracking-wider">LÍDER</p>
           </div>
         </section>
 
