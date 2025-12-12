@@ -13,32 +13,63 @@ export default function Navbar() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [invitationCount, setInvitationCount] = useState(0);
+  const [friendRequestCount, setFriendRequestCount] = useState(0);
+  const [hasSeenDropdown, setHasSeenDropdown] = useState(false);
 
-  // Fetch invitation count
+  // Fetch invitation and friend request counts
   useEffect(() => {
     if (token) {
-      fetchInvitationCount();
+      fetchCounts();
       // Refresh every 30 seconds
-      const interval = setInterval(fetchInvitationCount, 30000);
+      const interval = setInterval(fetchCounts, 30000);
       return () => clearInterval(interval);
     } else {
       setInvitationCount(0);
+      setFriendRequestCount(0);
     }
   }, [token]);
 
-  const fetchInvitationCount = async () => {
+  const fetchCounts = async () => {
     try {
-      const response = await fetch('/api/invitations', {
+      // Fetch invitations count
+      const invitationsResponse = await fetch('/api/invitations', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
-      if (response.ok) {
-        const data = await response.json();
-        setInvitationCount(data.count || 0);
+
+      // Fetch friend requests count
+      const friendsResponse = await fetch('/api/friends', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      let newInvitationCount = 0;
+      let newFriendRequestCount = 0;
+
+      if (invitationsResponse.ok) {
+        const data = await invitationsResponse.json();
+        newInvitationCount = data.count || 0;
       }
+
+      if (friendsResponse.ok) {
+        const data = await friendsResponse.json();
+        newFriendRequestCount = data.count?.requestsReceived || 0;
+      }
+
+      const previousTotal = invitationCount + friendRequestCount;
+      const newTotal = newInvitationCount + newFriendRequestCount;
+
+      // If total count increases, reset the seen state to show badge on button again
+      if (newTotal > previousTotal) {
+        setHasSeenDropdown(false);
+      }
+
+      setInvitationCount(newInvitationCount);
+      setFriendRequestCount(newFriendRequestCount);
     } catch (error) {
-      console.error('Error fetching invitation count:', error);
+      console.error('Error fetching counts:', error);
     }
   };
 
@@ -128,11 +159,21 @@ export default function Navbar() {
                   {/* User Dropdown Button */}
                   <div className="relative">
                     <button
-                      onClick={() => setShowUserDropdown(!showUserDropdown)}
-                      className="px-2 sm:px-4 py-1.5 sm:py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium text-xs sm:text-sm flex items-center gap-2"
+                      onClick={() => {
+                        setShowUserDropdown(!showUserDropdown);
+                        if (!showUserDropdown) {
+                          setHasSeenDropdown(true);
+                        }
+                      }}
+                      className="px-2 sm:px-4 py-1.5 sm:py-2 text-cyan-400 hover:text-white transition-all border border-cyan-400/30 rounded-lg hover:bg-cyan-400/10 hover:shadow-lg hover:shadow-cyan-400/20 font-medium text-xs sm:text-sm flex items-center gap-2 relative"
                     >
                       <span className="sm:hidden">🏆</span>
                       <span className="hidden sm:inline">🏆 {user.profile.alias || user.profile.firstName}</span>
+                      {(invitationCount + friendRequestCount) > 0 && !hasSeenDropdown && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                          {invitationCount + friendRequestCount}
+                        </span>
+                      )}
                       <svg className={`w-4 h-4 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
@@ -149,16 +190,21 @@ export default function Navbar() {
                         </a>
                         <a
                           href="/amigos"
-                          className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30"
+                          className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30 relative"
                         >
                           Amigos
+                          {friendRequestCount > 0 && hasSeenDropdown && (
+                            <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                              {friendRequestCount}
+                            </span>
+                          )}
                         </a>
                         <a
                           href="/inbox"
                           className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30 relative"
                         >
                           Inbox
-                          {invitationCount > 0 && (
+                          {invitationCount > 0 && hasSeenDropdown && (
                             <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
                               {invitationCount}
                             </span>
