@@ -803,17 +803,6 @@ export default function DashboardPage() {
                 {user?.id && stats && stats.totalRaces > 0 && (
                   <LapProgressionChart webUserId={user.id} />
                 )}
-
-                {/* Track Records - Full Width */}
-                <TrackRecordsCard />
-
-                {/* Top Drivers Rankings - Grid Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <TopDriversDay />
-                  <TopDriversWeek />
-                  <TopDriversMonth />
-                  <TopDriversAllTime />
-                </div>
               </div>
 
               {/* Right Column - Additional Stats */}
