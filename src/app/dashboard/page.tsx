@@ -626,66 +626,91 @@ export default function DashboardPage() {
           </h1>
         </header>
 
-        {/* Perfil de Piloto Card */}
+        {/* Perfil de Piloto y Resumen - Two Columns */}
         {stats && linkedDriverName && (
-          <div className="max-w-4xl mx-auto mb-6">
-            <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-6">
-              <h3 className="text-2xl font-bold text-electric-blue mb-6 text-center">
-                🏁 PERFIL DE PILOTO
-              </h3>
+          <div className="max-w-7xl mx-auto mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column - Perfil de Piloto */}
+              <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-6">
+                <h3 className="text-2xl font-bold text-electric-blue mb-6 text-center">
+                  🏁 PERFIL DE PILOTO
+                </h3>
 
-              <div className="bg-black/30 backdrop-blur-sm border border-cyan-400/30 rounded-xl overflow-hidden">
-                <table className="w-full">
-                  <tbody>
-                    <tr className="border-b border-blue-800/30">
-                      <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
-                        Nombre de Piloto:
-                      </td>
-                      <td className="py-4 px-6 text-white font-bold text-lg">
-                        {user.profile.firstName} {user.profile.lastName}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-blue-800/30">
-                      <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
-                        Alias:
-                      </td>
-                      <td className="py-4 px-6 text-electric-blue font-bold text-lg">
-                        {linkedDriverName}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-blue-800/30">
-                      <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
-                        Nombre Escudería:
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-between">
-                          <span className="text-cyan-400 font-bold text-lg">
-                            {squadronName || 'Sin escudería'}
-                          </span>
-                          {squadronName && (
-                            <a
-                              href="/squadron"
-                              className="ml-4 px-4 py-2 bg-electric-blue/20 hover:bg-electric-blue/30 text-electric-blue border border-electric-blue/50 rounded-lg transition-all font-medium text-sm"
-                            >
-                              Ver Mi Escudería →
-                            </a>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
-                        Estado:
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 border border-green-500/40 px-4 py-2 rounded-lg">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          <span className="font-semibold">✅ ACTIVO</span>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div className="bg-black/30 backdrop-blur-sm border border-cyan-400/30 rounded-xl overflow-hidden">
+                  <table className="w-full">
+                    <tbody>
+                      <tr className="border-b border-blue-800/30">
+                        <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
+                          Nombre de Piloto:
+                        </td>
+                        <td className="py-4 px-6 text-white font-bold text-lg">
+                          {user.profile.firstName} {user.profile.lastName}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-blue-800/30">
+                        <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
+                          Alias:
+                        </td>
+                        <td className="py-4 px-6 text-electric-blue font-bold text-lg">
+                          {linkedDriverName}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-blue-800/30">
+                        <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
+                          Nombre Escudería:
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center justify-between">
+                            <span className="text-cyan-400 font-bold text-lg">
+                              {squadronName || 'Sin escudería'}
+                            </span>
+                            {squadronName && (
+                              <a
+                                href="/squadron"
+                                className="ml-4 px-4 py-2 bg-electric-blue/20 hover:bg-electric-blue/30 text-electric-blue border border-electric-blue/50 rounded-lg transition-all font-medium text-sm"
+                              >
+                                Ver Mi Escudería →
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
+                          Estado:
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 border border-green-500/40 px-4 py-2 rounded-lg">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span className="font-semibold">✅ ACTIVO</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Right Column - Resumen */}
+              <div className="bg-midnight/60 border border-electric-blue/20 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <span className="text-2xl">📊</span>
+                  <h3 className="font-bold text-2xl text-electric-blue">RESUMEN</h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-3 border-b border-electric-blue/10">
+                    <span className="text-sky-blue/70 text-base">Promedio Tiempo:</span>
+                    <span className="text-electric-blue text-lg font-bold">{formatTime(stats.averageTime)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 border-b border-electric-blue/10">
+                    <span className="text-sky-blue/70 text-base">Total Vueltas:</span>
+                    <span className="text-electric-blue text-lg font-bold">{stats.totalLaps}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3">
+                    <span className="text-sky-blue/70 text-base">Kart Favorito:</span>
+                    <span className="text-electric-blue text-lg font-bold">#{stats.favoriteKart}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -800,37 +825,10 @@ export default function DashboardPage() {
 
                 {/* Recent Races */}
                 <RaceHistoryTable races={stats.recentRaces} />
-
-                {/* Lap-by-Lap Progression - REAL DATA */}
-                {user?.id && stats && stats.totalRaces > 0 && (
-                  <LapProgressionChart webUserId={user.id} />
-                )}
               </div>
 
               {/* Right Column - Additional Stats */}
               <div className="space-y-6">
-                {/* Performance Summary */}
-                <div className="bg-midnight/60 border border-electric-blue/20 rounded-lg p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-2xl">📊</span>
-                    <h3 className="font-bold text-xl text-electric-blue">RESUMEN</h3>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sky-blue/70 text-sm">Promedio Tiempo:</span>
-                      <span className="text-electric-blue text-sm font-medium">{formatTime(stats.averageTime)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sky-blue/70 text-sm">Total Vueltas:</span>
-                      <span className="text-electric-blue text-sm font-medium">{stats.totalLaps}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sky-blue/70 text-sm">Kart Favorito:</span>
-                      <span className="text-electric-blue text-sm font-medium">#{stats.favoriteKart}</span>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Leaderboard */}
                 <LeaderboardCard currentUserId={user?.id} />
 
