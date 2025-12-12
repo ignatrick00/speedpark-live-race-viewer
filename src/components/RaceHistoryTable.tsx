@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import RaceDetailModal from './RaceDetailModal';
 
 interface RaceData {
   date: Date;
@@ -9,6 +10,7 @@ interface RaceData {
   kartNumber: number;
   bestTime: number;
   totalLaps: number;
+  sessionId?: string;
 }
 
 interface RaceHistoryTableProps {
@@ -36,31 +38,64 @@ function getPositionIcon(position: number): string {
   return '🏁';
 }
 
+function formatSessionName(name: string): string {
+  // Remove [HEAT] and any other brackets
+  let formatted = name.replace(/\[HEAT\]/gi, '').replace(/\[.*?\]/g, '').trim();
+
+  // Extract number and type
+  const match = formatted.match(/(\d+)\s*-\s*(.+)/);
+  if (match) {
+    const number = match[1];
+    const type = match[2].toLowerCase().trim();
+
+    // Determine if it's Clasificación or Carrera
+    if (type.includes('clasificaci') || type.includes('premium')) {
+      return `Clasificación #${number}`;
+    } else if (type.includes('carrera')) {
+      return `Carrera #${number}`;
+    } else {
+      return `Sesión #${number}`;
+    }
+  }
+
+  return formatted;
+}
+
 export default function RaceHistoryTable({ races }: RaceHistoryTableProps) {
+  const [selectedRace, setSelectedRace] = useState<RaceData | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const handleRaceClick = (race: RaceData) => {
+    setSelectedRace(race);
+    setShowModal(true);
+  };
+
   return (
-    <div className="bg-midnight/60 border border-electric-blue/20 rounded-lg p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-2xl">🏁</span>
-        <h3 className="font-bold text-2xl text-electric-blue">HISTORIAL DE CARRERAS</h3>
-      </div>
-      
-      {races.length === 0 ? (
-        <div className="text-center py-8 text-sky-blue/60">
-          <div className="text-4xl mb-2">🎯</div>
-          <p>¡Ve a correr para ver tu historial aquí!</p>
+    <>
+      <div className="bg-midnight/60 border border-electric-blue/20 rounded-lg p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-2xl">🏁</span>
+          <h3 className="font-bold text-2xl text-electric-blue">HISTORIAL DE CARRERAS</h3>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {races.map((race, index) => (
-            <div 
-              key={index} 
-              className="flex items-center justify-between bg-rb-blue/10 border border-rb-blue/20 rounded-md p-3 hover:bg-rb-blue/15 transition-colors"
-            >
+
+        {races.length === 0 ? (
+          <div className="text-center py-8 text-sky-blue/60">
+            <div className="text-4xl mb-2">🎯</div>
+            <p>¡Ve a correr para ver tu historial aquí!</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {races.map((race, index) => (
+              <div
+                key={index}
+                onClick={() => handleRaceClick(race)}
+                className="flex items-center justify-between bg-rb-blue/10 border border-rb-blue/20 rounded-md p-3 hover:bg-rb-blue/15 transition-colors cursor-pointer"
+              >
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-lg">{getPositionIcon(race.position)}</span>
                   <div className="text-electric-blue text-sm font-medium">
-                    {race.sessionName}
+                    {formatSessionName(race.sessionName)}
                   </div>
                 </div>
                 <div className="text-sky-blue/60 text-xs flex items-center gap-4">
@@ -82,6 +117,16 @@ export default function RaceHistoryTable({ races }: RaceHistoryTableProps) {
           ))}
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Race Detail Modal */}
+      <RaceDetailModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        sessionId={selectedRace?.sessionId}
+        sessionName={selectedRace?.sessionName}
+        sessionDate={selectedRace?.date}
+      />
+    </>
   );
 }

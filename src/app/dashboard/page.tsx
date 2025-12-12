@@ -37,6 +37,7 @@ export interface PersonalStats {
   recentRaces: Array<{
     date: Date;
     sessionName: string;
+    sessionId?: string;
     position: number;
     kartNumber: number;
     bestTime: number;
@@ -126,6 +127,7 @@ export default function DashboardPage() {
           recentRaces: statsData.stats.recentRaces.map((race: any) => ({
             date: new Date(race.date),
             sessionName: race.sessionName,
+            sessionId: race.sessionName, // sessionName is actually the sessionId from API
             position: race.position,
             kartNumber: race.kartNumber,
             bestTime: race.bestTime,
