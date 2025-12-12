@@ -682,7 +682,7 @@ export default function DashboardPage() {
                         <td className="py-4 px-6">
                           <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 border border-green-500/40 px-4 py-2 rounded-lg">
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="font-semibold">✅ ACTIVO</span>
+                            <span className="font-semibold">ACTIVO</span>
                           </div>
                         </td>
                       </tr>
