@@ -54,8 +54,8 @@ export default function LiveRaceViewer() {
   // Auth hooks
   const { user, logout, isLoading } = useAuth()
 
-  // Estado local (mantener el timer)
-  const [sessionTime, setSessionTime] = useState("00:00")
+  // Estado para hora actual de Chile
+  const [currentTime, setCurrentTime] = useState("")
 
   // Estados para mejores tiempos del día
   const [dailyBest, setDailyBest] = useState<DailyBestTime[]>([])
@@ -166,19 +166,24 @@ export default function LiveRaceViewer() {
   }, [])
 
   useEffect(() => {
-    // Optimized timer - no dependencies to prevent re-creation
-    const interval = setInterval(() => {
-      setSessionTime(prevTime => {
-        const [minutes, seconds] = prevTime.split(':').map(Number)
-        const totalSeconds = minutes * 60 + seconds + 1
-        const newMinutes = Math.floor(totalSeconds / 60)
-        const newSeconds = totalSeconds % 60
-        return `${newMinutes}:${newSeconds.toString().padStart(2, '0')}`
-      })
-    }, 1000)
+    // Update Chile time every second
+    const updateChileTime = () => {
+      const now = new Date();
+      const chileTime = now.toLocaleTimeString('es-CL', {
+        timeZone: 'America/Santiago',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      setCurrentTime(chileTime);
+    };
 
-    return () => clearInterval(interval)
-  }, []) // Empty deps - timer created only once
+    updateChileTime(); // Set initial time
+    const interval = setInterval(updateChileTime, 1000);
+
+    return () => clearInterval(interval);
+  }, [])
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden relative">
@@ -239,9 +244,11 @@ export default function LiveRaceViewer() {
         {/* Statistics Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           <div className="bg-black/30 backdrop-blur-sm border border-cyan-400/30 rounded-2xl p-6 text-center relative hover:border-cyan-400/50 transition-colors">
-            <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Sesión Actual</p>
-            <p className="font-digital text-2xl text-white font-bold mb-2">SpeedPark Live</p>
-            <p className="text-blue-300 text-xs uppercase tracking-wider">NOMBRE</p>
+            <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Carrera Actual</p>
+            <p className="font-digital text-2xl text-white font-bold mb-2">
+              {raceData?.sessionName ? raceData.sessionName.replace('[HEAT] ', '') : 'En espera'}
+            </p>
+            <p className="text-blue-300 text-xs uppercase tracking-wider">NÚMERO</p>
           </div>
 
           <div className="bg-black/30 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 text-center relative hover:border-blue-400/50 transition-colors">
@@ -251,15 +258,15 @@ export default function LiveRaceViewer() {
           </div>
 
           <div className="bg-black/30 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 text-center relative hover:border-blue-400/50 transition-colors">
-            <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Tiempo Activo</p>
-            <p className="font-digital text-2xl text-white font-bold mb-2">{sessionTime}</p>
-            <p className="text-blue-300 text-xs uppercase tracking-wider">MM:SS</p>
+            <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Hora Actual</p>
+            <p className="font-digital text-2xl text-white font-bold mb-2">{currentTime || '--:--:--'}</p>
+            <p className="text-blue-300 text-xs uppercase tracking-wider">CHILE</p>
           </div>
 
           <div className="bg-black/30 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 text-center relative hover:border-blue-400/50 transition-colors">
-            <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Mejor Vuelta Carrera</p>
-            <p className="font-digital text-2xl text-white font-bold mb-2">{bestLap}</p>
-            <p className="text-blue-300 text-xs uppercase tracking-wider">M:SS.mmm</p>
+            <p className="text-blue-300 text-sm uppercase tracking-wider mb-2">Vuelta de Carrera</p>
+            <p className="font-digital text-2xl text-white font-bold mb-2">{totalLaps || 0}</p>
+            <p className="text-blue-300 text-xs uppercase tracking-wider">VUELTAS</p>
           </div>
         </section>
 
