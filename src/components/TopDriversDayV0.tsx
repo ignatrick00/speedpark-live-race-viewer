@@ -18,9 +18,12 @@ export default function TopDriversV0Day() {
   const [loading, setLoading] = useState(true);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    // Default: hoy en formato YYYY-MM-DD
+    // Default: hoy en Chile en formato YYYY-MM-DD
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    const chileDate = today.toLocaleDateString('en-CA', {
+      timeZone: 'America/Santiago'
+    }); // en-CA da formato YYYY-MM-DD
+    return chileDate;
   });
 
   useEffect(() => {
