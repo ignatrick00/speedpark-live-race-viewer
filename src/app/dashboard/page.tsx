@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [userSquadronId, setUserSquadronId] = useState<string | undefined>();
+  const [squadronName, setSquadronName] = useState<string | null>(null);
   const [linkedDriverName, setLinkedDriverName] = useState<string | null>(null);
 
   // Redirect if not authenticated
@@ -80,6 +81,7 @@ export default function DashboardPage() {
 
       if (data.success && data.squadron) {
         setUserSquadronId(data.squadron._id);
+        setSquadronName(data.squadron.name);
       }
     } catch (error) {
       console.error('Error loading user squadron:', error);
@@ -620,83 +622,68 @@ export default function DashboardPage() {
           <h1 className="font-bold text-4xl md:text-6xl mb-3 tracking-wider bg-gradient-to-r from-electric-blue via-sky-blue to-karting-gold bg-clip-text text-transparent">
             MI DASHBOARD
           </h1>
-          <div className="flex items-center justify-center gap-3 text-electric-blue font-bold text-base">
-            <div className="w-2 h-2 rounded-full bg-electric-blue animate-pulse"></div>
-            PERFIL DE PILOTO
-            <div className="w-2 h-2 rounded-full bg-electric-blue animate-pulse"></div>
-          </div>
-          <p className="text-sky-blue/80 mt-2">
-            {user.profile.alias || `${user.profile.firstName} ${user.profile.lastName}`}
-          </p>
-
-          {/* Enhanced Data Source Indicator */}
-          {stats && linkedDriverName && (
-            <div className="mt-3 flex flex-col items-center gap-2">
-              {/* Driver Name Badge */}
-              <div className="bg-gradient-to-r from-electric-blue/20 to-purple-500/20 border border-electric-blue/40 px-4 py-2 rounded-full flex items-center gap-2">
-                <div className="w-2 h-2 bg-electric-blue rounded-full animate-pulse"></div>
-                <span className="text-electric-blue font-bold">🏎️ {linkedDriverName}</span>
-              </div>
-
-              {/* Data Status */}
-              <div className="text-xs font-medium">
-                {stats.totalRaces > 0 && stats.recentRaces.length > 0 ? (
-                  // Check if we have lap-by-lap data from linked driver
-                  stats.recentRaces.some((race: any) => race.lapByLapProgression?.length > 0) ? (
-                    <div className="bg-purple-500/20 text-purple-400 border border-purple-500/30 px-3 py-1 rounded-full flex items-center gap-2">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                      👑 DATOS VUELTA POR VUELTA
-                    </div>
-                  ) : (
-                    <div className="bg-green-500/20 text-green-400 border border-green-500/30 px-3 py-1 rounded-full flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      ✅ DATOS REALES - {stats.totalRaces} {stats.totalRaces === 1 ? 'CARRERA' : 'CARRERAS'}
-                    </div>
-                  )
-                ) : (
-                  <div className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full flex items-center gap-2">
-                    <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
-                    🏁 CORREDOR VINCULADO
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Show warning if not linked */}
-          {stats && !linkedDriverName && (
-            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium">
-              <div className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-3 py-1 rounded-full flex items-center gap-2">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                ⚠️ DATOS SIN VINCULAR - SOLICITA VINCULACIÓN AL ADMIN
-              </div>
-            </div>
-          )}
         </header>
 
-        {/* SMS-Timing Link Status Card */}
+        {/* Perfil de Piloto Card */}
         {stats && linkedDriverName && (
           <div className="max-w-4xl mx-auto mb-6">
-            <div className="bg-gradient-to-r from-electric-blue/10 via-purple-500/10 to-electric-blue/10 border-2 border-electric-blue/40 rounded-xl p-6">
-              <div className="flex items-center gap-4">
-                <div className="text-5xl">🏎️</div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-white mb-1">Vinculado a SMS-Timing</h3>
-                  <p className="text-gray-400 text-sm mb-3">Tu cuenta está conectada con tus datos de carreras</p>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-400">Nombre en el sistema:</span>
-                    <div className="bg-electric-blue/20 border border-electric-blue/50 px-4 py-2 rounded-lg">
-                      <span className="text-electric-blue font-bold text-lg">{linkedDriverName}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <div className="bg-green-500/20 text-green-400 border border-green-500/40 px-4 py-2 rounded-lg flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="font-semibold text-sm">✅ ACTIVO</span>
-                  </div>
-                  <span className="text-xs text-gray-500">{stats.totalRaces} carreras registradas</span>
-                </div>
+            <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-6">
+              <h3 className="text-2xl font-bold text-electric-blue mb-6 text-center">
+                🏁 PERFIL DE PILOTO
+              </h3>
+
+              <div className="bg-black/30 backdrop-blur-sm border border-cyan-400/30 rounded-xl overflow-hidden">
+                <table className="w-full">
+                  <tbody>
+                    <tr className="border-b border-blue-800/30">
+                      <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
+                        Nombre de Piloto:
+                      </td>
+                      <td className="py-4 px-6 text-white font-bold text-lg">
+                        {user.profile.firstName} {user.profile.lastName}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-blue-800/30">
+                      <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
+                        Alias:
+                      </td>
+                      <td className="py-4 px-6 text-electric-blue font-bold text-lg">
+                        {linkedDriverName}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-blue-800/30">
+                      <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
+                        Nombre Escudería:
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-between">
+                          <span className="text-cyan-400 font-bold text-lg">
+                            {squadronName || 'Sin escudería'}
+                          </span>
+                          {squadronName && (
+                            <a
+                              href="/squadron"
+                              className="ml-4 px-4 py-2 bg-electric-blue/20 hover:bg-electric-blue/30 text-electric-blue border border-electric-blue/50 rounded-lg transition-all font-medium text-sm"
+                            >
+                              Ver Mi Escudería →
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-4 px-6 text-blue-300 text-sm uppercase tracking-wider font-medium">
+                        Estado:
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-400 border border-green-500/40 px-4 py-2 rounded-lg">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="font-semibold">✅ ACTIVO</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
