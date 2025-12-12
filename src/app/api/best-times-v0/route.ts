@@ -96,7 +96,7 @@ export async function GET(request: Request) {
         console.log(`📊 [SAMPLE] First result: ${bestTimes[0]._id} - ${bestTimes[0].sessionName} - Date: ${new Date(bestTimes[0].sessionDate).toLocaleString('es-CL', { timeZone: 'America/Santiago' })}`);
       }
 
-      // Formatear para frontend (mismo formato que best-times-v2)
+      // Formatear para frontend - retornar todos los resultados (20 para drivers)
       const formattedTimes = bestTimes.map((item, idx) => ({
         position: idx + 1,
         driverName: item._id,
@@ -136,10 +136,10 @@ export async function GET(request: Request) {
           }
         },
         { $sort: { bestTime: 1 } },
-        { $limit: 10 }
+        { $limit: 20 }
       ]);
 
-      // Formatear para frontend
+      // Formatear para frontend - retornar todos los resultados (20 para karts)
       const formattedKarts = bestKartTimes.map((item, idx) => ({
         position: idx + 1,
         kart: item._id,
