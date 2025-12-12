@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
           sessionType: 1,
           driverName: '$drivers.driverName',
           kartNumber: '$drivers.kartNumber',
-          position: '$drivers.position',
+          position: '$drivers.finalPosition', // Use finalPosition from schema
           totalLaps: '$drivers.totalLaps',
           bestTime: '$drivers.bestTime',
           totalTime: '$drivers.totalTime',
@@ -90,7 +90,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 3️⃣ Calculate aggregate statistics
-    const totalRaces = sessions.length;
+    // Total races: only count sessions with sessionType = 'carrera'
+    const totalRaces = sessions.filter(s => s.sessionType === 'carrera').length;
     const totalLaps = sessions.reduce((sum, s) => sum + (s.totalLaps || 0), 0);
 
     // Best time (minimum valid time)
@@ -106,8 +107,8 @@ export async function GET(request: NextRequest) {
     const validPositions = sessions.map(s => s.position).filter(p => p && p > 0);
     const bestPosition = validPositions.length > 0 ? Math.min(...validPositions) : 1;
 
-    // Podium finishes (positions 1, 2, 3)
-    const podiumFinishes = sessions.filter(s => s.position && s.position <= 3).length;
+    // Podium finishes (positions 1, 2, 3 in RACES only)
+    const podiumFinishes = sessions.filter(s => s.sessionType === 'carrera' && s.position && s.position <= 3).length;
 
     // Favorite kart (most used)
     const kartCounts: { [key: number]: number } = {};
