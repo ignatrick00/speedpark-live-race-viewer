@@ -349,6 +349,7 @@ export default function RacesPage() {
       isOpen={showLoginModal}
       onClose={() => setShowLoginModal(false)}
       onSwitchToRegister={switchToRegister}
+      redirectAfterLogin={false}
     />
     <RegisterModal
       isOpen={showRegisterModal}
