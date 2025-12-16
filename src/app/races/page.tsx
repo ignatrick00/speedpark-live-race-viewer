@@ -1316,9 +1316,7 @@ function FriendlyCreateView({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [raceName, setRaceName] = useState('');
-  const [selectedKart, setSelectedKart] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [step, setStep] = useState<'form' | 'kart'>('form'); // Paso 1: formulario, Paso 2: selección de kart
 
   // Generar próximos 14 días
   const getNext14Days = () => {
@@ -1339,8 +1337,8 @@ function FriendlyCreateView({
   ];
 
   const handleCreateRace = async () => {
-    if (!raceName.trim() || !selectedDate || !selectedTime || !selectedKart) {
-      alert('Por favor completa todos los campos y selecciona tu kart');
+    if (!raceName.trim() || !selectedDate || !selectedTime) {
+      alert('Por favor completa todos los campos');
       return;
     }
 
@@ -1363,14 +1361,14 @@ function FriendlyCreateView({
           name: raceName,
           date: selectedDate,
           time: selectedTime,
-          kartNumber: selectedKart,
+          // kartNumber will be assigned automatically by backend
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        alert('¡Carrera creada exitosamente! Serás redirigido a las carreras disponibles.');
+        alert(`¡Carrera creada exitosamente! Te has unido automáticamente con el kart #${data.race.kartNumber}.`);
         onSuccess();
       } else {
         alert(data.error || 'Error al crear la carrera');
@@ -1389,12 +1387,11 @@ function FriendlyCreateView({
     <div className="max-w-4xl mx-auto">
       <div className="bg-gradient-to-br from-midnight via-gold/20 to-midnight border-2 border-gold/50 rounded-xl p-8">
         <h3 className="text-3xl font-racing text-gold mb-6 text-center">
-          ✨ CREAR CARRERA AMISTOSA {step === 'kart' && '- SELECCIONA TU KART'}
+          ✨ CREAR CARRERA AMISTOSA
         </h3>
 
-        {/* PASO 1: Formulario */}
-        {step === 'form' && (
-          <>
+        {/* Formulario */}
+        <>
         {/* Race Name */}
         <div className="mb-8">
           <label className="block text-electric-blue font-racing text-lg mb-2">
@@ -1498,7 +1495,7 @@ function FriendlyCreateView({
           </div>
         )}
 
-        {/* Botones Paso 1 */}
+        {/* Botones */}
         <div className="flex gap-4">
           <button
             onClick={onBack}
@@ -1507,105 +1504,23 @@ function FriendlyCreateView({
             CANCELAR
           </button>
           <button
-            onClick={() => setStep('kart')}
-            disabled={!raceName || !selectedDate || !selectedTime}
-            style={{
-              backgroundColor: raceName && selectedDate && selectedTime ? '#FFD700' : '#333',
-              color: raceName && selectedDate && selectedTime ? '#0a0a15' : '#666',
-              cursor: !raceName || !selectedDate || !selectedTime ? 'not-allowed' : 'pointer',
-            }}
-            className="flex-1 px-6 py-3 font-racing rounded-lg transition-all shadow-lg"
-          >
-            SIGUIENTE →
-          </button>
-        </div>
-          </>
-        )}
-
-        {/* PASO 2: Selección de Kart */}
-        {step === 'kart' && (
-          <>
-        {/* Kart Selection Grid */}
-        <div className="mb-8">
-          <div className="grid grid-cols-5 gap-3">
-            {Array.from({ length: 20 }, (_, i) => i + 1).map((kartNum) => {
-              const isSelected = selectedKart === kartNum;
-              return (
-                <button
-                  key={kartNum}
-                  onClick={() => setSelectedKart(kartNum)}
-                  type="button"
-                  style={{
-                    backgroundImage: isSelected
-                      ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.5), rgba(255, 215, 0, 0.3)), url(/images/Friendly-races/kart.png)'
-                      : 'linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(14, 165, 233, 0.2)), url(/images/Friendly-races/kart.png)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}
-                  className={`p-3 rounded-lg border-3 transition-all relative ${
-                    isSelected
-                      ? 'border-gold shadow-lg shadow-gold/50 scale-105'
-                      : 'border-electric-blue/30 hover:border-electric-blue hover:scale-105'
-                  }`}
-                >
-                  {isSelected && (
-                    <div className="absolute top-0 left-0 right-0 bg-gold text-midnight text-xs font-bold py-1 text-center z-40">
-                      ⭐ SELECCIONADO
-                    </div>
-                  )}
-                  <div className="text-center relative z-10 mt-3">
-                    <p className="text-xs mb-1 font-bold text-sky-blue/70">KART</p>
-                    <p className={`text-3xl font-bold font-digital drop-shadow-lg ${
-                      isSelected ? 'text-gold' : 'text-electric-blue'
-                    }`}
-                    style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}
-                    >
-                      #{kartNum}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Resumen con kart seleccionado */}
-        {selectedKart && (
-          <div className="mb-8 p-4 bg-gold/10 border border-gold/30 rounded-lg">
-            <h4 className="text-gold font-racing mb-2">✓ RESUMEN FINAL</h4>
-            <div className="text-sky-blue/90 space-y-1">
-              <p><span className="text-sky-blue/50">Carrera:</span> {raceName}</p>
-              <p><span className="text-sky-blue/50">Fecha:</span> {selectedDate?.toLocaleDateString('es-CL')}</p>
-              <p><span className="text-sky-blue/50">Hora:</span> {selectedTime}</p>
-              <p><span className="text-sky-blue/50">Tu Kart:</span> <span className="text-gold font-bold text-xl">#{selectedKart}</span></p>
-            </div>
-          </div>
-        )}
-
-        {/* Botones Paso 2 */}
-        <div className="flex gap-4">
-          <button
-            onClick={() => setStep('form')}
-            disabled={isCreating}
-            className="flex-1 px-6 py-3 border-2 border-sky-blue/50 text-sky-blue rounded-lg hover:bg-sky-blue/10 transition-all disabled:opacity-50"
-          >
-            ← ATRÁS
-          </button>
-          <button
             onClick={handleCreateRace}
-            disabled={!selectedKart || isCreating}
+            disabled={!raceName || !selectedDate || !selectedTime || isCreating}
             style={{
-              backgroundColor: selectedKart && !isCreating ? '#FFD700' : '#333',
-              color: selectedKart && !isCreating ? '#0a0a15' : '#666',
-              cursor: !selectedKart || isCreating ? 'not-allowed' : 'pointer',
+              backgroundColor: raceName && selectedDate && selectedTime && !isCreating ? '#FFD700' : '#333',
+              color: raceName && selectedDate && selectedTime && !isCreating ? '#0a0a15' : '#666',
+              cursor: !raceName || !selectedDate || !selectedTime || isCreating ? 'not-allowed' : 'pointer',
             }}
             className="flex-1 px-6 py-3 font-racing rounded-lg transition-all shadow-lg"
           >
-            {isCreating ? 'CREANDO...' : '✓ CONFIRMAR Y CREAR'}
+            {isCreating ? '⏳ CREANDO...' : '🏁 CREAR CARRERA'}
           </button>
         </div>
           </>
-        )}
+
+        <p className="text-sky-blue/60 text-sm text-center mt-4">
+          Se te asignará un kart automáticamente al crear la carrera
+        </p>
       </div>
     </div>
   );
