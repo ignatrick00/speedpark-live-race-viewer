@@ -1258,6 +1258,27 @@ function FriendlyCreateView({
   onBack: () => void;
   onSuccess: () => void;
 }) {
+  // Check if user is not authenticated
+  if (!token) {
+    return (
+      <div className="bg-gradient-to-br from-midnight via-red-500/10 to-midnight border-2 border-red-400/50 rounded-xl p-12 text-center">
+        <div className="text-6xl mb-4">🔒</div>
+        <h3 className="text-2xl font-racing text-red-300 mb-2">
+          AUTENTICACIÓN REQUERIDA
+        </h3>
+        <p className="text-sky-blue/70 mb-6">
+          Debes iniciar sesión para crear una carrera amistosa
+        </p>
+        <Link
+          href="/login"
+          className="inline-block bg-red-500 hover:bg-red-600 text-white font-racing px-8 py-3 rounded-lg transition-colors"
+        >
+          INICIAR SESIÓN
+        </Link>
+      </div>
+    );
+  }
+
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [raceName, setRaceName] = useState('');
