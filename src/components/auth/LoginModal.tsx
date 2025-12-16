@@ -9,9 +9,10 @@ interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToRegister: () => void;
+  redirectAfterLogin?: boolean;
 }
 
-export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose, onSwitchToRegister, redirectAfterLogin = true }: LoginModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -34,8 +35,10 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
         setEmail('');
         setPassword('');
         onClose();
-        // Redirect to dashboard after successful login
-        router.push('/dashboard');
+        // Redirect to dashboard after successful login (optional)
+        if (redirectAfterLogin) {
+          router.push('/dashboard');
+        }
       } else {
         // Check if error is due to unverified email
         if (result.error === 'Email no verificado') {
