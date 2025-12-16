@@ -8,6 +8,8 @@ import { EventCategoryConfig } from '@/types/squadron-events';
 import { useRouter } from 'next/navigation';
 import JoinEventModal from '@/components/JoinEventModal';
 import Toast from '@/components/Toast';
+import LoginModal from '@/components/auth/LoginModal';
+import RegisterModal from '@/components/auth/RegisterModal';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 type ViewMode = 'selection' | 'championships' | 'championships-upcoming' | 'championships-past' | 'friendly' | 'friendly-upcoming' | 'friendly-past' | 'friendly-create' | 'my-registered-events';
@@ -40,6 +42,8 @@ export default function RacesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [invitations, setInvitations] = useState<any[]>([]);
   const [invitationsLoading, setInvitationsLoading] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   useEffect(() => {
     console.log('🔄 ViewMode changed to:', viewMode);
@@ -119,6 +123,16 @@ export default function RacesPage() {
       console.error('Error responding to invitation:', error);
       alert('Error al procesar la invitación');
     }
+  };
+
+  const switchToRegister = () => {
+    setShowLoginModal(false);
+    setShowRegisterModal(true);
+  };
+
+  const switchToLogin = () => {
+    setShowRegisterModal(false);
+    setShowLoginModal(true);
   };
 
   return (
@@ -296,6 +310,7 @@ export default function RacesPage() {
             races={friendlyRaces}
             isLoading={isLoading}
             onRefresh={fetchRaces}
+            onLoginClick={() => setShowLoginModal(true)}
           />
         )}
 
@@ -304,6 +319,7 @@ export default function RacesPage() {
             races={friendlyRaces}
             isLoading={isLoading}
             onRefresh={fetchRaces}
+            onLoginClick={() => setShowLoginModal(true)}
           />
         )}
 
@@ -315,6 +331,7 @@ export default function RacesPage() {
               fetchRaces();
               setViewMode('friendly-join');
             }}
+            onLoginClick={() => setShowLoginModal(true)}
           />
         )}
 
@@ -326,6 +343,18 @@ export default function RacesPage() {
         )}
       </div>
     </div>
+
+    {/* Login and Register Modals */}
+    <LoginModal
+      isOpen={showLoginModal}
+      onClose={() => setShowLoginModal(false)}
+      onSwitchToRegister={switchToRegister}
+    />
+    <RegisterModal
+      isOpen={showRegisterModal}
+      onClose={() => setShowRegisterModal(false)}
+      onSwitchToLogin={switchToLogin}
+    />
     </>
   );
 }
@@ -861,10 +890,12 @@ function FriendlyUpcomingView({
   races,
   isLoading,
   onRefresh,
+  onLoginClick,
 }: {
   races: Race[];
   isLoading: boolean;
   onRefresh: () => void;
+  onLoginClick: () => void;
 }) {
   const { token, user } = useAuth();
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -873,8 +904,7 @@ function FriendlyUpcomingView({
   const handleJoinClick = (race: Race) => {
     // Check if user is authenticated
     if (!token || !user) {
-      alert('Debes iniciar sesión para unirte a una carrera');
-      window.location.href = '/login';
+      onLoginClick();
       return;
     }
 
@@ -947,12 +977,12 @@ function FriendlyUpcomingView({
         <p className="text-sky-blue/70 mb-6">
           Debes iniciar sesión para ver las próximas carreras
         </p>
-        <Link
-          href="/login"
-          className="inline-block bg-red-500 hover:bg-red-600 text-white font-racing px-8 py-3 rounded-lg transition-colors"
+        <button
+          onClick={onLoginClick}
+          className="inline-block bg-red-500 hover:bg-red-600 text-white font-racing px-8 py-3 rounded-lg transition-colors cursor-pointer"
         >
           INICIAR SESIÓN
-        </Link>
+        </button>
       </div>
     );
   }
@@ -1033,10 +1063,12 @@ function FriendlyPastView({
   races,
   isLoading,
   onRefresh,
+  onLoginClick,
 }: {
   races: Race[];
   isLoading: boolean;
   onRefresh: () => void;
+  onLoginClick: () => void;
 }) {
   const { token } = useAuth();
 
@@ -1051,12 +1083,12 @@ function FriendlyPastView({
         <p className="text-sky-blue/70 mb-6">
           Debes iniciar sesión para ver las carreras pasadas
         </p>
-        <Link
-          href="/login"
-          className="inline-block bg-red-500 hover:bg-red-600 text-white font-racing px-8 py-3 rounded-lg transition-colors"
+        <button
+          onClick={onLoginClick}
+          className="inline-block bg-red-500 hover:bg-red-600 text-white font-racing px-8 py-3 rounded-lg transition-colors cursor-pointer"
         >
           INICIAR SESIÓN
-        </Link>
+        </button>
       </div>
     );
   }
@@ -1128,7 +1160,6 @@ function FriendlyJoinView({
     // Check if user is authenticated
     if (!token || !user) {
       alert('Debes iniciar sesión para unirte a una carrera');
-      window.location.href = '/login';
       return;
     }
 
@@ -1253,10 +1284,12 @@ function FriendlyCreateView({
   token,
   onBack,
   onSuccess,
+  onLoginClick,
 }: {
   token: string | null;
   onBack: () => void;
   onSuccess: () => void;
+  onLoginClick: () => void;
 }) {
   // Check if user is not authenticated
   if (!token) {
@@ -1269,12 +1302,12 @@ function FriendlyCreateView({
         <p className="text-sky-blue/70 mb-6">
           Debes iniciar sesión para crear una carrera amistosa
         </p>
-        <Link
-          href="/login"
-          className="inline-block bg-red-500 hover:bg-red-600 text-white font-racing px-8 py-3 rounded-lg transition-colors"
+        <button
+          onClick={onLoginClick}
+          className="inline-block bg-red-500 hover:bg-red-600 text-white font-racing px-8 py-3 rounded-lg transition-colors cursor-pointer"
         >
           INICIAR SESIÓN
-        </Link>
+        </button>
       </div>
     );
   }
@@ -2241,12 +2274,9 @@ function SquadronEventCard({
     // Check if user is authenticated
     if (!token || !user) {
       setToast({
-        message: 'Debes iniciar sesión para unirte a un evento',
+        message: 'Debes iniciar sesión para unirte a un evento. Haz clic en "Login" en la barra de navegación.',
         type: 'error'
       });
-      setTimeout(() => {
-        router.push('/login');
-      }, 1500);
       return;
     }
 
