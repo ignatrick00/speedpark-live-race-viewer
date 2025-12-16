@@ -104,15 +104,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse request body
-    const { name, date, time, kartNumber } = await req.json();
+    let { name, date, time, kartNumber } = await req.json();
     console.log('📝 [CREATE-FRIENDLY] Received data:', { name, date, time, kartNumber });
 
     // Validate input
-    if (!name || !date || !time || !kartNumber) {
+    if (!name || !date || !time) {
       return NextResponse.json(
         { success: false, error: 'Datos incompletos' },
         { status: 400 }
       );
+    }
+
+    // If no kart number provided, assign a random one (1-20)
+    if (!kartNumber) {
+      kartNumber = Math.floor(Math.random() * 20) + 1;
+      console.log(`🎲 [CREATE-FRIENDLY] Auto-assigned kart #${kartNumber}`);
     }
 
     // Validate kart number
