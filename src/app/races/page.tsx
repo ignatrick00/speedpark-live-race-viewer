@@ -871,6 +871,13 @@ function FriendlyUpcomingView({
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
 
   const handleJoinClick = (race: Race) => {
+    // Check if user is authenticated
+    if (!token || !user) {
+      alert('Debes iniciar sesión para unirte a una carrera');
+      window.location.href = '/login';
+      return;
+    }
+
     setSelectedRace(race);
     setShowJoinModal(true);
   };
@@ -1118,6 +1125,13 @@ function FriendlyJoinView({
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
 
   const handleJoinClick = (race: Race) => {
+    // Check if user is authenticated
+    if (!token || !user) {
+      alert('Debes iniciar sesión para unirte a una carrera');
+      window.location.href = '/login';
+      return;
+    }
+
     setSelectedRace(race);
     setShowJoinModal(true);
   };
@@ -2202,6 +2216,19 @@ function SquadronEventCard({
 
   const handleJoinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Check if user is authenticated
+    if (!token || !user) {
+      setToast({
+        message: 'Debes iniciar sesión para unirte a un evento',
+        type: 'error'
+      });
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
+      return;
+    }
+
     setShowJoinModal(true);
   };
 
