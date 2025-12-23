@@ -1,66 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import WebUser from '@/models/WebUser';
-import mongoose from 'mongoose';
+import FriendlyRace from '@/models/FriendlyRace';
 import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-// Modelo de Carrera Amistosa (inline por ahora)
-const FriendlyRaceSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-    minlength: 3,
-    maxlength: 50,
-  },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'WebUser',
-    required: true,
-  },
-  date: {
-    type: Date,
-    required: true,
-  },
-  time: {
-    type: String,
-    required: true,
-  },
-  participants: [{
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'WebUser',
-    },
-    kartNumber: {
-      type: Number,
-      min: 1,
-      max: 20,
-    },
-    joinedAt: {
-      type: Date,
-      default: Date.now,
-    },
-  }],
-  maxParticipants: {
-    type: Number,
-    default: 12,
-  },
-  status: {
-    type: String,
-    enum: ['open', 'full', 'started', 'finished', 'cancelled'],
-    default: 'open',
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-const FriendlyRace = mongoose.models.FriendlyRace || mongoose.model('FriendlyRace', FriendlyRaceSchema);
 
 export async function POST(req: NextRequest) {
   console.log('🚀🚀🚀 [CREATE-FRIENDLY] POST REQUEST RECEIVED');
@@ -145,7 +91,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create race with creator's selected kart
+    // Create race with creator's selected kart and all required fields
     const race = await FriendlyRace.create({
       name: name.trim(),
       createdBy: userId,
@@ -156,9 +102,17 @@ export async function POST(req: NextRequest) {
         kartNumber,
         joinedAt: new Date(),
       }],
+      maxParticipants: 12,
+      status: 'open',
+      // Campos de vinculación (inicializados)
+      raceStatus: 'pending',
+      linkedRaceSessionId: null,
+      results: null,
     });
 
     console.log(`✅ [CREATE-FRIENDLY-RACE] Race created: ${race._id} by user ${userId} with kart #${kartNumber}`);
+    console.log(`   - raceStatus: ${race.raceStatus}`);
+    console.log(`   - status: ${race.status}`);
 
     return NextResponse.json({
       success: true,
@@ -170,6 +124,8 @@ export async function POST(req: NextRequest) {
         participants: race.participants.length,
         maxParticipants: race.maxParticipants,
         status: race.status,
+        raceStatus: race.raceStatus,
+        linkedRaceSessionId: race.linkedRaceSessionId,
         kartNumber, // Include the selected kart number
       },
       message: 'Carrera creada exitosamente',

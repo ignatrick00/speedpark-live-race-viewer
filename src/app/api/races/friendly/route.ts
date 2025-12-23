@@ -1,34 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import WebUser from '@/models/WebUser';
+import FriendlyRace from '@/models/FriendlyRace';
 
 export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-// Usar el mismo schema que en create-friendly
-const FriendlyRaceSchema = new mongoose.Schema({
-  name: String,
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'WebUser' },
-  date: Date,
-  time: String,
-  participants: [{
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'WebUser' },
-    kartNumber: {
-      type: Number,
-      min: 1,
-      max: 20,
-    },
-    joinedAt: Date,
-  }],
-  maxParticipants: Number,
-  status: String,
-  createdAt: Date,
-});
-
-const FriendlyRace = mongoose.models.FriendlyRace || mongoose.model('FriendlyRace', FriendlyRaceSchema);
 
 export async function GET(req: NextRequest) {
   try {
@@ -44,9 +23,11 @@ export async function GET(req: NextRequest) {
     }
 
     const token = authHeader.substring(7);
+    let userId: string;
 
     try {
-      jwt.verify(token, JWT_SECRET) as { userId: string };
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      userId = decoded.userId;
     } catch (error) {
       return NextResponse.json(
         { success: false, error: 'Token inválido' },
@@ -54,18 +35,57 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get all friendly races that are open or in the future
-    const races = await FriendlyRace.find({
-      date: { $gte: new Date() },
-      $or: [
-        { status: { $in: ['open', 'full'] } },
-        { status: { $exists: false } }, // Include races without status field (old races)
-      ],
-    })
-      .sort({ date: 1, time: 1 })
+    // Get query parameters for filtering
+    const { searchParams } = new URL(req.url);
+    const filterType = searchParams.get('filter'); // 'all', 'upcoming', 'past', 'my-races'
+
+    console.log(`🔍 [FRIENDLY-RACES] Filter type: ${filterType}`);
+    console.log(`🔍 [FRIENDLY-RACES] User ID: ${userId}`);
+
+    // DEBUG: Check what races exist
+    const allRaces = await FriendlyRace.find({}).limit(5).lean();
+    console.log(`🔍 [FRIENDLY-RACES] Total races in DB:`, await FriendlyRace.countDocuments({}));
+    if (allRaces.length > 0) {
+      console.log(`🔍 [FRIENDLY-RACES] Sample race createdBy:`, allRaces[0].createdBy);
+      console.log(`🔍 [FRIENDLY-RACES] Sample race createdBy type:`, typeof allRaces[0].createdBy);
+      console.log(`🔍 [FRIENDLY-RACES] Sample race createdBy toString:`, allRaces[0].createdBy?.toString());
+    }
+
+    // Build query based on filter
+    let query: any = {};
+
+    if (filterType === 'upcoming') {
+      // Only future races
+      query.date = { $gte: new Date() };
+      query.$or = [
+        { status: { $in: ['open', 'full', 'confirmed'] } },
+        { status: { $exists: false } },
+      ];
+    } else if (filterType === 'past') {
+      // Only past races
+      query.date = { $lt: new Date() };
+    } else if (filterType === 'my-races') {
+      // For organizer page: show ALL races (not filtered by user)
+      // The organizer can link any friendly race to a race session
+      // No filter needed - show all races
+    } else if (filterType === 'all' || !filterType) {
+      // All races (no date filter)
+    }
+
+    console.log(`🔍 [FRIENDLY-RACES] Query:`, JSON.stringify(query, null, 2));
+
+    const races = await FriendlyRace.find(query)
+      .sort({ date: -1, time: -1 }) // Most recent first
       .lean();
 
     console.log(`📊 [FRIENDLY-RACES] Found ${races.length} races in database`);
+    if (races.length > 0) {
+      console.log(`📋 [FRIENDLY-RACES] First race:`, {
+        name: races[0].name,
+        createdBy: races[0].createdBy,
+        raceStatus: races[0].raceStatus
+      });
+    }
 
     // Manually populate users to avoid schema issues
     const formattedRaces = await Promise.all(races.map(async (race: any) => {
@@ -113,6 +133,8 @@ export async function GET(req: NextRequest) {
         participants: race.participants.length,
         maxParticipants: race.maxParticipants,
         status: race.status,
+        raceStatus: race.raceStatus || 'pending', // Default to pending if not set
+        linkedRaceSessionId: race.linkedRaceSessionId,
         organizerName,
         organizerId,
         participantsList,

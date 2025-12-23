@@ -310,6 +310,12 @@ export default function OrganizerPage() {
           {/* Quick Actions */}
           <div className="flex flex-wrap items-center justify-center gap-4 mt-12">
             <button
+              onClick={() => router.push('/organizador/carreras-amistosas')}
+              className="px-6 py-3 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30 rounded-lg hover:from-blue-500/30 hover:to-cyan-500/30 hover:border-blue-400/50 transition-all duration-300 text-blue-400 hover:text-white font-medium"
+            >
+              🏁 Carreras Amistosas
+            </button>
+            <button
               onClick={() => router.push('/dashboard')}
               className="px-6 py-3 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30 rounded-lg hover:from-cyan-500/30 hover:to-blue-500/30 hover:border-cyan-400/50 transition-all duration-300 text-cyan-400 hover:text-white font-medium"
             >

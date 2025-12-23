@@ -1,30 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import WebUser from '@/models/WebUser';
-import mongoose from 'mongoose';
+import FriendlyRace from '@/models/FriendlyRace';
 import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-// Schema
-const FriendlyRaceSchema = new mongoose.Schema({
-  name: String,
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'WebUser' },
-  date: Date,
-  time: String,
-  participants: [{
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'WebUser' },
-    kartNumber: Number,
-    joinedAt: Date,
-  }],
-  maxParticipants: Number,
-  status: String,
-  createdAt: Date,
-});
-
-const FriendlyRace = mongoose.models.FriendlyRace || mongoose.model('FriendlyRace', FriendlyRaceSchema);
 
 export async function POST(
   req: NextRequest,
