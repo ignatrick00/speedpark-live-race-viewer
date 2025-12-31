@@ -997,16 +997,14 @@ function FriendlyUpcomingView({
     );
   }
 
-  // TEMPORARY: Show ALL races (including past) for testing inscription and scoring automation
-  // TODO: Restore date filter when testing is complete
-  const upcomingRaces = races; // Show all races regardless of date
-
-  // ORIGINAL CODE (commented out for testing):
-  // const upcomingRaces = races.filter(race => {
-  //   const raceDate = new Date(race.date);
-  //   const now = new Date();
-  //   return raceDate >= now;
-  // });
+  // Filter upcoming races: future dates only, and NOT linked/finalized
+  const upcomingRaces = races.filter(race => {
+    const raceDate = new Date(race.date);
+    const now = new Date();
+    const isFuture = raceDate >= now;
+    const isNotLinked = !race.linkedRaceSessionId && race.raceStatus !== 'linked' && race.raceStatus !== 'finalized';
+    return isFuture && isNotLinked;
+  });
 
   if (isLoading) {
     return (
