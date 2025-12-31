@@ -256,7 +256,6 @@ export default function RaceStatsModal({ sessionId, friendlyRaceParticipants = [
                       label={{ value: 'Vuelta', position: 'insideBottom', offset: -5, fill: '#7dd3fc' }}
                     />
                     <YAxis
-                      reversed
                       domain={[1, 'dataMax']}
                       stroke="#7dd3fc"
                       label={{ value: 'Posición', angle: -90, position: 'insideLeft', fill: '#7dd3fc' }}
