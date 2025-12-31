@@ -25,6 +25,15 @@ interface RaceDetails {
   drivers: DriverResult[];
 }
 
+interface Lap {
+  lapNumber: number;
+  time: number;
+  position: number;
+  finalPosition: number;
+  gapToLeader?: string;
+  isPersonalBest?: boolean;
+}
+
 interface RaceResultsViewProps {
   raceDetails: RaceDetails;
   highlightedParticipants?: Array<{ name: string; kartNumber: number; userId?: string }>;
@@ -39,6 +48,7 @@ export default function RaceResultsView({
   showBackButton = true
 }: RaceResultsViewProps) {
   const [highlightedDriver, setHighlightedDriver] = useState<string | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<DriverResult | null>(null);
 
   const formatTime = (timeMs: number) => {
     if (!timeMs || timeMs === 0) return '--:--';
@@ -122,6 +132,96 @@ export default function RaceResultsView({
     return chartData;
   }, [raceDetails]);
 
+  // Show driver details if a driver is selected
+  if (selectedDriver) {
+    return (
+      <div>
+        <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-xl font-bold text-electric-blue mb-1">
+                👤 {selectedDriver.driverName} - Análisis de Vueltas
+              </h3>
+              <p className="text-sm text-sky-blue/60">
+                Posición: {selectedDriver.finalPosition} • Kart #{selectedDriver.kartNumber} • {selectedDriver.totalLaps} vueltas
+              </p>
+            </div>
+            <button
+              onClick={() => setSelectedDriver(null)}
+              className="text-electric-blue hover:text-cyan-400 font-bold"
+            >
+              ← Volver a resultados
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-4">
+              <div className="text-sm text-sky-blue/60 mb-1">Mejor Vuelta</div>
+              <div className="text-2xl font-mono font-bold text-karting-gold">
+                {formatTime(selectedDriver.bestTime)}
+              </div>
+            </div>
+            <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-4">
+              <div className="text-sm text-sky-blue/60 mb-1">Última Vuelta</div>
+              <div className="text-2xl font-mono font-bold text-electric-blue">
+                {formatTime(selectedDriver.lastTime)}
+              </div>
+            </div>
+            <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-4">
+              <div className="text-sm text-sky-blue/60 mb-1">Promedio</div>
+              <div className="text-2xl font-mono font-bold text-gray-300">
+                {formatTime(selectedDriver.averageTime)}
+              </div>
+            </div>
+          </div>
+
+          {selectedDriver.laps && selectedDriver.laps.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-electric-blue/30">
+                    <th className="text-left p-3 text-electric-blue">Vuelta</th>
+                    <th className="text-right p-3 text-electric-blue">Tiempo</th>
+                    <th className="text-center p-3 text-electric-blue">Posición</th>
+                    <th className="text-right p-3 text-electric-blue">Gap</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedDriver.laps
+                    .sort((a: Lap, b: Lap) => a.lapNumber - b.lapNumber)
+                    .map((lap: Lap, idx: number) => (
+                      <tr
+                        key={idx}
+                        className={`border-b border-sky-blue/10 ${
+                          lap.isPersonalBest ? 'bg-karting-gold/10' : ''
+                        }`}
+                      >
+                        <td className="p-3 text-white font-semibold">
+                          Vuelta {lap.lapNumber}
+                          {lap.isPersonalBest && <span className="ml-2 text-karting-gold">⭐</span>}
+                        </td>
+                        <td className={`p-3 text-right font-mono font-bold ${
+                          lap.isPersonalBest ? 'text-karting-gold' : 'text-electric-blue'
+                        }`}>
+                          {formatTime(lap.time)}
+                        </td>
+                        <td className="p-3 text-center text-sky-blue">P{lap.finalPosition}</td>
+                        <td className="p-3 text-right text-gray-400">{lap.gapToLeader || '-'}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center text-gray-400 py-8">
+              No hay datos de vueltas individuales para este piloto
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Header */}
@@ -188,6 +288,7 @@ export default function RaceResultsView({
                   className={`border-b border-electric-blue/10 hover:bg-electric-blue/5 cursor-pointer transition-colors ${
                     isPart ? 'bg-green-500/10' : ''
                   }`}
+                  onClick={() => setSelectedDriver(driver)}
                   onMouseEnter={() => setHighlightedDriver(driver.driverName)}
                   onMouseLeave={() => setHighlightedDriver(null)}
                 >

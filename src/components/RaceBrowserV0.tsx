@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import DatePicker from './DatePicker';
 import RaceResultsView from './RaceResultsView';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
 
 interface Race {
   sessionId: string;
@@ -16,27 +15,6 @@ interface Race {
   displayTime: string;
 }
 
-interface DriverResult {
-  driverName: string;
-  position: number;
-  bestTime: number;
-  lastTime: number;
-  averageTime: number;
-  totalLaps: number;
-  kartNumber: number;
-  laps: any[];
-}
-
-interface Lap {
-  lapNumber: number;
-  time: number;
-  position: number;
-  kartNumber: number;
-  timestamp: string;
-  gapToLeader?: string;
-  isPersonalBest?: boolean;
-}
-
 export default function RaceBrowserV0() {
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date();
@@ -47,12 +25,8 @@ export default function RaceBrowserV0() {
   });
   const [races, setRaces] = useState<Race[]>([]);
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
-  const [raceResults, setRaceResults] = useState<DriverResult[]>([]);
   const [raceDetails, setRaceDetails] = useState<any | null>(null);
-  const [selectedDriver, setSelectedDriver] = useState<DriverResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [highlightedDriver, setHighlightedDriver] = useState<string | null>(null);
-  const [highlightedDriverTimes, setHighlightedDriverTimes] = useState<string | null>(null);
 
   // Fetch races when date changes
   useEffect(() => {
@@ -91,90 +65,13 @@ export default function RaceBrowserV0() {
       const data = await response.json();
 
       if (data.success) {
-        setRaceResults(data.race.drivers);
-        setRaceDetails(data.race); // Store full race details for RaceResultsView
+        setRaceDetails(data.race);
       }
     } catch (error) {
       console.error('Error fetching race results:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatTime = (timeMs: number) => {
-    if (!timeMs || timeMs === 0) return '--:--';
-    const minutes = Math.floor(timeMs / 60000);
-    const seconds = ((timeMs % 60000) / 1000).toFixed(3);
-    return `${minutes}:${parseFloat(seconds).toFixed(3).padStart(6, '0')}`;
-  };
-
-  const getPositionColor = (position: number) => {
-    if (position === 1) return 'text-karting-gold';
-    if (position === 2) return 'text-gray-300';
-    if (position === 3) return 'text-orange-400';
-    return 'text-electric-blue';
-  };
-
-  const getMedalEmoji = (position: number) => {
-    if (position === 1) return '🥇';
-    if (position === 2) return '🥈';
-    if (position === 3) return '🥉';
-    return null;
-  };
-
-  const colors = [
-    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
-    '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52BE80',
-    '#EC7063', '#AF7AC5', '#5DADE2', '#48C9B0', '#F4D03F',
-    '#EB984E', '#A569BD', '#5499C7', '#45B39D', '#F5B041',
-    '#DC7633', '#9B59B6', '#3498DB', '#1ABC9C', '#F39C12',
-    '#E74C3C', '#8E44AD', '#2980B9', '#16A085', '#D68910'
-  ];
-
-  // Prepare position chart data
-  const preparePositionChartData = () => {
-    if (raceResults.length === 0) return [];
-
-    const maxLaps = Math.max(...raceResults.map(d => d.laps?.length || 0));
-    const chartData: any[] = [];
-
-    for (let lapNum = 1; lapNum <= maxLaps; lapNum++) {
-      const lapData: any = { lap: lapNum };
-
-      raceResults.forEach((driver: any) => {
-        const lap = driver.laps?.find((l: any) => l.lapNumber === lapNum);
-        if (lap) {
-          lapData[driver.driverName] = lap.finalPosition || lap.position;
-        }
-      });
-
-      chartData.push(lapData);
-    }
-
-    return chartData;
-  };
-
-  // Prepare lap times chart data
-  const prepareLapTimesChartData = () => {
-    if (raceResults.length === 0) return [];
-
-    const maxLaps = Math.max(...raceResults.map(d => d.laps?.length || 0));
-    const chartData: any[] = [];
-
-    for (let lapNum = 1; lapNum <= maxLaps; lapNum++) {
-      const lapData: any = { lap: lapNum };
-
-      raceResults.forEach((driver: any) => {
-        const lap = driver.laps?.find((l: any) => l.lapNumber === lapNum);
-        if (lap && lap.time > 0) {
-          lapData[driver.driverName] = lap.time / 1000;
-        }
-      });
-
-      chartData.push(lapData);
-    }
-
-    return chartData;
   };
 
   return (
@@ -196,7 +93,6 @@ export default function RaceBrowserV0() {
             onChange={(date) => {
               setSelectedDate(date);
               setSelectedRace(null);
-              setSelectedDriver(null);
             }}
           />
         </div>
@@ -248,7 +144,7 @@ export default function RaceBrowserV0() {
       )}
 
       {/* Race Results Table */}
-      {selectedRace && !selectedDriver && (
+      {selectedRace && (
         <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-6">
           {loading && (
             <div className="text-center text-gray-400 py-8">Cargando resultados...</div>
@@ -259,96 +155,9 @@ export default function RaceBrowserV0() {
               raceDetails={raceDetails}
               onBack={() => {
                 setSelectedRace(null);
-                setSelectedDriver(null);
               }}
               showBackButton={true}
             />
-          )}
-        </div>
-      )}
-
-      {/* Driver Lap Details */}
-      {selectedDriver && (
-        <div className="bg-gradient-to-br from-racing-black/90 to-racing-black/70 border border-electric-blue/20 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-bold text-electric-blue mb-1">
-                👤 {selectedDriver.driverName} - Análisis de Vueltas
-              </h3>
-              <p className="text-sm text-sky-blue/60">
-                Posición: {selectedDriver.finalPosition} • Kart #{selectedDriver.kartNumber} • {selectedDriver.totalLaps} vueltas
-              </p>
-            </div>
-            <button
-              onClick={() => setSelectedDriver(null)}
-              className="text-electric-blue hover:text-cyan-400 font-bold"
-            >
-              ← Volver a resultados
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-4">
-              <div className="text-sm text-sky-blue/60 mb-1">Mejor Vuelta</div>
-              <div className="text-2xl font-mono font-bold text-karting-gold">
-                {formatTime(selectedDriver.bestTime)}
-              </div>
-            </div>
-            <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-4">
-              <div className="text-sm text-sky-blue/60 mb-1">Última Vuelta</div>
-              <div className="text-2xl font-mono font-bold text-electric-blue">
-                {formatTime(selectedDriver.lastTime)}
-              </div>
-            </div>
-            <div className="bg-racing-black/40 border border-electric-blue/20 rounded-lg p-4">
-              <div className="text-sm text-sky-blue/60 mb-1">Promedio</div>
-              <div className="text-2xl font-mono font-bold text-gray-300">
-                {formatTime(selectedDriver.averageTime)}
-              </div>
-            </div>
-          </div>
-
-          {selectedDriver.laps.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-electric-blue/30">
-                    <th className="text-left p-3 text-electric-blue">Vuelta</th>
-                    <th className="text-right p-3 text-electric-blue">Tiempo</th>
-                    <th className="text-center p-3 text-electric-blue">Posición</th>
-                    <th className="text-right p-3 text-electric-blue">Gap</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedDriver.laps
-                    .sort((a, b) => a.lapNumber - b.lapNumber)
-                    .map((lap: Lap, idx) => (
-                      <tr
-                        key={idx}
-                        className={`border-b border-sky-blue/10 ${
-                          lap.isPersonalBest ? 'bg-karting-gold/10' : ''
-                        }`}
-                      >
-                        <td className="p-3 text-white font-semibold">
-                          Vuelta {lap.lapNumber}
-                          {lap.isPersonalBest && <span className="ml-2 text-karting-gold">⭐</span>}
-                        </td>
-                        <td className={`p-3 text-right font-mono font-bold ${
-                          lap.isPersonalBest ? 'text-karting-gold' : 'text-electric-blue'
-                        }`}>
-                          {formatTime(lap.time)}
-                        </td>
-                        <td className="p-3 text-center text-sky-blue">P{lap.finalPosition}</td>
-                        <td className="p-3 text-right text-gray-400">{lap.gapToLeader || '-'}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center text-gray-400 py-8">
-              No hay datos de vueltas individuales para este piloto
-            </div>
           )}
         </div>
       )}
