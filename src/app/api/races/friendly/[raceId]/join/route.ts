@@ -3,6 +3,7 @@ import connectDB from '@/lib/mongodb';
 import WebUser from '@/models/WebUser';
 import FriendlyRace from '@/models/FriendlyRace';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,8 @@ export async function POST(
     }
 
     const { raceId } = await params;
-    const { kartNumber } = await req.json();
+    const body = await req.json();
+    let { kartNumber } = body;
 
     console.log('🏁 [JOIN-RACE] RaceId received:', raceId);
     console.log('🏁 [JOIN-RACE] KartNumber received:', kartNumber);
@@ -57,14 +59,6 @@ export async function POST(
       console.error('❌ [JOIN-RACE] Invalid raceId format:', raceId);
       return NextResponse.json(
         { success: false, error: 'ID de carrera inválido' },
-        { status: 400 }
-      );
-    }
-
-    // Validate kart number
-    if (!kartNumber || kartNumber < 1 || kartNumber > 20) {
-      return NextResponse.json(
-        { success: false, error: 'Número de kart inválido (1-20)' },
         { status: 400 }
       );
     }
@@ -97,39 +91,84 @@ export async function POST(
       );
     }
 
-    // Check if kart is already taken
-    const kartTaken = race.participants.some(
-      (p: any) => p.kartNumber === kartNumber
+    // Auto-assign kart if not provided
+    if (!kartNumber) {
+      const occupiedKarts = race.participants.map((p: any) => p.kartNumber);
+      const availableKarts = Array.from({ length: 20 }, (_, i) => i + 1)
+        .filter(kart => !occupiedKarts.includes(kart));
+
+      if (availableKarts.length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'No hay karts disponibles' },
+          { status: 400 }
+        );
+      }
+
+      // Assign random kart from available ones
+      kartNumber = availableKarts[Math.floor(Math.random() * availableKarts.length)];
+      console.log('🎲 [JOIN-RACE] Auto-assigned kart:', kartNumber);
+    } else {
+      // Validate kart number if provided
+      if (kartNumber < 1 || kartNumber > 20) {
+        return NextResponse.json(
+          { success: false, error: 'Número de kart inválido (1-20)' },
+          { status: 400 }
+        );
+      }
+
+      // Check if kart is already taken
+      const kartTaken = race.participants.some(
+        (p: any) => p.kartNumber === kartNumber
+      );
+      if (kartTaken) {
+        return NextResponse.json(
+          { success: false, error: 'Este kart ya está ocupado' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Use atomic update to prevent race conditions
+    const newParticipant = {
+      userId,
+      kartNumber,
+      joinedAt: new Date(),
+    };
+
+    const updatedRace = await FriendlyRace.findOneAndUpdate(
+      {
+        _id: raceId,
+        'participants.userId': { $ne: userId }, // User not already in race
+        $expr: { $lt: [{ $size: '$participants' }, '$maxParticipants'] }, // Not full
+      },
+      {
+        $push: { participants: newParticipant },
+      },
+      { new: true }
     );
-    if (kartTaken) {
+
+    if (!updatedRace) {
       return NextResponse.json(
-        { success: false, error: 'Este kart ya está ocupado' },
+        { success: false, error: 'No se pudo unir a la carrera. Puede estar llena o ya estás inscrito.' },
         { status: 400 }
       );
     }
 
-    // Add user to race
-    race.participants.push({
-      userId,
-      kartNumber,
-      joinedAt: new Date(),
-    });
-
     // Update status if full
-    if (race.participants.length >= race.maxParticipants) {
-      race.status = 'full';
+    if (updatedRace.participants.length >= updatedRace.maxParticipants) {
+      updatedRace.status = 'full';
+      await updatedRace.save();
     }
-
-    await race.save();
 
     console.log(`✅ [JOIN-RACE] User ${userId} joined race ${raceId} with kart ${kartNumber}`);
 
     return NextResponse.json({
       success: true,
       message: 'Te has unido a la carrera exitosamente',
+      kartNumber, // Return assigned kart number
       race: {
-        _id: race._id,
-        name: race.name,
+        _id: updatedRace._id,
+        name: updatedRace.name,
         kartNumber,
       },
     });

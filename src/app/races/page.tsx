@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
@@ -10,6 +10,7 @@ import JoinEventModal from '@/components/JoinEventModal';
 import Toast from '@/components/Toast';
 import LoginModal from '@/components/auth/LoginModal';
 import RegisterModal from '@/components/auth/RegisterModal';
+import RaceStatsModal from '@/components/RaceStatsModal';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 type ViewMode = 'selection' | 'championships' | 'championships-upcoming' | 'championships-past' | 'friendly' | 'friendly-upcoming' | 'friendly-past' | 'friendly-create' | 'my-registered-events';
@@ -32,6 +33,14 @@ interface Race {
   organizerId?: string;
   organizerName?: string;
   participantsList?: Participant[];
+  linkedRaceSessionId?: string;
+  raceStatus?: 'pending' | 'linked' | 'finalized';
+  results?: {
+    sessionId: string;
+    sessionName: string;
+    sessionDate: Date;
+    linkedAt: Date;
+  };
 }
 
 export default function RacesPage() {
@@ -988,12 +997,16 @@ function FriendlyUpcomingView({
     );
   }
 
-  // Filter upcoming races only
-  const upcomingRaces = races.filter(race => {
-    const raceDate = new Date(race.date);
-    const now = new Date();
-    return raceDate >= now;
-  });
+  // TEMPORARY: Show ALL races (including past) for testing inscription and scoring automation
+  // TODO: Restore date filter when testing is complete
+  const upcomingRaces = races; // Show all races regardless of date
+
+  // ORIGINAL CODE (commented out for testing):
+  // const upcomingRaces = races.filter(race => {
+  //   const raceDate = new Date(race.date);
+  //   const now = new Date();
+  //   return raceDate >= now;
+  // });
 
   if (isLoading) {
     return (
@@ -1072,6 +1085,7 @@ function FriendlyPastView({
   onLoginClick: () => void;
 }) {
   const { token } = useAuth();
+  const [selectedRace, setSelectedRace] = useState<Race | null>(null);
 
   // Check if user is not authenticated
   if (!token && !isLoading) {
@@ -1094,11 +1108,13 @@ function FriendlyPastView({
     );
   }
 
-  // Filter past races only
+  // Filter past races that are linked to sessions
   const pastRaces = races.filter(race => {
     const raceDate = new Date(race.date);
     const now = new Date();
-    return raceDate < now;
+    const isPast = raceDate < now;
+    const isLinked = race.linkedRaceSessionId && race.raceStatus === 'linked';
+    return isPast && isLinked;
   });
 
   if (isLoading) {
@@ -1115,31 +1131,43 @@ function FriendlyPastView({
       <div className="bg-gradient-to-br from-midnight via-slate-500/10 to-midnight border-2 border-slate-400/50 rounded-xl p-12 text-center">
         <div className="text-6xl mb-4">📚</div>
         <h3 className="text-2xl font-racing text-slate-300 mb-2">
-          NO HAY CARRERAS PASADAS
+          NO HAY CARRERAS VINCULADAS
         </h3>
         <p className="text-sky-blue/70 mb-6">
-          Aún no se han completado carreras amistosas
+          Las carreras amistosas pasadas aparecerán aquí una vez que el organizador las vincule con los resultados
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-3xl">📚</span>
-        <h2 className="text-2xl font-racing text-slate-300">
-          CARRERAS AMISTOSAS PASADAS
-        </h2>
+    <>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-3xl">📚</span>
+          <h2 className="text-2xl font-racing text-slate-300">
+            CARRERAS AMISTOSAS PASADAS
+          </h2>
+        </div>
+        {pastRaces.map((race) => (
+          <RaceCard
+            key={race._id}
+            race={race}
+            currentUserId={undefined}
+            onViewResults={() => setSelectedRace(race)}
+          />
+        ))}
       </div>
-      {pastRaces.map((race) => (
-        <RaceCard
-          key={race._id}
-          race={race}
-          currentUserId={undefined}
+
+      {/* Race Stats Modal */}
+      {selectedRace && selectedRace.linkedRaceSessionId && (
+        <RaceStatsModal
+          sessionId={selectedRace.linkedRaceSessionId}
+          friendlyRaceParticipants={selectedRace.participantsList || []}
+          onClose={() => setSelectedRace(null)}
         />
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 
@@ -1317,6 +1345,8 @@ function FriendlyCreateView({
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [raceName, setRaceName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [useCustomDate, setUseCustomDate] = useState(false);
+  const [customDateStr, setCustomDateStr] = useState('');
 
   // Generar próximos 14 días
   const getNext14Days = () => {
@@ -1325,6 +1355,18 @@ function FriendlyCreateView({
     for (let i = 0; i < 14; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
+      days.push(date);
+    }
+    return days;
+  };
+
+  // Generar últimos 30 días (para carreras pasadas)
+  const getLast30Days = () => {
+    const days = [];
+    const today = new Date();
+    for (let i = 30; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
       days.push(date);
     }
     return days;
@@ -1407,43 +1449,158 @@ function FriendlyCreateView({
           />
         </div>
 
+        {/* Date Selection Mode Toggle */}
+        <div className="mb-6">
+          <div className="flex gap-4 mb-4">
+            <button
+              onClick={() => {
+                setUseCustomDate(false);
+                setSelectedDate(null);
+                setCustomDateStr('');
+              }}
+              className={`flex-1 px-4 py-2 rounded-lg border-2 font-racing transition-all ${
+                !useCustomDate
+                  ? 'bg-electric-blue/30 border-electric-blue text-electric-blue'
+                  : 'bg-midnight/50 border-electric-blue/30 text-sky-blue/70 hover:border-electric-blue/60'
+              }`}
+            >
+              📅 PRÓXIMAS FECHAS
+            </button>
+            <button
+              onClick={() => {
+                setUseCustomDate(true);
+                setSelectedDate(null);
+              }}
+              className={`flex-1 px-4 py-2 rounded-lg border-2 font-racing transition-all ${
+                useCustomDate
+                  ? 'bg-yellow-500/30 border-yellow-400 text-yellow-400'
+                  : 'bg-midnight/50 border-yellow-400/30 text-sky-blue/70 hover:border-yellow-400/60'
+              }`}
+            >
+              ⏮️ FECHA PASADA
+            </button>
+          </div>
+        </div>
+
         {/* Date Selection */}
         <div className="mb-8">
           <label className="block text-electric-blue font-racing text-lg mb-3">
             📅 SELECCIONA LA FECHA
           </label>
-          <div className="grid grid-cols-7 gap-2">
-            {days14.map((date, index) => {
-              const isSelected = selectedDate?.toDateString() === date.toDateString();
-              const dayName = date.toLocaleDateString('es-CL', { weekday: 'short' }).toUpperCase();
-              const dayNumber = date.getDate();
-              const monthName = date.toLocaleDateString('es-CL', { month: 'short' }).toUpperCase();
 
-              return (
-                <button
-                  key={index}
-                  onClick={() => setSelectedDate(date)}
-                  className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
-                    isSelected
-                      ? 'bg-electric-blue/30 border-electric-blue shadow-lg shadow-electric-blue/50'
-                      : 'bg-midnight/50 border-electric-blue/30 hover:border-electric-blue/60'
-                  }`}
-                >
-                  <div className="text-center">
-                    <p className={`text-xs font-racing ${isSelected ? 'text-electric-blue' : 'text-sky-blue/50'}`}>
-                      {dayName}
-                    </p>
-                    <p className={`text-2xl font-bold font-digital ${isSelected ? 'text-electric-blue' : 'text-sky-blue'}`}>
-                      {dayNumber}
-                    </p>
-                    <p className={`text-xs ${isSelected ? 'text-electric-blue/70' : 'text-sky-blue/50'}`}>
-                      {monthName}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          {!useCustomDate ? (
+            <div className="grid grid-cols-7 gap-2">
+              {days14.map((date, index) => {
+                const isSelected = selectedDate?.toDateString() === date.toDateString();
+                const dayName = date.toLocaleDateString('es-CL', { weekday: 'short' }).toUpperCase();
+                const dayNumber = date.getDate();
+                const monthName = date.toLocaleDateString('es-CL', { month: 'short' }).toUpperCase();
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedDate(date)}
+                    className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
+                      isSelected
+                        ? 'bg-electric-blue/30 border-electric-blue shadow-lg shadow-electric-blue/50'
+                        : 'bg-midnight/50 border-electric-blue/30 hover:border-electric-blue/60'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <p className={`text-xs font-racing ${isSelected ? 'text-electric-blue' : 'text-sky-blue/50'}`}>
+                        {dayName}
+                      </p>
+                      <p className={`text-2xl font-bold font-digital ${isSelected ? 'text-electric-blue' : 'text-sky-blue'}`}>
+                        {dayNumber}
+                      </p>
+                      <p className={`text-xs ${isSelected ? 'text-electric-blue/70' : 'text-sky-blue/50'}`}>
+                        {monthName}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div>
+              <p className="text-yellow-400/70 text-sm mb-4">
+                💡 Selecciona la fecha en la que corriste para poder vincularla después
+              </p>
+
+              {/* Buscador de Calendario */}
+              <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-400/30 rounded-lg">
+                <label className="block text-yellow-400 font-racing text-sm mb-2">
+                  🗓️ BUSCAR FECHA ESPECÍFICA
+                </label>
+                <input
+                  type="date"
+                  max={new Date().toISOString().split('T')[0]}
+                  value={customDateStr}
+                  onChange={(e) => {
+                    setCustomDateStr(e.target.value);
+                    if (e.target.value) {
+                      const [year, month, day] = e.target.value.split('-').map(Number);
+                      const newDate = new Date(year, month - 1, day);
+                      setSelectedDate(newDate);
+                    }
+                  }}
+                  className="w-full px-4 py-3 bg-midnight/80 border-2 border-yellow-400/50 rounded-lg text-yellow-400 focus:border-yellow-400 focus:outline-none font-digital text-lg"
+                />
+                {selectedDate && customDateStr && (
+                  <p className="mt-2 text-yellow-400/70 text-sm">
+                    ✅ Fecha seleccionada: {selectedDate.toLocaleDateString('es-CL', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                )}
+              </div>
+
+              {/* Últimos 30 días (alternativa rápida) */}
+              <div>
+                <p className="text-sky-blue/50 text-xs mb-2 font-racing">
+                  O ELIGE DE LOS ÚLTIMOS 30 DÍAS:
+                </p>
+                <div className="grid grid-cols-7 gap-2">
+                  {getLast30Days().map((date, index) => {
+                    const isSelected = selectedDate?.toDateString() === date.toDateString();
+                    const dayName = date.toLocaleDateString('es-CL', { weekday: 'short' }).toUpperCase();
+                    const dayNumber = date.getDate();
+                    const monthName = date.toLocaleDateString('es-CL', { month: 'short' }).toUpperCase();
+
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setSelectedDate(date);
+                          setCustomDateStr(date.toISOString().split('T')[0]);
+                        }}
+                        className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
+                          isSelected
+                            ? 'bg-yellow-500/30 border-yellow-400 shadow-lg shadow-yellow-400/50'
+                            : 'bg-midnight/50 border-yellow-400/30 hover:border-yellow-400/60'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <p className={`text-xs font-racing ${isSelected ? 'text-yellow-400' : 'text-sky-blue/50'}`}>
+                            {dayName}
+                          </p>
+                          <p className={`text-2xl font-bold font-digital ${isSelected ? 'text-yellow-400' : 'text-sky-blue'}`}>
+                            {dayNumber}
+                          </p>
+                          <p className={`text-xs ${isSelected ? 'text-yellow-400/70' : 'text-sky-blue/50'}`}>
+                            {monthName}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Time Selection */}
@@ -1538,68 +1695,39 @@ function JoinRaceModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [selectedKart, setSelectedKart] = useState<number | null>(null);
   const [isJoining, setIsJoining] = useState(false);
-  const [occupiedKarts, setOccupiedKarts] = useState<number[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const hasAttemptedJoin = useRef(false);
 
+  // Auto-join on mount with random kart assignment (backend handles it)
   useEffect(() => {
-    fetchOccupiedKarts();
+    if (!hasAttemptedJoin.current) {
+      hasAttemptedJoin.current = true;
+      handleJoin();
+    }
   }, []);
 
-  const fetchOccupiedKarts = async () => {
-    try {
-      console.log('🔍 Fetching participants for race:', race._id);
-      console.log('🔑 Token exists:', !!token);
-
-      const response = await fetch(`/api/races/friendly/${race._id}/participants`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
-      console.log('📡 Participants response status:', response.status);
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('❌ Participants response error:', text);
-        setIsLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-      console.log('📦 Participants data:', data);
-
-      if (data.success) {
-        const karts = data.participants.map((p: any) => p.kartNumber).filter(Boolean);
-        setOccupiedKarts(karts);
-      }
-    } catch (error) {
-      console.error('Error fetching occupied karts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleJoin = async () => {
-    if (!selectedKart) {
-      alert('Por favor selecciona un kart');
+    if (!token) {
+      alert('No estás autenticado');
+      onClose();
       return;
     }
 
-    if (!token) {
-      alert('No estás autenticado');
+    if (isJoining) {
+      console.log('⚠️ Join already in progress, skipping');
       return;
     }
 
     setIsJoining(true);
     try {
-      console.log('🏁 Intentando unirse a carrera:', race._id, 'con kart:', selectedKart);
+      console.log('🏁 Intentando unirse a carrera:', race._id, '(kart asignado automáticamente)');
       const response = await fetch(`/api/races/friendly/${race._id}/join`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ kartNumber: selectedKart }),
+        body: JSON.stringify({}), // No kartNumber - backend assigns automatically
       });
 
       console.log('📡 Response status:', response.status);
@@ -1609,6 +1737,7 @@ function JoinRaceModal({
         console.error('❌ Join response error (raw):', text);
         alert(`Error al unirse: ${response.status} - ${text.substring(0, 100)}`);
         setIsJoining(false);
+        onClose();
         return;
       }
 
@@ -1616,145 +1745,35 @@ function JoinRaceModal({
       console.log('📦 Response data:', data);
 
       if (data.success) {
-        // Actualizar lista de karts ocupados antes de cerrar
-        setOccupiedKarts([...occupiedKarts, selectedKart]);
-        alert('¡Te has unido a la carrera exitosamente!');
+        alert(`¡Te has unido a la carrera exitosamente! Kart asignado: #${data.kartNumber}`);
         onSuccess();
       } else {
         alert(data.error || 'Error al unirse a la carrera');
+        onClose();
       }
     } catch (error) {
       console.error('❌ Error joining race:', error);
       alert('Error al unirse a la carrera: ' + (error instanceof Error ? error.message : String(error)));
+      onClose();
     } finally {
       setIsJoining(false);
     }
   };
 
-  const karts = Array.from({ length: 20 }, (_, i) => i + 1);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-4xl bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl p-8">
+      <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl p-8">
         <h3 className="text-3xl font-racing text-electric-blue mb-2 text-center">
-          🏎️ SELECCIONA TU KART
+          🏎️ UNIÉNDOSE A LA CARRERA
         </h3>
         <p className="text-sky-blue/70 text-center mb-6">
           {race.name}
         </p>
 
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin text-4xl mb-2">⚙️</div>
-            <p className="text-sky-blue/70">Cargando karts...</p>
-          </div>
-        ) : (
-          <>
-            {/* Kart Grid */}
-            <div className="grid grid-cols-5 gap-3 mb-6">
-              {karts.map((kartNumber) => {
-                const isOccupied = occupiedKarts.includes(kartNumber);
-                const isSelected = selectedKart === kartNumber;
-
-                return (
-                  <button
-                    key={kartNumber}
-                    onClick={() => !isOccupied && setSelectedKart(kartNumber)}
-                    disabled={isOccupied}
-                    style={{
-                      backgroundImage: isOccupied
-                        ? 'linear-gradient(135deg, rgba(127, 29, 29, 0.7), rgba(153, 27, 27, 0.6)), url(/images/Friendly-races/kart.png)'
-                        : isSelected
-                        ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.5), rgba(255, 215, 0, 0.3)), url(/images/Friendly-races/kart.png)'
-                        : 'linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(14, 165, 233, 0.2)), url(/images/Friendly-races/kart.png)',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    }}
-                    className={`p-4 rounded-lg border-4 transition-all relative overflow-hidden ${
-                      isOccupied
-                        ? 'border-red-500 cursor-not-allowed'
-                        : isSelected
-                        ? 'border-gold shadow-lg shadow-gold/50 scale-105'
-                        : 'border-electric-blue/30 hover:border-electric-blue hover:scale-105'
-                    }`}
-                  >
-                    {/* OCUPADO - Badge grande */}
-                    {isOccupied && (
-                      <div className="absolute top-0 left-0 right-0 bg-red-600 text-white text-xs font-bold py-1 text-center z-40">
-                        ❌ OCUPADO
-                      </div>
-                    )}
-
-                    {/* DISPONIBLE - Badge grande */}
-                    {!isOccupied && !isSelected && (
-                      <div className="absolute top-0 left-0 right-0 bg-green-600 text-white text-xs font-bold py-1 text-center z-40">
-                        ✅ DISPONIBLE
-                      </div>
-                    )}
-
-                    {/* SELECCIONADO - Badge grande */}
-                    {isSelected && (
-                      <div className="absolute top-0 left-0 right-0 bg-gold text-midnight text-xs font-bold py-1 text-center z-40">
-                        ⭐ SELECCIONADO
-                      </div>
-                    )}
-
-                    {/* Número del kart */}
-                    <div className="text-center relative z-10 mt-4">
-                      <p className="text-xs mb-1 font-bold text-sky-blue/70">KART</p>
-                      <p className={`text-5xl font-bold font-digital drop-shadow-lg ${
-                        isOccupied ? 'text-red-400' : isSelected ? 'text-gold' : 'text-electric-blue'
-                      }`}
-                      style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}
-                      >
-                        #{kartNumber}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Legend */}
-            <div className="flex justify-center gap-6 mb-6 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-electric-blue/30 border border-electric-blue rounded"></div>
-                <span className="text-sky-blue/70">Disponible</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gold/30 border border-gold rounded"></div>
-                <span className="text-sky-blue/70">Seleccionado</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-900/20 border border-red-500/50 rounded"></div>
-                <span className="text-sky-blue/70">Ocupado</span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-4">
-              <button
-                onClick={onClose}
-                disabled={isJoining}
-                className="flex-1 px-6 py-3 border-2 border-sky-blue/50 text-sky-blue rounded-lg hover:bg-sky-blue/10 transition-all disabled:opacity-50"
-              >
-                CANCELAR
-              </button>
-              <button
-                onClick={handleJoin}
-                disabled={!selectedKart || isJoining}
-                style={{
-                  backgroundColor: selectedKart && !isJoining ? '#FFD700' : '#333',
-                  color: selectedKart && !isJoining ? '#0a0a15' : '#666',
-                  cursor: !selectedKart || isJoining ? 'not-allowed' : 'pointer',
-                }}
-                className="flex-1 px-6 py-3 font-racing rounded-lg transition-all shadow-lg"
-              >
-                {isJoining ? 'UNIÉNDOTE...' : 'CONFIRMAR'}
-              </button>
-            </div>
-          </>
-        )}
+        <div className="text-center py-12">
+          <div className="animate-spin text-6xl mb-4">🏁</div>
+          <p className="text-sky-blue text-lg font-racing">Asignando kart automáticamente...</p>
+        </div>
       </div>
     </div>
   );
@@ -1767,12 +1786,14 @@ function RaceCard({
   onJoinClick,
   onDeleteClick,
   onConfirmClick,
+  onViewResults,
 }: {
   race: Race;
   currentUserId?: string;
   onJoinClick?: () => void;
   onDeleteClick?: () => void;
   onConfirmClick?: () => void;
+  onViewResults?: () => void;
 }) {
   const isChampionship = race.type === 'championship';
   const isCreator = currentUserId && race.organizerId === currentUserId;
@@ -1811,16 +1832,35 @@ function RaceCard({
             </p>
           )}
         </div>
-        <div
-          className={`px-3 py-1 rounded-lg text-xs font-racing ${
-            isChampionship
-              ? 'bg-cyan-400/20 text-cyan-400'
-              : 'bg-electric-blue/20 text-electric-blue'
-          }`}
-        >
-          {isChampionship ? '🏆 CAMPEONATO' : '🤝 AMISTOSA'}
+        <div className="flex gap-2">
+          <div
+            className={`px-3 py-1 rounded-lg text-xs font-racing ${
+              isChampionship
+                ? 'bg-cyan-400/20 text-cyan-400'
+                : 'bg-electric-blue/20 text-electric-blue'
+            }`}
+          >
+            {isChampionship ? '🏆 CAMPEONATO' : '🤝 AMISTOSA'}
+          </div>
+          {race.linkedRaceSessionId && (
+            <div className="px-3 py-1 rounded-lg text-xs font-racing bg-green-500/20 text-green-400 border border-green-400/30">
+              ✓ VINCULADA
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Mostrar info de sesión vinculada */}
+      {race.linkedRaceSessionId && race.results && (
+        <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-400/20">
+          <p className="text-xs text-green-400/70 mb-1 font-racing">📊 RESULTADOS DISPONIBLES</p>
+          <p className="text-sm text-green-300 font-medium">{race.results.sessionName}</p>
+          <p className="text-xs text-green-400/60">
+            {new Date(race.results.sessionDate).toLocaleDateString('es-CL')} • {' '}
+            {new Date(race.results.sessionDate).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: true })}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
@@ -1910,6 +1950,16 @@ function RaceCard({
               }`}
             >
               {isParticipant ? '✓ UNIDO' : 'UNIRME'}
+            </button>
+          )}
+
+          {/* Botón Ver Resultados (solo si está vinculada) */}
+          {race.linkedRaceSessionId && onViewResults && (
+            <button
+              onClick={onViewResults}
+              className="px-4 py-2 rounded-lg font-racing transition-all bg-green-500/20 border border-green-400/50 text-green-400 hover:bg-green-500/30"
+            >
+              📊 VER RESULTADOS
             </button>
           )}
         </div>
