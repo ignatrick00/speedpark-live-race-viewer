@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
 
 interface DriverResult {
@@ -88,7 +88,14 @@ export default function RaceStatsModal({ sessionId, friendlyRaceParticipants = [
     '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52BE80',
   ];
 
-  const preparePositionChartData = () => {
+  // Limit drivers in charts to top 10 for performance
+  const driversForCharts = useMemo(() => {
+    if (!raceDetails) return [];
+    return raceDetails.drivers.slice(0, 10);
+  }, [raceDetails]);
+
+  // Memoize chart data to prevent recalculation on every render
+  const positionChartData = useMemo(() => {
     if (!raceDetails || raceDetails.drivers.length === 0) return [];
 
     const maxLaps = Math.max(...raceDetails.drivers.map(d => d.laps?.length || 0));
@@ -108,9 +115,9 @@ export default function RaceStatsModal({ sessionId, friendlyRaceParticipants = [
     }
 
     return chartData;
-  };
+  }, [raceDetails]);
 
-  const prepareTimeChartData = () => {
+  const timeChartData = useMemo(() => {
     if (!raceDetails || raceDetails.drivers.length === 0) return [];
 
     const maxLaps = Math.max(...raceDetails.drivers.map(d => d.laps?.length || 0));
@@ -130,7 +137,7 @@ export default function RaceStatsModal({ sessionId, friendlyRaceParticipants = [
     }
 
     return chartData;
-  };
+  }, [raceDetails]);
 
   return (
     <div
@@ -236,12 +243,19 @@ export default function RaceStatsModal({ sessionId, friendlyRaceParticipants = [
 
             {/* Position Chart */}
             <div className="mb-8">
-              <h4 className="text-lg font-racing text-electric-blue mb-4">
-                📊 Evolución de Posiciones por Vuelta
-              </h4>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-racing text-electric-blue">
+                  📊 Evolución de Posiciones por Vuelta
+                </h4>
+                {raceDetails.drivers.length > 10 && (
+                  <p className="text-xs text-sky-blue/60">
+                    Mostrando top 10 pilotos
+                  </p>
+                )}
+              </div>
               <div className="bg-racing-black/50 border border-electric-blue/20 rounded-lg p-4">
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={preparePositionChartData()}>
+                  <LineChart data={positionChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
                     <XAxis
                       dataKey="lap"
@@ -254,7 +268,7 @@ export default function RaceStatsModal({ sessionId, friendlyRaceParticipants = [
                       label={{ value: 'Posición', angle: -90, position: 'insideLeft', fill: '#7dd3fc' }}
                     />
                     <Legend />
-                    {raceDetails.drivers.map((driver, idx) => (
+                    {driversForCharts.map((driver, idx) => (
                       <Line
                         key={driver.driverName}
                         type="monotone"
@@ -263,6 +277,7 @@ export default function RaceStatsModal({ sessionId, friendlyRaceParticipants = [
                         strokeWidth={highlightedDriver === driver.driverName ? 3 : 1}
                         opacity={highlightedDriver === null || highlightedDriver === driver.driverName ? 1 : 0.2}
                         dot={false}
+                        isAnimationActive={false}
                       />
                     ))}
                   </LineChart>
@@ -272,12 +287,19 @@ export default function RaceStatsModal({ sessionId, friendlyRaceParticipants = [
 
             {/* Time Chart */}
             <div>
-              <h4 className="text-lg font-racing text-electric-blue mb-4">
-                ⏱️ Evolución de Tiempos por Vuelta
-              </h4>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-racing text-electric-blue">
+                  ⏱️ Evolución de Tiempos por Vuelta
+                </h4>
+                {raceDetails.drivers.length > 10 && (
+                  <p className="text-xs text-sky-blue/60">
+                    Mostrando top 10 pilotos
+                  </p>
+                )}
+              </div>
               <div className="bg-racing-black/50 border border-electric-blue/20 rounded-lg p-4">
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={prepareTimeChartData()}>
+                  <LineChart data={timeChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
                     <XAxis
                       dataKey="lap"
@@ -288,7 +310,7 @@ export default function RaceStatsModal({ sessionId, friendlyRaceParticipants = [
                       stroke="#7dd3fc"
                     />
                     <Legend />
-                    {raceDetails.drivers.map((driver, idx) => (
+                    {driversForCharts.map((driver, idx) => (
                       <Line
                         key={driver.driverName}
                         type="monotone"
@@ -297,6 +319,7 @@ export default function RaceStatsModal({ sessionId, friendlyRaceParticipants = [
                         strokeWidth={highlightedDriver === driver.driverName ? 3 : 1}
                         opacity={highlightedDriver === null || highlightedDriver === driver.driverName ? 1 : 0.2}
                         dot={false}
+                        isAnimationActive={false}
                       />
                     ))}
                   </LineChart>
