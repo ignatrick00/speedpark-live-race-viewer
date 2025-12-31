@@ -65,6 +65,7 @@ export default function CarrerasAmistosasOrgPage() {
   const [raceSessions, setRaceSessions] = useState<RaceSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<RaceSession | null>(null);
   const [raceDetails, setRaceDetails] = useState<RaceDetails | null>(null);
+  const [sessionScores, setSessionScores] = useState<Record<string, any>>({});
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [linking, setLinking] = useState(false);
 
@@ -158,7 +159,7 @@ export default function CarrerasAmistosasOrgPage() {
 
   const searchRaceSessions = async (dateToSearch?: string) => {
     const searchDate = dateToSearch || searchFilters.date;
-    if (!searchDate) return;
+    if (!searchDate || !selectedFriendlyRace) return;
 
     try {
       setSearchingSessions(true);
@@ -183,7 +184,50 @@ export default function CarrerasAmistosasOrgPage() {
             );
           }
 
-          setRaceSessions(filtered);
+          // Load details for all sessions and calculate scores
+          const scores: Record<string, any> = {};
+          const sessionsWithDetails = await Promise.all(
+            filtered.map(async (session: RaceSession) => {
+              try {
+                const detailsResponse = await fetch(`/api/race-results-v0?sessionId=${encodeURIComponent(session.sessionId)}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (detailsResponse.ok) {
+                  const detailsData = await detailsResponse.json();
+                  if (detailsData.success) {
+                    const score = calculateMatchScore(
+                      selectedFriendlyRace.participantsList,
+                      detailsData.race.drivers,
+                      detailsData.race.totalDrivers
+                    );
+                    scores[session.sessionId] = score;
+                    return { session, score: score.score, details: detailsData.race };
+                  }
+                }
+                return { session, score: 0, details: null };
+              } catch (err) {
+                console.error(`Error loading details for session ${session.sessionId}:`, err);
+                return { session, score: 0, details: null };
+              }
+            })
+          );
+
+          // Sort by score (highest first)
+          sessionsWithDetails.sort((a, b) => b.score - a.score);
+          const sortedSessions = sessionsWithDetails.map(s => s.session);
+
+          setSessionScores(scores);
+          setRaceSessions(sortedSessions);
+
+          // Auto-select best match if score > 30%
+          if (sessionsWithDetails.length > 0 && sessionsWithDetails[0].score >= 30) {
+            const bestMatch = sessionsWithDetails[0];
+            setSelectedSession(bestMatch.session);
+            if (bestMatch.details) {
+              setRaceDetails(bestMatch.details);
+            }
+            console.log(`🎯 Auto-selected best match: ${bestMatch.session.sessionName} (Score: ${bestMatch.score}%)`);
+          }
         }
       }
     } catch (error) {
@@ -263,23 +307,56 @@ export default function CarrerasAmistosasOrgPage() {
     }
   }, [searchFilters.date, searchFilters.sessionType, searchFilters.search, showSearchModal]);
 
-  // Calculate participant name matches
-  const getMatchScore = (session: RaceSession) => {
-    if (!selectedFriendlyRace || !raceDetails) return 0;
+  // Calculate match score with percentage
+  const calculateMatchScore = (friendlyRaceParticipants: any[], sessionDrivers: any[], sessionTotalDrivers: number) => {
+    if (!friendlyRaceParticipants || friendlyRaceParticipants.length === 0) return 0;
 
-    const participantNames = selectedFriendlyRace.participantsList.map(p =>
-      p.name.toLowerCase()
-    );
+    const participantNames = friendlyRaceParticipants.map(p => p.name.toLowerCase());
+    const driverNames = sessionDrivers.map((d: any) => d.driverName.toLowerCase());
 
-    const driverNames = raceDetails.drivers.map(d =>
-      d.driverName.toLowerCase()
-    );
-
+    // Count matching names
     const matches = participantNames.filter(name =>
       driverNames.some(driver => driver.includes(name) || name.includes(driver))
     );
 
-    return matches.length;
+    // REQUIREMENT: Must match at least 2 participants
+    if (matches.length < 2) {
+      return {
+        score: 0,
+        matchedCount: matches.length,
+        totalParticipants: friendlyRaceParticipants.length,
+        percentage: Math.round((matches.length / friendlyRaceParticipants.length) * 100)
+      };
+    }
+
+    // 1. Participant match score (90% weight) - higher weight since time is approximate
+    const participantMatchRate = matches.length / friendlyRaceParticipants.length;
+    const participantScore = participantMatchRate * 90;
+
+    // 2. Driver count similarity (10% weight) - lower weight since time doesn't need to be exact
+    const driverDiff = Math.abs(friendlyRaceParticipants.length - sessionTotalDrivers);
+    const driverScore = Math.max(0, 10 - (driverDiff * 2)); // -2 points per driver difference
+
+    // 3. Total score
+    const totalScore = Math.round(participantScore + driverScore);
+
+    return {
+      score: totalScore,
+      matchedCount: matches.length,
+      totalParticipants: friendlyRaceParticipants.length,
+      percentage: Math.round(participantMatchRate * 100)
+    };
+  };
+
+  // Legacy function for backward compatibility
+  const getMatchScore = (session: RaceSession) => {
+    if (!selectedFriendlyRace || !raceDetails) return 0;
+    const result = calculateMatchScore(
+      selectedFriendlyRace.participantsList,
+      raceDetails.drivers,
+      raceDetails.totalDrivers
+    );
+    return result.matchedCount;
   };
 
   const getStatusBadge = (raceStatus: string) => {
@@ -417,8 +494,8 @@ export default function CarrerasAmistosasOrgPage() {
                       </div>
                     </div>
 
-                    {/* Show "Identificar Carrera" button only for pending races that already happened */}
-                    {race.raceStatus === 'pending' && new Date(race.date) < new Date() && (
+                    {/* Show "Identificar Carrera" button for all pending races */}
+                    {race.raceStatus === 'pending' && (
                       <button
                         onClick={() => openSearchModal(race)}
                         className="w-full px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg font-bold hover:from-cyan-600 hover:to-blue-600 transition-all"
@@ -526,9 +603,11 @@ export default function CarrerasAmistosasOrgPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {raceSessions.map((session) => {
+                    {raceSessions.map((session, idx) => {
                       const isSelected = selectedSession?.sessionId === session.sessionId;
                       const matchScore = isSelected && raceDetails ? getMatchScore(session) : 0;
+                      const scoreData = sessionScores[session.sessionId];
+                      const isBestMatch = idx === 0 && scoreData && scoreData.score >= 30;
 
                       return (
                         <div
@@ -540,12 +619,30 @@ export default function CarrerasAmistosasOrgPage() {
                           className={`p-4 rounded-lg cursor-pointer transition-all ${
                             isSelected
                               ? 'bg-cyan-500/20 border-2 border-cyan-400'
+                              : isBestMatch
+                              ? 'bg-green-500/10 border-2 border-green-400/50'
                               : 'bg-gray-800/50 border border-gray-700 hover:border-cyan-500/50'
                           }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <h4 className="font-bold text-white mb-1">{session.sessionName}</h4>
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-bold text-white">{session.sessionName}</h4>
+                                {isBestMatch && (
+                                  <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full">
+                                    🎯 Mejor Match
+                                  </span>
+                                )}
+                                {scoreData && scoreData.score > 0 && (
+                                  <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                                    scoreData.score >= 70 ? 'bg-green-500/20 text-green-300 border border-green-400/30' :
+                                    scoreData.score >= 40 ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-400/30' :
+                                    'bg-gray-500/20 text-gray-300 border border-gray-400/30'
+                                  }`}>
+                                    {scoreData.matchedCount}/{scoreData.totalParticipants} coinciden ({scoreData.percentage}%)
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-4 text-sm text-gray-400">
                                 <span>📅 {session.displayDate}</span>
                                 <span>🕐 {session.displayTime}</span>

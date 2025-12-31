@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import FriendlyRace from '@/models/FriendlyRace';
 import RaceSessionV0 from '@/models/RaceSessionV0';
+import WebUser from '@/models/WebUser';
 import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,29 @@ export async function POST(
     }
 
     console.log(`🔗 [LINK-SESSION] Linking friendly race ${raceId} with session ${raceSessionId}`);
+    console.log(`🔗 [LINK-SESSION] User ID: ${userId}`);
+
+    // Verify user has organizer/admin role
+    const user = await WebUser.findById(userId);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Usuario no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const userRoles = user.roles || [user.role];
+    const isOrganizer = userRoles.includes('organizer') || userRoles.includes('admin');
+
+    console.log(`🔗 [LINK-SESSION] User roles:`, userRoles);
+    console.log(`🔗 [LINK-SESSION] Is organizer:`, isOrganizer);
+
+    if (!isOrganizer) {
+      return NextResponse.json(
+        { success: false, error: 'Solo organizadores pueden vincular carreras' },
+        { status: 403 }
+      );
+    }
 
     // Get friendly race
     const friendlyRace = await FriendlyRace.findById(raceId);
@@ -63,13 +87,9 @@ export async function POST(
       );
     }
 
-    // Check if user is the creator
-    if (friendlyRace.createdBy.toString() !== userId) {
-      return NextResponse.json(
-        { success: false, error: 'Solo el creador puede vincular esta carrera' },
-        { status: 403 }
-      );
-    }
+    console.log(`🔗 [LINK-SESSION] Race created by: ${friendlyRace.createdBy}`);
+    console.log(`🔗 [LINK-SESSION] Current user: ${userId}`);
+    console.log(`🔗 [LINK-SESSION] Race name: ${friendlyRace.name}`);
 
     // Check if race is already linked
     if (friendlyRace.linkedRaceSessionId) {

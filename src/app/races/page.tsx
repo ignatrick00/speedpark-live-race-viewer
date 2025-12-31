@@ -10,7 +10,7 @@ import JoinEventModal from '@/components/JoinEventModal';
 import Toast from '@/components/Toast';
 import LoginModal from '@/components/auth/LoginModal';
 import RegisterModal from '@/components/auth/RegisterModal';
-import RaceStatsModal from '@/components/RaceStatsModal';
+import RaceResultsModal from '@/components/RaceResultsModal';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 type ViewMode = 'selection' | 'championships' | 'championships-upcoming' | 'championships-past' | 'friendly' | 'friendly-upcoming' | 'friendly-past' | 'friendly-create' | 'my-registered-events';
@@ -1157,9 +1157,9 @@ function FriendlyPastView({
         ))}
       </div>
 
-      {/* Race Stats Modal */}
+      {/* Race Results Modal */}
       {selectedRace && selectedRace.linkedRaceSessionId && (
-        <RaceStatsModal
+        <RaceResultsModal
           sessionId={selectedRace.linkedRaceSessionId}
           friendlyRaceParticipants={selectedRace.participantsList || []}
           onClose={() => setSelectedRace(null)}

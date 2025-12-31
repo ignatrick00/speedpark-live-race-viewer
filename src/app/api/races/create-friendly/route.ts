@@ -82,14 +82,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate date is in the future
+    // Parse race date (allow past dates for organizers to link with historical races)
     const raceDate = new Date(date);
-    if (raceDate < new Date()) {
-      return NextResponse.json(
-        { success: false, error: 'La fecha debe ser futura' },
-        { status: 400 }
-      );
-    }
 
     // Create race with creator's selected kart and all required fields
     const race = await FriendlyRace.create({
