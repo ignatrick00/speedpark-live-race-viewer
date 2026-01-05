@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PersonalStatsCard from '@/components/PersonalStatsCard';
@@ -45,7 +45,8 @@ export interface PersonalStats {
   }>;
 }
 
-export default function DashboardPage() {
+// Wrapper component to handle searchParams with Suspense
+function DashboardContent() {
   const { user, stats: authStats, isLoading, isAuthenticated, token } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -943,5 +944,21 @@ export default function DashboardPage() {
         userFullName={`${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`}
       />
     </div>
+  );
+}
+
+// Main export with Suspense boundary
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-midnight via-racing-black to-midnight flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-electric-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-electric-blue text-xl font-racing">Cargando dashboard...</p>
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }
