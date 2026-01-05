@@ -16,13 +16,27 @@ interface DriverData {
 export class StatsService {
 
   /**
-   * Get hour and weekday from date
-   * MongoDB already stores dates with Chile timezone, so we just use getHours/getDay directly
+   * Adjust hour to Chile time
+   * Issue: Race at 19:58 Chile is stored as 16:58 in DB (3 hours less)
+   * Solution: Add 3 hours to get the real Chile time
    */
   private static toChileTime(date: Date): { hour: number, weekday: number, date: Date } {
+    const dbHour = date.getHours();
+    const dbDay = date.getDay();
+
+    // Add 3 hours to compensate for the offset
+    let chileHour = dbHour + 3;
+    let chileDay = dbDay;
+
+    // Handle day boundary crossing (if hour goes past 23:59)
+    if (chileHour >= 24) {
+      chileHour -= 24;
+      chileDay = (dbDay + 1) % 7; // Next day
+    }
+
     return {
-      hour: date.getHours(),
-      weekday: date.getDay(),
+      hour: chileHour,
+      weekday: chileDay,
       date: date
     };
   }
