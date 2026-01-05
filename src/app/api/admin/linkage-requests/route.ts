@@ -173,56 +173,75 @@ export async function PATCH(request: NextRequest) {
         requestId: id,
         webUserId: linkageRequest.webUserId,
         driverRaceDataId: linkageRequest.driverRaceDataId,
+        selectedDriverName: linkageRequest.selectedDriverName,
+        selectedSessionId: linkageRequest.selectedSessionId,
       });
 
       const user = await WebUser.findById(linkageRequest.webUserId);
-      const driver = await DriverRaceData.findById(linkageRequest.driverRaceDataId);
 
-      console.log('📊 Found user:', user ? user.email : 'NOT FOUND');
-      console.log('📊 Found driver:', driver ? driver.driverName : 'NOT FOUND');
-
-      if (!user || !driver) {
-        console.error('❌ User or driver not found!');
+      if (!user) {
+        console.error('❌ User not found!');
         return NextResponse.json(
-          { error: 'Usuario o perfil de corredor no encontrado' },
+          { error: 'Usuario no encontrado' },
           { status: 404 }
         );
       }
 
+      console.log('📊 Found user:', user.email);
+      console.log('📊 Checking for driver:', linkageRequest.selectedDriverName);
+
       // Check if user is already linked
-      if (user.kartingLink.status === 'linked' && user.kartingLink.personId) {
+      if (user.kartingLink.status === 'linked' && user.kartingLink.driverName) {
         return NextResponse.json(
           { error: 'Este usuario ya está vinculado a otro perfil' },
           { status: 400 }
         );
       }
 
-      // Check if driver is already linked
-      if (driver.linkingStatus === 'linked' && driver.webUserId && driver.webUserId !== user._id.toString()) {
+      // Verify that the driver name exists in race_sessions_v0
+      const RaceSessionV0 = (await import('@/models/RaceSessionV0')).default;
+      const driverExists = await RaceSessionV0.findOne({
+        'drivers.driverName': { $regex: new RegExp(`^${linkageRequest.selectedDriverName}$`, 'i') }
+      }).lean();
+
+      if (!driverExists) {
+        console.error('❌ Driver name not found in race sessions!');
+        return NextResponse.json(
+          { error: 'Nombre de corredor no encontrado en el sistema' },
+          { status: 404 }
+        );
+      }
+
+      console.log('✅ Driver name verified in race sessions');
+
+      // Check if driver name is already linked to another user
+      const existingLink = await WebUser.findOne({
+        'kartingLink.driverName': linkageRequest.selectedDriverName,
+        'kartingLink.status': 'linked',
+        _id: { $ne: user._id }
+      });
+
+      if (existingLink) {
+        console.error('❌ Driver already linked to another user!');
         return NextResponse.json(
           { error: 'Este perfil de corredor ya está vinculado a otro usuario' },
           { status: 400 }
         );
       }
 
-      // Perform the linkage
+      // Perform the linkage - NEW SYSTEM (driverName-based)
       user.kartingLink = {
-        personId: driver._id.toString(),
+        driverName: linkageRequest.selectedDriverName,
         linkedAt: new Date(),
         status: 'linked',
         speedParkProfile: {
-          driverName: driver.driverName,
-          totalRaces: driver.stats.totalRaces,
+          driverName: linkageRequest.selectedDriverName,
+          totalRaces: 0, // Will be populated from stats
         },
       };
 
-      driver.webUserId = user._id.toString();
-      driver.linkingStatus = 'linked';
-      driver.linkingMethod = 'manual_link';
-      driver.linkingConfidence = 'high';
-
       await user.save();
-      await driver.save();
+      console.log('✅ User linked successfully to driver:', linkageRequest.selectedDriverName);
 
       linkageRequest.status = 'approved';
       linkageRequest.reviewedAt = new Date();
