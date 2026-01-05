@@ -23,15 +23,14 @@ export async function GET(request: Request) {
 
     if (period === 'day') {
       // Si hay un parámetro de fecha específico, usarlo
-      const targetDate = dateParam ? new Date(dateParam + 'T00:00:00-03:00') : null;
+      if (dateParam) {
+        // Parsear fecha en UTC (sin timezone) para evitar desfase
+        // dateParam viene como "2026-01-05" (YYYY-MM-DD)
+        const [year, month, day] = dateParam.split('-').map(Number);
 
-      if (targetDate && !isNaN(targetDate.getTime())) {
-        // Fecha específica seleccionada por el usuario
-        const startOfDay = new Date(targetDate);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date(targetDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        // Crear rango de 00:00:00 a 23:59:59 en UTC
+        const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
 
         dateFilter = {
           sessionDate: {
