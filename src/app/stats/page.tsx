@@ -132,6 +132,10 @@ export default function StatsPage() {
 
       try {
         const { start, end } = getDateRange()
+        console.log(`📅 Date range selected: ${dateRange}`)
+        console.log(`  Start: ${start.toISOString()} (${start.toLocaleString('es-CL')})`)
+        console.log(`  End: ${end.toISOString()} (${end.toLocaleString('es-CL')})`)
+
         const params = new URLSearchParams()
         if (start) params.append('startDate', start.toISOString())
         if (end) params.append('endDate', end.toISOString())
