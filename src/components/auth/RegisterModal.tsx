@@ -17,7 +17,6 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    alias: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -60,7 +59,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
         formData.password,
         formData.firstName,
         formData.lastName,
-        formData.alias || undefined
+        undefined // No alias - se obtiene automáticamente al vincular con el timing
       );
       
       if (result.success) {
@@ -94,7 +93,6 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
       confirmPassword: '',
       firstName: '',
       lastName: '',
-      alias: '',
     });
     setError('');
     setSuccess('');
@@ -216,21 +214,6 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
                 placeholder="Cabrera"
               />
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="alias" className="block text-sm font-digital text-sky-blue mb-1">
-              ALIAS DE CARRERA <span className="text-sky-blue/50">(Opcional)</span>
-            </label>
-            <input
-              type="text"
-              id="alias"
-              name="alias"
-              value={formData.alias}
-              onChange={handleChange}
-              className="w-full px-4 py-2 bg-midnight border border-rb-blue/50 rounded-md text-electric-blue placeholder-sky-blue/50 font-digital focus:outline-none focus:ring-2 focus:ring-electric-blue focus:border-electric-blue transition-all"
-              placeholder="Speed Racer"
-            />
           </div>
 
           <div>
