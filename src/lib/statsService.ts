@@ -14,7 +14,20 @@ interface DriverData {
 }
 
 export class StatsService {
-  
+
+  /**
+   * Convert UTC date to Chile timezone (America/Santiago = UTC-3)
+   */
+  private static toChileTime(date: Date): { hour: number, weekday: number, date: Date } {
+    // Convertir a hora de Chile usando toLocaleString
+    const chileDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+    return {
+      hour: chileDate.getHours(),
+      weekday: chileDate.getDay(),
+      date: chileDate
+    };
+  }
+
   /**
    * Record a new session ONLY in JSON (for billing/stats)
    * MongoDB saving is now handled by race_sessions_v0 via /api/lap-capture
@@ -271,7 +284,7 @@ export class StatsService {
 
       sessionsToday.forEach((s: any) => {
         const sessionDate = new Date(s.sessionDate);
-        const hour = sessionDate.getHours();
+        const { hour } = this.toChileTime(sessionDate);
         const drivers = s.drivers?.length || 0;
         hourlyRevenue[hour].revenue += drivers * 17000;
         hourlyRevenue[hour].sessions += 1;
@@ -400,8 +413,7 @@ export class StatsService {
 
       sessions.forEach((s: any) => {
         const date = new Date(s.sessionDate);
-        const hour = date.getHours();
-        const weekday = date.getDay();
+        const { hour, weekday } = this.toChileTime(date);
         const driversCount = s.drivers?.length || 0;
         const revenue = driversCount * 17000;
 
@@ -463,12 +475,11 @@ export class StatsService {
 
       sessions.forEach((s: any) => {
         const date = new Date(s.sessionDate);
-        const hour = date.getHours();
-        const weekday = date.getDay();
+        const { hour, weekday } = this.toChileTime(date);
         const driversCount = s.drivers?.length || 0;
         const revenue = driversCount * 17000;
 
-        console.log(`  📅 Session: ${s.sessionName} - ${date.toISOString()} - Day: ${weekday} (${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][weekday]}) - Hour: ${hour}:00`);
+        console.log(`  📅 Session: ${s.sessionName} - UTC: ${date.toISOString()} - Chile: Day ${weekday} (${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][weekday]}) ${hour}:00`);
 
         heatmap[weekday][hour].sessions += 1;
         heatmap[weekday][hour].drivers += driversCount;
