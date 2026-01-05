@@ -25,13 +25,19 @@ export async function GET(request: NextRequest) {
     const filterSession = searchParams.get('session');
     const filterDateFrom = searchParams.get('dateFrom');
     const filterDateTo = searchParams.get('dateTo');
+    const sortBy = searchParams.get('sortBy') || 'date'; // 'date' or 'bestTime'
+    const top10Mode = searchParams.get('top10') === 'true'; // Top 10 histórico
 
     await connectDB();
 
     // Construir query
     const query: any = {};
 
-    if (filterValid !== null && filterValid !== undefined) {
+    // En modo Top 10, forzar solo válidos
+    if (top10Mode) {
+      query.isValid = true;
+      query.bestTime = { $gt: 0 }; // Solo tiempos reales
+    } else if (filterValid !== null && filterValid !== undefined) {
       query.isValid = filterValid === 'true';
     }
 
@@ -55,13 +61,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Determinar ordenamiento
+    const sortOption = sortBy === 'bestTime'
+      ? { bestTime: 1 } // Ascendente (mejores primero)
+      : { timestamp: -1 }; // Descendente (más recientes primero)
+
     // Obtener registros con paginación
-    const skip = (page - 1) * limit;
+    const skip = top10Mode ? 0 : (page - 1) * limit;
+    const recordLimit = top10Mode ? 10 : limit;
+
     const [records, totalRecords, validCount, invalidCount] = await Promise.all([
       LapRecord.find(query)
-        .sort({ timestamp: -1 })
+        .sort(sortOption)
         .skip(skip)
-        .limit(limit)
+        .limit(recordLimit)
         .lean(),
       LapRecord.countDocuments(query),
       LapRecord.countDocuments({ ...query, isValid: true }),

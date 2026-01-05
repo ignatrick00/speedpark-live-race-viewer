@@ -37,6 +37,8 @@ export default function LapTimesAdminPage() {
   const [filterValid, setFilterValid] = useState<string>('all');
   const [filterDriver, setFilterDriver] = useState('');
   const [filterSession, setFilterSession] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'bestTime'>('date');
+  const [top10Mode, setTop10Mode] = useState(false);
 
   // Config editing
   const [minLapTimeSeconds, setMinLapTimeSeconds] = useState(35);
@@ -57,7 +59,7 @@ export default function LapTimesAdminPage() {
   // Cargar registros
   useEffect(() => {
     loadRecords();
-  }, [page, filterValid, filterDriver, filterSession]);
+  }, [page, filterValid, filterDriver, filterSession, sortBy, top10Mode]);
 
   const loadConfig = async () => {
     try {
@@ -80,17 +82,22 @@ export default function LapTimesAdminPage() {
 
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '50'
+        limit: '50',
+        sortBy: sortBy
       });
 
-      if (filterValid !== 'all') {
-        params.append('valid', filterValid);
-      }
-      if (filterDriver) {
-        params.append('driver', filterDriver);
-      }
-      if (filterSession) {
-        params.append('session', filterSession);
+      if (top10Mode) {
+        params.set('top10', 'true');
+      } else {
+        if (filterValid !== 'all') {
+          params.append('valid', filterValid);
+        }
+        if (filterDriver) {
+          params.append('driver', filterDriver);
+        }
+        if (filterSession) {
+          params.append('session', filterSession);
+        }
       }
 
       const res = await fetch(`/api/admin/lap-times?${params}`);
@@ -106,6 +113,21 @@ export default function LapTimesAdminPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const enableTop10Mode = () => {
+    setTop10Mode(true);
+    setSortBy('bestTime');
+    setPage(1);
+    setFilterValid('all');
+    setFilterDriver('');
+    setFilterSession('');
+  };
+
+  const disableTop10Mode = () => {
+    setTop10Mode(false);
+    setSortBy('date');
+    setPage(1);
   };
 
   const updateConfig = async () => {
@@ -298,55 +320,102 @@ export default function LapTimesAdminPage() {
             </div>
           </div>
 
+          {/* Top 10 Mode Toggle */}
+          <div className="mb-6">
+            {!top10Mode ? (
+              <button
+                onClick={enableTop10Mode}
+                className="w-full py-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50 hover:border-yellow-500/80 rounded-xl font-bold text-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+              >
+                🏆 Ver Top 10 Mejores Tiempos Históricos
+              </button>
+            ) : (
+              <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50 rounded-xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">🏆</span>
+                    <div>
+                      <h3 className="text-xl font-bold text-yellow-400">Top 10 Mejores Tiempos Históricos</h3>
+                      <p className="text-sm text-gray-400">Mostrando los 10 mejores tiempos válidos de todos los tiempos</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={disableTop10Mode}
+                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition"
+                  >
+                    ← Ver Todos
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Filters */}
-          <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 mb-6">
-            <h3 className="font-bold mb-4">🔍 Filtros</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm mb-2">Estado</label>
-                <select
-                  value={filterValid}
-                  onChange={(e) => {
-                    setFilterValid(e.target.value);
-                    setPage(1);
-                  }}
-                  className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg"
-                >
-                  <option value="all">Todos</option>
-                  <option value="true">Válidos</option>
-                  <option value="false">Inválidos</option>
-                </select>
-              </div>
+          {!top10Mode && (
+            <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 mb-6">
+              <h3 className="font-bold mb-4">🔍 Filtros y Ordenamiento</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm mb-2">Ordenar por</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => {
+                      setSortBy(e.target.value as 'date' | 'bestTime');
+                      setPage(1);
+                    }}
+                    className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg"
+                  >
+                    <option value="date">📅 Más reciente</option>
+                    <option value="bestTime">⏱️ Mejor tiempo</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-sm mb-2">Piloto</label>
-                <input
-                  type="text"
-                  value={filterDriver}
-                  onChange={(e) => {
-                    setFilterDriver(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Buscar por nombre..."
-                  className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm mb-2">Estado</label>
+                  <select
+                    value={filterValid}
+                    onChange={(e) => {
+                      setFilterValid(e.target.value);
+                      setPage(1);
+                    }}
+                    className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="true">Válidos</option>
+                    <option value="false">Inválidos</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-sm mb-2">Sesión</label>
-                <input
-                  type="text"
-                  value={filterSession}
-                  onChange={(e) => {
-                    setFilterSession(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Buscar por sesión..."
-                  className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg"
-                />
+                <div>
+                  <label className="block text-sm mb-2">Piloto</label>
+                  <input
+                    type="text"
+                    value={filterDriver}
+                    onChange={(e) => {
+                      setFilterDriver(e.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="Buscar por nombre..."
+                    className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-2">Sesión</label>
+                  <input
+                    type="text"
+                    value={filterSession}
+                    onChange={(e) => {
+                      setFilterSession(e.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="Buscar por sesión..."
+                    className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Records Table */}
           <div className="bg-gray-900/50 border border-gray-700 rounded-lg overflow-hidden">
@@ -354,6 +423,7 @@ export default function LapTimesAdminPage() {
               <table className="w-full">
                 <thead className="bg-gray-800">
                   <tr>
+                    {top10Mode && <th className="px-4 py-3 text-left">Ranking</th>}
                     <th className="px-4 py-3 text-left">Estado</th>
                     <th className="px-4 py-3 text-left">Fecha</th>
                     <th className="px-4 py-3 text-left">Sesión</th>
@@ -361,7 +431,7 @@ export default function LapTimesAdminPage() {
                     <th className="px-4 py-3 text-left">Vuelta</th>
                     <th className="px-4 py-3 text-left">Mejor Tiempo</th>
                     <th className="px-4 py-3 text-left">Kart</th>
-                    <th className="px-4 py-3 text-left">Pos</th>
+                    {!top10Mode && <th className="px-4 py-3 text-left">Pos</th>}
                     <th className="px-4 py-3 text-center">Acciones</th>
                   </tr>
                 </thead>
@@ -379,17 +449,31 @@ export default function LapTimesAdminPage() {
                       </td>
                     </tr>
                   ) : (
-                    records.map((record) => {
+                    records.map((record, index) => {
                       const isBelowMin = config && record.bestTime < config.minLapTime;
                       const isAboveMax = config && config.maxLapTime && record.bestTime > config.maxLapTime;
+                      const rankingPosition = index + 1;
+                      const getMedal = (pos: number) => {
+                        if (pos === 1) return '🥇';
+                        if (pos === 2) return '🥈';
+                        if (pos === 3) return '🥉';
+                        return `#${pos}`;
+                      };
 
                       return (
                         <tr
                           key={record._id}
                           className={`border-t border-gray-800 hover:bg-gray-800/50 ${
                             !record.isValid || isBelowMin || isAboveMax ? 'bg-red-500/5' : ''
-                          }`}
+                          } ${top10Mode && rankingPosition <= 3 ? 'bg-yellow-500/5' : ''}`}
                         >
+                          {top10Mode && (
+                            <td className="px-4 py-3">
+                              <span className="text-2xl font-bold">
+                                {getMedal(rankingPosition)}
+                              </span>
+                            </td>
+                          )}
                           <td className="px-4 py-3">
                             {record.isValid ? (
                               <span className="inline-block px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">
@@ -413,11 +497,11 @@ export default function LapTimesAdminPage() {
                           <td className="px-4 py-3 text-sm">{record.sessionName}</td>
                           <td className="px-4 py-3 font-medium">{record.driverName}</td>
                           <td className="px-4 py-3">#{record.lapNumber}</td>
-                          <td className="px-4 py-3 font-mono text-cyan-400">
+                          <td className={`px-4 py-3 font-mono ${top10Mode && rankingPosition <= 3 ? 'text-yellow-400 font-bold text-lg' : 'text-cyan-400'}`}>
                             {formatTime(record.bestTime)}
                           </td>
                           <td className="px-4 py-3">#{record.kartNumber}</td>
-                          <td className="px-4 py-3">{record.position}°</td>
+                          {!top10Mode && <td className="px-4 py-3">{record.position}°</td>}
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-center gap-2">
                               <button
@@ -445,7 +529,7 @@ export default function LapTimesAdminPage() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {!top10Mode && totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 p-4 border-t border-gray-800">
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
