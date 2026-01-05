@@ -101,7 +101,13 @@ export default function LapTimesAdminPage() {
       }
 
       console.log('🔍 Fetching:', `/api/admin/lap-times?${params}`);
-      const res = await fetch(`/api/admin/lap-times?${params}`);
+      const res = await fetch(`/api/admin/lap-times?${params}`, {
+        credentials: 'include', // Importante: incluir cookies
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('📡 Response status:', res.status, res.statusText);
       const data = await res.json();
 
       console.log('📦 API Response:', data);
