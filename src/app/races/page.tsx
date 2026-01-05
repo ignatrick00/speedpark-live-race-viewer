@@ -314,6 +314,7 @@ export default function RacesPage() {
             onSelectPast={() => setViewMode('friendly-past')}
             onSelectCreate={() => setViewMode('friendly-create')}
             onBack={() => setViewMode('selection')}
+            upcomingFriendlyCount={friendlyRaces.filter(r => new Date(r.date) >= new Date()).length}
           />
         )}
 
@@ -831,11 +832,13 @@ function FriendlySelectionView({
   onSelectPast,
   onSelectCreate,
   onBack,
+  upcomingFriendlyCount = 0,
 }: {
   onSelectUpcoming: () => void;
   onSelectPast: () => void;
   onSelectCreate: () => void;
   onBack: () => void;
+  upcomingFriendlyCount?: number;
 }) {
   return (
     <div>
@@ -845,6 +848,18 @@ function FriendlySelectionView({
           onClick={onSelectUpcoming}
           className="group relative bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue rounded-2xl p-10 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-electric-blue/50"
         >
+          {/* Badge de notificación */}
+          {upcomingFriendlyCount > 0 && (
+            <div className="absolute -top-3 -right-3 z-10">
+              <div className="relative">
+                <div className="absolute inset-0 bg-red-500 rounded-full blur-md animate-pulse"></div>
+                <div className="relative bg-gradient-to-br from-red-500 to-red-600 text-white font-racing text-lg font-bold rounded-full w-14 h-14 flex items-center justify-center border-4 border-midnight shadow-lg">
+                  {upcomingFriendlyCount}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="text-center">
             <div className="text-7xl mb-4 group-hover:scale-110 transition-transform">
               🏁
@@ -855,6 +870,11 @@ function FriendlySelectionView({
             <p className="text-sky-blue/70 text-sm mb-4">
               Carreras amistosas disponibles
             </p>
+            {upcomingFriendlyCount > 0 && (
+              <p className="text-gold font-racing text-sm mb-2 animate-pulse">
+                🔥 {upcomingFriendlyCount} {upcomingFriendlyCount === 1 ? 'carrera disponible' : 'carreras disponibles'}
+              </p>
+            )}
             <div className="inline-block px-4 py-2 bg-electric-blue/20 border border-electric-blue/50 text-electric-blue rounded-lg font-racing text-sm">
               VER PRÓXIMAS
             </div>
