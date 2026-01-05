@@ -105,15 +105,18 @@ export default function DashboardPage() {
   const loadFriendProfile = async () => {
     if (!viewingUserId || !token) return;
     try {
+      console.log('🔍 [FRIEND-PROFILE] Loading profile for userId:', viewingUserId);
       const response = await fetch(`/api/users/${viewingUserId}/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      if (data.success) {
+      console.log('👤 [FRIEND-PROFILE] Response:', data);
+      if (data.success && data.user) {
         setFriendProfile(data.user);
+        console.log('✅ [FRIEND-PROFILE] Profile loaded:', data.user);
       }
     } catch (error) {
-      console.error('Error loading friend profile:', error);
+      console.error('❌ [FRIEND-PROFILE] Error loading friend profile:', error);
     }
   };
 
@@ -696,9 +699,16 @@ export default function DashboardPage() {
                           Nombre de Piloto:
                         </td>
                         <td className="py-4 px-6 text-white font-bold text-lg">
-                          {isViewingFriend && friendProfile
-                            ? `${friendProfile.firstName} ${friendProfile.lastName}`
-                            : `${user.profile.firstName} ${user.profile.lastName}`}
+                          {(() => {
+                            console.log('🔍 [RENDER] isViewingFriend:', isViewingFriend);
+                            console.log('🔍 [RENDER] friendProfile:', friendProfile);
+                            console.log('🔍 [RENDER] user:', user);
+
+                            if (isViewingFriend && friendProfile) {
+                              return `${friendProfile.firstName} ${friendProfile.lastName}`;
+                            }
+                            return user?.profile ? `${user.profile.firstName} ${user.profile.lastName}` : '';
+                          })()}
                         </td>
                       </tr>
                       <tr className="border-b border-blue-800/30">
