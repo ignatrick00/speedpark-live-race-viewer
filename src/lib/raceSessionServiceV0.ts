@@ -261,9 +261,24 @@ export class RaceSessionServiceV0 {
     if (nameLower.includes('clasificacion') || nameLower.includes('qualifying')) {
       return 'clasificacion';
     }
+
+    // 🏁 VALIDACIÓN ESTRICTA DE CARRERAS
+    // Solo aceptar "Carrera" o "Carrera Premium" - NO otras pistas/categorías
     if (nameLower.includes('carrera') || nameLower.includes('race')) {
-      return 'carrera';
+      // Excluir carreras de otras pistas/configuraciones/categorías
+      const invalidKeywords = [
+        'f1', 'k 1', 'k 2', 'k 3', 'k1', 'k2', 'k3',
+        'gt', 'mujeres', 'women', 'junior'
+      ];
+      const hasInvalidKeyword = invalidKeywords.some(keyword => nameLower.includes(keyword));
+
+      if (hasInvalidKeyword) {
+        return 'otro'; // No es carrera válida para ranking principal
+      }
+
+      return 'carrera'; // ✅ Carrera válida (normal o premium)
     }
+
     if (nameLower.includes('practica') || nameLower.includes('practice')) {
       return 'practica';
     }
