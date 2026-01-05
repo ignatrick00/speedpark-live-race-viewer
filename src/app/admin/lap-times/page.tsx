@@ -503,22 +503,28 @@ export default function LapTimesAdminPage() {
                           <td className="px-4 py-3">#{record.kartNumber}</td>
                           {!top10Mode && <td className="px-4 py-3">{record.position}°</td>}
                           <td className="px-4 py-3">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => toggleValidity(record._id, record.isValid)}
-                                className="px-2 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs rounded transition"
-                                title={record.isValid ? 'Marcar como inválido' : 'Marcar como válido'}
-                              >
-                                {record.isValid ? '⊗' : '✓'}
-                              </button>
-                              <button
-                                onClick={() => deleteRecord(record._id)}
-                                className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded transition"
-                                title="Eliminar registro"
-                              >
-                                🗑️
-                              </button>
-                            </div>
+                            {top10Mode ? (
+                              <div className="text-center text-xs text-gray-500">
+                                Solo lectura
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => toggleValidity(record._id, record.isValid)}
+                                  className="px-2 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs rounded transition"
+                                  title={record.isValid ? 'Marcar como inválido' : 'Marcar como válido'}
+                                >
+                                  {record.isValid ? '⊗' : '✓'}
+                                </button>
+                                <button
+                                  onClick={() => deleteRecord(record._id)}
+                                  className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded transition"
+                                  title="Eliminar registro"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import LapRecord from '@/models/LapRecord';
+import RaceSessionV0 from '@/models/RaceSessionV0';
 import { verifyAdmin } from '@/lib/authHelpers';
 
 // GET: Obtener todos los registros de tiempos con filtros
@@ -18,84 +18,93 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const filterValid = searchParams.get('valid'); // 'true', 'false', or null (all)
-    const filterDriver = searchParams.get('driver');
-    const filterSession = searchParams.get('session');
-    const filterDateFrom = searchParams.get('dateFrom');
-    const filterDateTo = searchParams.get('dateTo');
     const sortBy = searchParams.get('sortBy') || 'date'; // 'date' or 'bestTime'
     const top10Mode = searchParams.get('top10') === 'true'; // Top 10 histórico
 
     await connectDB();
 
-    // Construir query
-    const query: any = {};
-
-    // En modo Top 10, forzar solo válidos
     if (top10Mode) {
-      query.isValid = true;
-      query.bestTime = { $gt: 0 }; // Solo tiempos reales
-    } else if (filterValid !== null && filterValid !== undefined) {
-      query.isValid = filterValid === 'true';
+      // TOP 10 MODE: Agregación para obtener los 10 mejores tiempos
+      console.log('🏆 TOP 10 MODE: Fetching historical best times');
+
+      const top10 = await RaceSessionV0.aggregate([
+        // Solo sesiones de carrera
+        { $match: { sessionType: 'carrera' } },
+        // Desenrollar drivers
+        { $unwind: '$drivers' },
+        // Solo tiempos válidos (> 0)
+        { $match: { 'drivers.bestTime': { $gt: 0 } } },
+        // Ordenar por mejor tiempo
+        { $sort: { 'drivers.bestTime': 1 } },
+        // Agrupar por piloto para obtener su mejor tiempo absoluto
+        {
+          $group: {
+            _id: '$drivers.driverName',
+            bestTime: { $first: '$drivers.bestTime' },
+            kartNumber: { $first: '$drivers.kartNumber' },
+            sessionName: { $first: '$sessionName' },
+            sessionDate: { $first: '$sessionDate' },
+            sessionId: { $first: '$_id' },
+            position: { $first: '$drivers.position' },
+            lapNumber: { $first: '$drivers.lapCount' }
+          }
+        },
+        // Ordenar de nuevo por mejor tiempo
+        { $sort: { bestTime: 1 } },
+        // Limitar a top 10
+        { $limit: 10 }
+      ]);
+
+      // Formatear para la UI
+      const records = top10.map((entry, index) => ({
+        _id: `${entry.sessionId}-${entry._id}`,
+        sessionName: entry.sessionName,
+        driverName: entry._id,
+        lapNumber: entry.lapNumber || 0,
+        bestTime: entry.bestTime,
+        lastTime: entry.bestTime, // No tenemos lastTime en aggregate
+        kartNumber: entry.kartNumber,
+        position: index + 1, // Posición en el top 10
+        timestamp: entry.sessionDate?.toISOString() || new Date().toISOString(),
+        isValid: true
+      }));
+
+      console.log(`✅ Found ${records.length} top 10 records`);
+
+      return NextResponse.json({
+        success: true,
+        records,
+        pagination: {
+          page: 1,
+          limit: 10,
+          totalRecords: records.length,
+          totalPages: 1
+        },
+        stats: {
+          validCount: records.length,
+          invalidCount: 0,
+          totalCount: records.length
+        }
+      });
     }
 
-    if (filterDriver) {
-      query.driverName = { $regex: filterDriver, $options: 'i' };
-    }
-
-    if (filterSession) {
-      query.sessionName = { $regex: filterSession, $options: 'i' };
-    }
-
-    if (filterDateFrom || filterDateTo) {
-      query.timestamp = {};
-      if (filterDateFrom) {
-        query.timestamp.$gte = new Date(filterDateFrom);
-      }
-      if (filterDateTo) {
-        const endDate = new Date(filterDateTo);
-        endDate.setHours(23, 59, 59, 999);
-        query.timestamp.$lte = endDate;
-      }
-    }
-
-    // Determinar ordenamiento
-    const sortOption = sortBy === 'bestTime'
-      ? { bestTime: 1 } // Ascendente (mejores primero)
-      : { timestamp: -1 }; // Descendente (más recientes primero)
-
-    // Obtener registros con paginación
-    const skip = top10Mode ? 0 : (page - 1) * limit;
-    const recordLimit = top10Mode ? 10 : limit;
-
-    const [records, totalRecords, validCount, invalidCount] = await Promise.all([
-      LapRecord.find(query)
-        .sort(sortOption)
-        .skip(skip)
-        .limit(recordLimit)
-        .lean(),
-      LapRecord.countDocuments(query),
-      LapRecord.countDocuments({ ...query, isValid: true }),
-      LapRecord.countDocuments({ ...query, isValid: false })
-    ]);
-
-    console.log(`✅ Found ${totalRecords} records (${validCount} valid, ${invalidCount} invalid)`);
+    // NORMAL MODE: Todavía no implementado para históricos completos
+    // Por ahora retornamos vacío
+    console.log('⚠️ Normal mode not yet implemented for race_sessions_v0');
 
     return NextResponse.json({
       success: true,
-      records,
+      records: [],
       pagination: {
-        page,
-        limit,
-        totalRecords,
-        totalPages: Math.ceil(totalRecords / limit)
+        page: 1,
+        limit: 50,
+        totalRecords: 0,
+        totalPages: 0
       },
       stats: {
-        validCount,
-        invalidCount,
-        totalCount: totalRecords
+        validCount: 0,
+        invalidCount: 0,
+        totalCount: 0
       }
     });
 
@@ -112,7 +121,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// DELETE: Eliminar un registro de tiempo
+// DELETE: Eliminar un registro de tiempo (TODO: Implementar para RaceSessionV0)
 export async function DELETE(request: NextRequest) {
   try {
     console.log('🗑️ DELETE /api/admin/lap-times');
@@ -126,39 +135,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
-    const recordId = searchParams.get('id');
-
-    if (!recordId) {
-      return NextResponse.json(
-        { success: false, error: 'ID de registro requerido' },
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
-
-    const deletedRecord = await LapRecord.findByIdAndDelete(recordId);
-
-    if (!deletedRecord) {
-      return NextResponse.json(
-        { success: false, error: 'Registro no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    console.log(`✅ Registro eliminado: ${recordId} (${deletedRecord.driverName})`);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Registro eliminado exitosamente',
-      deletedRecord: {
-        id: deletedRecord._id,
-        driverName: deletedRecord.driverName,
-        sessionName: deletedRecord.sessionName,
-        bestTime: deletedRecord.bestTime
-      }
-    });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Funcionalidad de eliminación aún no implementada para RaceSessionV0'
+      },
+      { status: 501 }
+    );
 
   } catch (error) {
     console.error('❌ Error deleting lap time:', error);
@@ -173,7 +156,7 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// PATCH: Marcar registro como válido/inválido
+// PATCH: Marcar registro como válido/inválido (TODO: Implementar para RaceSessionV0)
 export async function PATCH(request: NextRequest) {
   try {
     console.log('✏️ PATCH /api/admin/lap-times');
@@ -187,54 +170,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { recordId, isValid, invalidReason } = body;
-
-    if (!recordId) {
-      return NextResponse.json(
-        { success: false, error: 'ID de registro requerido' },
-        { status: 400 }
-      );
-    }
-
-    if (isValid === undefined) {
-      return NextResponse.json(
-        { success: false, error: 'Campo isValid requerido' },
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
-
-    const updates: any = {
-      isValid,
-      validatedAt: new Date()
-    };
-
-    if (!isValid && invalidReason) {
-      updates.invalidReason = invalidReason;
-    }
-
-    const updatedRecord = await LapRecord.findByIdAndUpdate(
-      recordId,
-      updates,
-      { new: true }
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Funcionalidad de validación aún no implementada para RaceSessionV0'
+      },
+      { status: 501 }
     );
-
-    if (!updatedRecord) {
-      return NextResponse.json(
-        { success: false, error: 'Registro no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    console.log(`✅ Registro actualizado: ${recordId} - isValid: ${isValid}`);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Registro actualizado exitosamente',
-      record: updatedRecord
-    });
 
   } catch (error) {
     console.error('❌ Error updating lap time:', error);
