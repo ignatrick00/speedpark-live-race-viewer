@@ -111,7 +111,7 @@ export default function DashboardPage() {
       });
       const data = await response.json();
       console.log('👤 [FRIEND-PROFILE] Response:', data);
-      if (data.success && data.user) {
+      if (data.user) {
         setFriendProfile(data.user);
         console.log('✅ [FRIEND-PROFILE] Profile loaded:', data.user);
       }
