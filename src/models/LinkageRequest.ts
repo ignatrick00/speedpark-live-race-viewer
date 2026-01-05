@@ -7,8 +7,8 @@ export interface ILinkageRequest extends Document {
   // Search and selection data
   searchedName: string; // Name the user searched for
   selectedDriverName: string; // Driver name from DriverRaceData
-  selectedSessionId: string; // Session they selected to prove identity
-  driverRaceDataId: mongoose.Types.ObjectId; // Reference to DriverRaceData document
+  selectedSessionId?: string; // Session they selected to prove identity (optional for name-based linking)
+  driverRaceDataId?: mongoose.Types.ObjectId; // Reference to DriverRaceData document (legacy, optional)
 
   // Request status
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -61,13 +61,15 @@ const LinkageRequestSchema = new Schema<ILinkageRequest>({
 
   selectedSessionId: {
     type: String,
-    required: true,
+    required: false,
+    default: null,
   },
 
   driverRaceDataId: {
     type: Schema.Types.ObjectId,
     ref: 'DriverRaceData',
-    required: true,
+    required: false,
+    default: null,
     index: true,
   },
 
