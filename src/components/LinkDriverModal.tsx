@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import DatePickerCalendar from './DatePickerCalendar';
 
 interface LinkDriverModalProps {
   isOpen: boolean;
@@ -15,6 +16,13 @@ interface RaceSession {
   sessionName: string;
   sessionDate: string;
   participantCount: number;
+}
+
+interface DriverSearchResult {
+  driverName: string;
+  totalRaces: number;
+  lastRaceDate: string;
+  bestTime: number;
 }
 
 interface Driver {
@@ -43,8 +51,16 @@ export default function LinkDriverModal({
   token,
   userFullName,
 }: LinkDriverModalProps) {
-  const [step, setStep] = useState<'search-session' | 'select-driver' | 'confirm' | 'success'>('search-session');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [step, setStep] = useState<'search' | 'select-driver-name' | 'select-race' | 'select-driver' | 'confirm' | 'success'>('search');
+  const [searchMode, setSearchMode] = useState<'name' | 'date'>('name'); // Two separate search modes
+  const [driverName, setDriverName] = useState('');
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Default to today
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
+  const [driverSearchResults, setDriverSearchResults] = useState<DriverSearchResult[]>([]);
+  const [selectedDriverName, setSelectedDriverName] = useState<string>('');
   const [sessions, setSessions] = useState<RaceSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<RaceSession | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -56,20 +72,63 @@ export default function LinkDriverModal({
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setStep('search-session');
-      setSearchQuery('');
+      setStep('search');
+      setSearchMode('name');
+      setDriverName('');
+      const now = new Date();
+      setSelectedDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+      setDriverSearchResults([]);
+      setSelectedDriverName('');
       setSessions([]);
       setSelectedSession(null);
       setDrivers([]);
       setSelectedDriver(null);
       setError('');
       setSearchPerformed(false);
-      // Load recent sessions automatically
-      loadRecentSessions();
+      // DO NOT auto-load - only show results after user clicks search
     }
   }, [isOpen]);
 
-  const loadRecentSessions = async (query?: string) => {
+  // Search for driver NAMES (not races)
+  const searchDriverNames = async () => {
+    if (!driverName.trim()) {
+      setError('Ingresa un nombre para buscar');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    setSearchPerformed(true);
+
+    try {
+      const response = await fetch('/api/linkage/search-drivers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ driverName: driverName.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setDriverSearchResults(data.drivers);
+        if (data.drivers.length === 0) {
+          setError('No se encontraron corredores con ese nombre');
+        }
+      } else {
+        setError(data.error || 'Error al buscar corredores');
+      }
+    } catch (err) {
+      setError('Error de conexión');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Search for RACES by date
+  const searchRacesByDate = async () => {
     setIsLoading(true);
     setError('');
     setSearchPerformed(true);
@@ -81,7 +140,7 @@ export default function LinkDriverModal({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ searchQuery: query || '' }),
+        body: JSON.stringify({ selectedDate }),
       });
 
       const data = await response.json();
@@ -89,7 +148,7 @@ export default function LinkDriverModal({
       if (response.ok && data.success) {
         setSessions(data.sessions);
         if (data.sessions.length === 0) {
-          setError('No se encontraron carreras recientes');
+          setError('No se encontraron carreras en esta fecha');
         }
       } else {
         setError(data.error || 'Error al buscar carreras');
@@ -101,9 +160,75 @@ export default function LinkDriverModal({
     }
   };
 
-  const handleSearchSessions = (e: React.FormEvent) => {
+  // Get races where a specific driver participated
+  const loadDriverRaces = async (driverName: string) => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/linkage/driver-races', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ driverName }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSessions(data.sessions);
+        if (data.sessions.length === 0) {
+          setError('No se encontraron carreras para este corredor');
+        } else {
+          setStep('select-race');
+        }
+      } else {
+        setError(data.error || 'Error al cargar carreras del corredor');
+      }
+    } catch (err) {
+      setError('Error de conexión');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    loadRecentSessions(searchQuery);
+    if (searchMode === 'name') {
+      searchDriverNames();
+    } else {
+      searchRacesByDate();
+    }
+  };
+
+  const handleSelectDriverName = async (driver: DriverSearchResult) => {
+    // When searching by name, directly confirm linkage with this driver name
+    setSelectedDriverName(driver.driverName);
+
+    // Create a mock driver object for confirmation
+    const mockDriver: Driver = {
+      driverRaceDataId: '',
+      driverName: driver.driverName,
+      firstName: undefined,
+      lastName: undefined,
+      isAlreadyLinked: false,
+      totalRaces: driver.totalRaces,
+      sessionData: {
+        sessionId: '',
+        sessionName: `${driver.totalRaces} carreras totales`,
+        sessionDate: driver.lastRaceDate,
+        bestTime: driver.bestTime,
+        bestPosition: 0,
+        finalPosition: undefined,
+        kartNumber: undefined,
+        totalLaps: 0,
+      }
+    };
+
+    setSelectedDriver(mockDriver);
+    setStep('confirm');
   };
 
   const handleSelectSession = async (session: RaceSession) => {
@@ -147,7 +272,7 @@ export default function LinkDriverModal({
   };
 
   const handleSubmitRequest = async () => {
-    if (!selectedDriver || !selectedSession) return;
+    if (!selectedDriver) return;
 
     setIsLoading(true);
     setError('');
@@ -160,8 +285,8 @@ export default function LinkDriverModal({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          driverRaceDataId: selectedDriver.driverRaceDataId,
-          sessionId: selectedSession.sessionId,
+          driverName: selectedDriver.driverName,
+          sessionId: selectedSession?.sessionId || null, // Optional when linking by name
           searchedName: selectedDriver.driverName,
         }),
       });
@@ -176,11 +301,11 @@ export default function LinkDriverModal({
         }, 3000);
       } else {
         setError(data.error || 'Error al enviar solicitud');
-        setStep('search-session');
+        setStep('search');
       }
     } catch (err) {
       setError('Error de conexión');
-      setStep('search-session');
+      setStep('search');
     } finally {
       setIsLoading(false);
     }
@@ -213,13 +338,17 @@ export default function LinkDriverModal({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-electric-blue">
-                {step === 'search-session' && '🏁 Selecciona tu Carrera'}
+                {step === 'search' && (searchMode === 'name' ? '👤 Buscar Corredor' : '📅 Buscar Carrera')}
+                {step === 'select-driver-name' && '👤 Selecciona un Corredor'}
+                {step === 'select-race' && '🏁 Selecciona una Carrera'}
                 {step === 'select-driver' && '👤 Selecciona tu Nombre'}
                 {step === 'confirm' && '✅ Confirmar Solicitud'}
                 {step === 'success' && '🎉 Solicitud Enviada'}
               </h2>
               <p className="text-sky-blue/60 text-sm mt-1">
-                {step === 'search-session' && 'Busca la carrera en la que participaste'}
+                {step === 'search' && (searchMode === 'name' ? 'Busca por el nombre del corredor' : 'Selecciona la fecha de la carrera')}
+                {step === 'select-driver-name' && 'Selecciona el corredor que buscas'}
+                {step === 'select-race' && 'Selecciona la carrera donde participaste'}
                 {step === 'select-driver' && '¿Cuál de estos corredores eres tú?'}
                 {step === 'confirm' && 'Revisa los datos antes de enviar'}
                 {step === 'success' && 'Un administrador revisará tu solicitud'}
@@ -237,30 +366,90 @@ export default function LinkDriverModal({
 
         {/* Content */}
         <div className="p-6">
-          {/* Step 1: Search Sessions */}
-          {step === 'search-session' && (
+          {/* Step 1: Search */}
+          {step === 'search' && (
             <div className="space-y-4">
-              <form onSubmit={handleSearchSessions} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-sky-blue mb-2">
-                    Buscar por nombre de carrera (opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Ej: HEAT, Clasificación, Premium..."
-                    className="w-full bg-gray-800/50 border border-sky-blue/30 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-electric-blue/50"
-                    disabled={isLoading}
-                  />
-                </div>
+              {/* Search Mode Tabs */}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchMode('name');
+                    setSearchPerformed(false);
+                    setError('');
+                  }}
+                  className={`flex-1 px-4 py-3 rounded-lg border transition-all ${
+                    searchMode === 'name'
+                      ? 'bg-electric-blue text-dark-bg border-electric-blue font-semibold'
+                      : 'bg-gray-800/50 text-white border-sky-blue/30 hover:border-electric-blue/60'
+                  }`}
+                >
+                  👤 Buscar por Nombre
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchMode('date');
+                    setSearchPerformed(false);
+                    setError('');
+                  }}
+                  className={`flex-1 px-4 py-3 rounded-lg border transition-all ${
+                    searchMode === 'date'
+                      ? 'bg-electric-blue text-dark-bg border-electric-blue font-semibold'
+                      : 'bg-gray-800/50 text-white border-sky-blue/30 hover:border-electric-blue/60'
+                  }`}
+                >
+                  📅 Buscar por Fecha
+                </button>
+              </div>
+
+              <form onSubmit={handleSearch} className="space-y-4">
+                {/* MODE 1: Search by Driver Name */}
+                {searchMode === 'name' && (
+                  <div>
+                    <label className="block text-sm font-medium text-sky-blue mb-2">
+                      Nombre del corredor
+                    </label>
+                    <input
+                      type="text"
+                      value={driverName}
+                      onChange={(e) => setDriverName(e.target.value)}
+                      placeholder="Ej: Ayrton Senna, Michael Schumacher..."
+                      className="w-full bg-gray-800/50 border border-sky-blue/30 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-electric-blue/50"
+                      disabled={isLoading}
+                    />
+                    <p className="text-sky-blue/60 text-xs mt-2">
+                      Busca corredores por su nombre
+                    </p>
+                  </div>
+                )}
+
+                {/* MODE 2: Search by Date */}
+                {searchMode === 'date' && (
+                  <div>
+                    <label className="block text-sm font-medium text-sky-blue mb-2">
+                      Selecciona una fecha
+                    </label>
+                    <DatePickerCalendar
+                      selectedDate={selectedDate}
+                      onDateChange={setSelectedDate}
+                      maxDate={(() => {
+                        const now = new Date();
+                        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                      })()}
+                    />
+                    <p className="text-sky-blue/60 text-xs mt-2">
+                      Muestra todas las carreras de esta fecha
+                    </p>
+                  </div>
+                )}
 
                 <button
                   type="submit"
                   disabled={isLoading}
                   className="w-full bg-electric-blue hover:bg-electric-blue/80 text-dark-bg font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? 'Buscando...' : '🔍 Buscar Carreras'}
+                  {isLoading ? 'Buscando...' : searchMode === 'name' ? '🔍 Buscar Nombre' : '🔍 Buscar Carreras'}
                 </button>
               </form>
 
@@ -270,11 +459,39 @@ export default function LinkDriverModal({
                 </div>
               )}
 
-              {/* Sessions List */}
-              {searchPerformed && sessions.length > 0 && (
+              {/* Driver Names List (for name search mode) */}
+              {searchPerformed && searchMode === 'name' && driverSearchResults.length > 0 && (
                 <div className="space-y-3 mt-6">
                   <h3 className="text-lg font-semibold text-white">
-                    Carreras recientes ({sessions.length}):
+                    Selecciona el corredor que quieres vincular:
+                  </h3>
+                  <div className="max-h-96 overflow-y-auto space-y-2">
+                    {driverSearchResults.map((driver, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSelectDriverName(driver)}
+                        className="w-full text-left p-4 bg-gray-800/50 border border-sky-blue/30 rounded-lg hover:border-electric-blue hover:bg-gray-800/70 transition-all"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <p className="text-white font-medium text-lg">{driver.driverName}</p>
+                          <span className="text-sky-blue/60 text-sm">{driver.totalRaces} carreras</span>
+                        </div>
+                        {driver.bestTime > 0 && (
+                          <p className="text-electric-blue text-sm font-mono">
+                            Mejor tiempo: {formatTime(driver.bestTime)}
+                          </p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sessions List (for date search mode) */}
+              {searchPerformed && searchMode === 'date' && sessions.length > 0 && (
+                <div className="space-y-3 mt-6">
+                  <h3 className="text-lg font-semibold text-white">
+                    Carreras encontradas ({sessions.length}):
                   </h3>
                   <div className="max-h-96 overflow-y-auto space-y-2">
                     {sessions.map((session) => (
@@ -298,7 +515,7 @@ export default function LinkDriverModal({
             </div>
           )}
 
-          {/* Step 2: Select Driver */}
+          {/* Step 2: Select Driver (only for date search mode) */}
           {step === 'select-driver' && selectedSession && (
             <div className="space-y-4">
               <div className="bg-gray-800/50 border border-sky-blue/30 rounded-lg p-4 mb-4">
@@ -348,37 +565,59 @@ export default function LinkDriverModal({
               </div>
 
               <button
-                onClick={() => setStep('search-session')}
+                onClick={() => setStep('search')}
                 className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-all"
               >
-                ← Volver a selección de carrera
+                ← Volver a búsqueda
               </button>
             </div>
           )}
 
           {/* Step 3: Confirm */}
-          {step === 'confirm' && selectedDriver && selectedSession && (
+          {step === 'confirm' && selectedDriver && (
             <div className="space-y-4">
               <div className="bg-gray-800/50 border border-electric-blue/30 rounded-lg p-6 space-y-4">
                 <div>
                   <p className="text-gray-400 text-sm">Perfil de corredor</p>
                   <p className="text-white font-semibold text-lg">{selectedDriver.driverName}</p>
                 </div>
-                <div>
-                  <p className="text-gray-400 text-sm">Carrera seleccionada</p>
-                  <p className="text-white font-medium">{selectedSession.sessionName}</p>
-                  <p className="text-sky-blue/60 text-sm">{formatDate(selectedSession.sessionDate)}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
-                  <div>
-                    <p className="text-gray-400 text-sm">Tu mejor tiempo</p>
-                    <p className="text-electric-blue font-mono text-lg">{formatTime(selectedDriver.sessionData.bestTime)}</p>
+
+                {selectedSession ? (
+                  // Showing session details when coming from date search
+                  <>
+                    <div>
+                      <p className="text-gray-400 text-sm">Carrera seleccionada</p>
+                      <p className="text-white font-medium">{selectedSession.sessionName}</p>
+                      <p className="text-sky-blue/60 text-sm">{formatDate(selectedSession.sessionDate)}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
+                      <div>
+                        <p className="text-gray-400 text-sm">Tu mejor tiempo</p>
+                        <p className="text-electric-blue font-mono text-lg">{formatTime(selectedDriver.sessionData.bestTime)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-sm">Tu posición</p>
+                        <p className="text-white font-semibold text-lg">#{selectedDriver.sessionData.bestPosition}</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  // Showing stats when coming from name search
+                  <div className="pt-4 border-t border-gray-700">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-gray-400 text-sm">Total de carreras</p>
+                        <p className="text-white font-semibold text-lg">{selectedDriver.totalRaces}</p>
+                      </div>
+                      {selectedDriver.sessionData.bestTime > 0 && (
+                        <div>
+                          <p className="text-gray-400 text-sm">Mejor tiempo histórico</p>
+                          <p className="text-electric-blue font-mono text-lg">{formatTime(selectedDriver.sessionData.bestTime)}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Tu posición</p>
-                    <p className="text-white font-semibold text-lg">#{selectedDriver.sessionData.bestPosition}</p>
-                  </div>
-                </div>
+                )}
               </div>
 
               {error && (
@@ -395,7 +634,15 @@ export default function LinkDriverModal({
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => setStep('select-driver')}
+                  onClick={() => {
+                    if (selectedSession) {
+                      // Coming from date search - go back to driver selection
+                      setStep('select-driver');
+                    } else {
+                      // Coming from name search - go back to search
+                      setStep('search');
+                    }
+                  }}
                   disabled={isLoading}
                   className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-lg transition-all disabled:opacity-50"
                 >

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import LinkageRequest from '@/models/LinkageRequest';
-import DriverRaceData from '@/models/DriverRaceData';
+import RaceSessionV0 from '@/models/RaceSessionV0';
 import WebUser from '@/models/WebUser';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
@@ -13,7 +13,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
  * Create a linkage request to connect a web user with a karting driver profile
  *
  * Body: {
- *   driverRaceDataId: string,
+ *   driverName: string,  // Changed from driverRaceDataId
  *   sessionId: string,
  *   searchedName: string
  * }
@@ -43,10 +43,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { driverRaceDataId, sessionId, searchedName } = body;
+    const { driverName, sessionId, searchedName } = body;
 
-    // Validate input
-    if (!driverRaceDataId || !sessionId || !searchedName) {
+    // Validate input - sessionId is optional (when linking by name only)
+    if (!driverName || !searchedName) {
       return NextResponse.json(
         { error: 'Datos incompletos' },
         { status: 400 }
@@ -78,46 +78,72 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is already linked
-    if (user.kartingLink.status === 'linked' && user.kartingLink.personId) {
+    if (user.kartingLink.status === 'linked' && user.kartingLink.driverName) {
       return NextResponse.json(
         { error: 'Tu cuenta ya está vinculada a un perfil de corredor' },
         { status: 400 }
       );
     }
 
-    // Get driver data
-    const driver = await DriverRaceData.findById(driverRaceDataId);
-    if (!driver) {
-      return NextResponse.json(
-        { error: 'Perfil de corredor no encontrado' },
-        { status: 404 }
-      );
-    }
+    // Check if this driver name is already linked to another user
+    const existingLinkedUser = await WebUser.findOne({
+      'kartingLink.status': 'linked',
+      'kartingLink.driverName': { $regex: new RegExp(`^${driverName}$`, 'i') }
+    });
 
-    // Verify the session exists for this driver
-    const session = driver.sessions.find((s: any) => s.sessionId === sessionId);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Sesión no encontrada para este corredor' },
-        { status: 404 }
-      );
-    }
-
-    // Check if driver is already linked to another user
-    if (driver.linkingStatus === 'linked' && driver.webUserId && driver.webUserId !== webUserId) {
+    if (existingLinkedUser && existingLinkedUser._id.toString() !== webUserId) {
       return NextResponse.json(
         { error: 'Este perfil de corredor ya está vinculado a otra cuenta' },
         { status: 400 }
       );
     }
 
+    // If sessionId is provided, validate it
+    let raceSession = null;
+    if (sessionId) {
+      raceSession = await RaceSessionV0.findOne({ sessionId }).lean();
+      if (!raceSession) {
+        return NextResponse.json(
+          { error: 'Sesión no encontrada' },
+          { status: 404 }
+        );
+      }
+
+      // Find the driver in this session
+      const driverInSession = raceSession.drivers?.find(
+        (d: any) => d.driverName.toLowerCase() === driverName.toLowerCase()
+      );
+
+      if (!driverInSession) {
+        return NextResponse.json(
+          { error: 'Corredor no encontrado en esta sesión' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Count total races for this driver across all sessions
+    const totalRaces = await RaceSessionV0.countDocuments({
+      'drivers.driverName': { $regex: new RegExp(`^${driverName}$`, 'i') }
+    });
+
+    // Get last race date
+    const lastRaceSession = await RaceSessionV0.findOne({
+      'drivers.driverName': { $regex: new RegExp(`^${driverName}$`, 'i') }
+    })
+      .sort({ sessionDate: -1 })
+      .select('sessionDate')
+      .lean();
+
+    const lastRaceDate = raceSession?.sessionDate || lastRaceSession?.sessionDate || new Date();
+
     // Create linkage request
     const linkageRequest = new LinkageRequest({
       webUserId: new mongoose.Types.ObjectId(webUserId),
       searchedName: searchedName.trim(),
-      selectedDriverName: driver.driverName,
-      selectedSessionId: sessionId,
-      driverRaceDataId: new mongoose.Types.ObjectId(driverRaceDataId),
+      selectedDriverName: driverName,
+      selectedSessionId: sessionId || null, // Optional - null when linking by name only
+      driverRaceDataId: null, // No longer using legacy DriverRaceData
       status: 'pending',
       userSnapshot: {
         email: user.email,
@@ -125,10 +151,10 @@ export async function POST(request: NextRequest) {
         lastName: user.profile.lastName,
       },
       driverSnapshot: {
-        driverName: driver.driverName,
-        totalRaces: driver.stats.totalRaces,
-        lastRaceDate: driver.stats.lastRaceDate,
-        currentLinkStatus: driver.linkingStatus,
+        driverName: driverName,
+        totalRaces: totalRaces,
+        lastRaceDate: lastRaceDate,
+        currentLinkStatus: existingLinkedUser ? 'linked' : 'unlinked',
       },
     });
 
@@ -140,7 +166,7 @@ export async function POST(request: NextRequest) {
       requestId: linkageRequest._id,
       request: {
         id: linkageRequest._id,
-        driverName: driver.driverName,
+        driverName: driverName,
         status: linkageRequest.status,
         createdAt: linkageRequest.createdAt,
       },

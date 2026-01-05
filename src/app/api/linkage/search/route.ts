@@ -35,17 +35,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { searchQuery } = body;
+    const { driverName, selectedDate } = body;
 
     await connectDB();
 
-    // Get race sessions from last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    // Build query
-    const query: any = {
-      sessionDate: { $gte: thirtyDaysAgo },
+    // Build base query - always exclude invalid race types
+    const baseQuery: any = {
       sessionType: 'carrera', // Solo carreras válidas
       // Excluir carreras de otras categorías (K1, K2, GT, etc.)
       sessionName: {
@@ -55,19 +50,41 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    // Apply search filter if provided
-    if (searchQuery && searchQuery.trim().length > 0) {
-      query.sessionName = {
-        ...query.sessionName,
-        $regex: searchQuery.trim(),
+    // TWO SEPARATE SEARCH MODES (mutually exclusive):
+
+    // MODE 1: Search by DRIVER NAME (search all history, ignore date)
+    if (driverName && driverName.trim().length > 0) {
+      const searchTerm = driverName.trim();
+      baseQuery['drivers.driverName'] = {
+        $regex: searchTerm,
         $options: 'i'
       };
+      console.log(`👤 [LINKAGE-SEARCH] MODE: Search by driver name "${searchTerm}" (all history)`);
+    }
+    // MODE 2: Search by DATE (show all races on that date)
+    else if (selectedDate && selectedDate.trim().length > 0) {
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const startOfDay = new Date(year, month - 1, day, 0, 0, 0);
+      const endOfDay = new Date(year, month - 1, day, 23, 59, 59);
+
+      baseQuery.sessionDate = {
+        $gte: startOfDay,
+        $lte: endOfDay
+      };
+      console.log(`📅 [LINKAGE-SEARCH] MODE: Search by date ${selectedDate} (all races on this day)`);
+    }
+    // DEFAULT: Show recent races (last 30 days)
+    else {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      baseQuery.sessionDate = { $gte: thirtyDaysAgo };
+      console.log(`📅 [LINKAGE-SEARCH] MODE: Default (last 30 days)`);
     }
 
-    console.log('🔍 [LINKAGE-SEARCH] Query:', JSON.stringify(query, null, 2));
+    console.log('🔍 [LINKAGE-SEARCH] Final Query:', JSON.stringify(baseQuery, null, 2));
 
     // Fetch sessions from race_sessions_v0
-    let sessions = await RaceSessionV0.find(query)
+    let sessions = await RaceSessionV0.find(baseQuery)
       .select('sessionId sessionName sessionDate totalDrivers')
       .sort({ sessionDate: -1 })
       .limit(50)
