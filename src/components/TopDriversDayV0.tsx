@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import DatePickerCalendar from './DatePickerCalendar';
 
 interface BestTime {
   position: number;
@@ -111,21 +112,12 @@ export default function TopDriversV0Day() {
           </div>
 
           {/* Date Selector */}
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-sky-blue/70 font-medium">
-              📅 Fecha:
-            </label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              onClick={(e) => e.stopPropagation()} // Evitar abrir modal al hacer clic
-              className="px-3 py-1.5 bg-racing-black border border-electric-blue/30 rounded-lg text-white text-sm focus:border-electric-blue/60 focus:outline-none hover:border-electric-blue/50 transition-colors"
-              max={new Date().toISOString().split('T')[0]} // No permitir fechas futuras
+          <div onClick={(e) => e.stopPropagation()}>
+            <DatePickerCalendar
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              maxDate={new Date().toISOString().split('T')[0]}
             />
-            <div className="text-sm text-sky-blue/50 font-medium">
-              {formatCurrentDate()}
-            </div>
           </div>
         </div>
 
@@ -219,21 +211,11 @@ export default function TopDriversV0Day() {
               </div>
 
               {/* Date Selector in Modal */}
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-sky-blue/70 font-medium">
-                  📅 Seleccionar Fecha:
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-3 py-2 bg-racing-black border border-electric-blue/30 rounded-lg text-white text-sm focus:border-electric-blue/60 focus:outline-none hover:border-electric-blue/50 transition-colors"
-                  max={new Date().toISOString().split('T')[0]}
-                />
-                <div className="text-sm text-sky-blue/50 font-medium">
-                  {formatCurrentDate()}
-                </div>
-              </div>
+              <DatePickerCalendar
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                maxDate={new Date().toISOString().split('T')[0]}
+              />
             </div>
 
             {/* Modal Content */}
