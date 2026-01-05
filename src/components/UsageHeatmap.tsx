@@ -22,27 +22,32 @@ export default function UsageHeatmap({ heatmap }: UsageHeatmapProps) {
     )
   }
 
-  // Encontrar el valor máximo para normalizar colores
-  const maxSessions = Math.max(
-    ...heatmap.flat().map(cell => cell.sessions)
+  // Encontrar el máximo número de pilotos para normalizar colores
+  const maxDrivers = Math.max(
+    ...heatmap.flat().map(cell => cell.drivers)
   )
 
-  // Función para obtener el color según intensidad
-  const getColor = (sessions: number) => {
-    if (sessions === 0) return 'rgba(30, 41, 59, 0.4)' // Muy oscuro (sin datos)
+  // Función para obtener el color según intensidad de pilotos
+  const getColor = (drivers: number) => {
+    if (drivers === 0) return 'rgba(30, 41, 59, 0.4)' // Muy oscuro (sin datos)
 
-    const intensity = sessions / maxSessions
+    const intensity = drivers / maxDrivers
 
-    if (intensity < 0.2) return 'rgba(59, 130, 246, 0.3)' // Azul muy claro
-    if (intensity < 0.4) return 'rgba(59, 130, 246, 0.5)' // Azul claro
-    if (intensity < 0.6) return 'rgba(34, 211, 238, 0.6)' // Cyan
-    if (intensity < 0.8) return 'rgba(34, 211, 238, 0.8)' // Cyan intenso
-    return 'rgba(22, 189, 202, 1)' // Cyan muy intenso (pico)
+    if (intensity < 0.2) return 'rgba(59, 130, 246, 0.3)' // 0-20% → Azul muy claro
+    if (intensity < 0.4) return 'rgba(59, 130, 246, 0.5)' // 20-40% → Azul claro
+    if (intensity < 0.6) return 'rgba(34, 211, 238, 0.6)' // 40-60% → Cyan
+    if (intensity < 0.8) return 'rgba(34, 211, 238, 0.8)' // 60-80% → Cyan intenso
+    return 'rgba(22, 189, 202, 1)' // 80-100% → Cyan muy intenso (PICO)
   }
 
   return (
     <div className="overflow-x-auto">
       <div className="inline-block min-w-full">
+        {/* Indicador de pico máximo */}
+        <div className="text-xs text-blue-300 mb-3 text-center">
+          🔥 Pico máximo: <span className="font-bold text-cyan-400">{maxDrivers} pilotos</span>
+        </div>
+
         {/* Header - Horas */}
         <div className="flex mb-1">
           <div className="w-16 flex-shrink-0"></div>
@@ -73,8 +78,8 @@ export default function UsageHeatmap({ heatmap }: UsageHeatmapProps) {
                   key={hourIndex}
                   className="w-8 h-8 rounded relative group cursor-pointer transition-all hover:scale-110 hover:z-10"
                   style={{
-                    backgroundColor: getColor(cell.sessions),
-                    border: cell.sessions > 0 ? '1px solid rgba(34, 211, 238, 0.3)' : '1px solid rgba(71, 85, 105, 0.2)'
+                    backgroundColor: getColor(cell.drivers),
+                    border: cell.drivers > 0 ? '1px solid rgba(34, 211, 238, 0.3)' : '1px solid rgba(71, 85, 105, 0.2)'
                   }}
                 >
                   {/* Tooltip on hover */}
@@ -83,10 +88,10 @@ export default function UsageHeatmap({ heatmap }: UsageHeatmapProps) {
                       <div className="text-cyan-400 font-bold mb-1">
                         {DAYS[dayIndex]} {hourIndex}:00
                       </div>
-                      {cell.sessions > 0 ? (
+                      {cell.drivers > 0 ? (
                         <>
-                          <div className="text-white">🏁 Sesiones: {cell.sessions}</div>
-                          <div className="text-white">👥 Pilotos: {cell.drivers}</div>
+                          <div className="text-white font-bold">👥 Pilotos: {cell.drivers}</div>
+                          <div className="text-white text-xs">🏁 Sesiones: {cell.sessions}</div>
                           <div className="text-green-400">💰 ${cell.revenue.toLocaleString('es-CL')}</div>
                         </>
                       ) : (
@@ -102,22 +107,22 @@ export default function UsageHeatmap({ heatmap }: UsageHeatmapProps) {
 
         {/* Leyenda */}
         <div className="mt-6 flex items-center justify-center gap-4 text-xs">
-          <div className="text-blue-300 font-digital">Intensidad:</div>
+          <div className="text-blue-300 font-digital">Cantidad de Pilotos:</div>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded" style={{ backgroundColor: 'rgba(30, 41, 59, 0.4)' }}></div>
             <span className="text-blue-300">Sin datos</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded" style={{ backgroundColor: 'rgba(59, 130, 246, 0.3)' }}></div>
-            <span className="text-blue-300">Bajo</span>
+            <span className="text-blue-300">Bajo (0-20%)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded" style={{ backgroundColor: 'rgba(34, 211, 238, 0.6)' }}></div>
-            <span className="text-blue-300">Medio</span>
+            <span className="text-blue-300">Medio (40-60%)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded" style={{ backgroundColor: 'rgba(22, 189, 202, 1)' }}></div>
-            <span className="text-blue-300">Alto</span>
+            <span className="text-blue-300">Alto (80-100%)</span>
           </div>
         </div>
       </div>
