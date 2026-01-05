@@ -86,6 +86,12 @@ export default function TopKartsDayV0() {
     const date = new Date(year, month - 1, day); // Crear fecha local (no UTC)
     const dayName = days[date.getDay()];
     const dayNumber = date.getDate();
+
+    console.log('🔍 [TopKarts] selectedDate:', selectedDate);
+    console.log('🔍 [TopKarts] Parsed:', { year, month, day });
+    console.log('🔍 [TopKarts] date.getDay():', date.getDay(), 'dayName:', dayName);
+    console.log('🔍 [TopKarts] Final:', `${dayName} ${dayNumber}`);
+
     return `${dayName} ${dayNumber}`;
   };
 
