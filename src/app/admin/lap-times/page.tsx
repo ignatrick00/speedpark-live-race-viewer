@@ -7,6 +7,7 @@ import AdminGuard from '@/components/AdminGuard';
 
 interface LapRecord {
   _id: string;
+  sessionId?: string; // Para eliminar en modo Top 10
   sessionName: string;
   driverName: string;
   lapNumber: number;
@@ -187,21 +188,49 @@ export default function LapTimesAdminPage() {
     }
   };
 
-  const deleteRecord = async (recordId: string) => {
-    if (!confirm('¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.')) {
+  const deleteRecord = async (record: LapRecord) => {
+    // Mensaje de confirmación con info del piloto
+    const confirmMessage = `⚠️ ¿Estás seguro de eliminar este registro?
+
+Piloto: ${record.driverName}
+Tiempo: ${formatTime(record.bestTime)}
+Sesión: ${record.sessionName}
+
+Esta acción NO se puede deshacer.`;
+
+    if (!confirm(confirmMessage)) {
       return;
     }
 
     try {
-      const res = await fetch(`/api/admin/lap-times?id=${recordId}`, {
+      let url: string;
+
+      if (top10Mode) {
+        // Modo Top 10: extraer sessionId del _id (formato: "sessionId-driverName")
+        // El sessionId es la parte antes del primer guión
+        const sessionId = record.sessionId || record._id.split('-')[0];
+
+        console.log('🗑️ Deleting record:', {
+          sessionId,
+          driverName: record.driverName,
+          _id: record._id
+        });
+
+        url = `/api/admin/lap-times?sessionId=${sessionId}&driverName=${encodeURIComponent(record.driverName)}`;
+      } else {
+        // Modo normal: usar ID del registro
+        url = `/api/admin/lap-times?id=${record._id}`;
+      }
+
+      const res = await authenticatedFetch(url, {
         method: 'DELETE'
       });
 
       const data = await res.json();
 
       if (data.success) {
-        alert('✅ Registro eliminado');
-        loadRecords();
+        alert('✅ Registro eliminado correctamente');
+        loadRecords(); // Recargar para ver el nuevo Top 10
       } else {
         alert('❌ Error: ' + data.error);
       }
@@ -536,8 +565,14 @@ export default function LapTimesAdminPage() {
                           {!top10Mode && <td className="px-4 py-3">{record.position}°</td>}
                           <td className="px-4 py-3">
                             {top10Mode ? (
-                              <div className="text-center text-xs text-gray-500">
-                                Solo lectura
+                              <div className="flex items-center justify-center">
+                                <button
+                                  onClick={() => deleteRecord(record)}
+                                  className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm rounded transition font-medium"
+                                  title="Eliminar tiempo del Top 10"
+                                >
+                                  🗑️ Eliminar
+                                </button>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-2">
@@ -549,7 +584,7 @@ export default function LapTimesAdminPage() {
                                   {record.isValid ? '⊗' : '✓'}
                                 </button>
                                 <button
-                                  onClick={() => deleteRecord(record._id)}
+                                  onClick={() => deleteRecord(record)}
                                   className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded transition"
                                   title="Eliminar registro"
                                 >
