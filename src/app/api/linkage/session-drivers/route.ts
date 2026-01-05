@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import DriverRaceData from '@/models/DriverRaceData';
+import RaceSessionV0 from '@/models/RaceSessionV0';
+import WebUser from '@/models/WebUser';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 /**
  * POST /api/linkage/session-drivers
- * Get all drivers who participated in a specific session
+ * Get all drivers who participated in a specific session from race_sessions_v0
  *
  * Body: { sessionId: string }
  * Returns: Array of drivers with their performance in that session
@@ -46,44 +47,69 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Find all drivers who participated in this session
-    const drivers = await DriverRaceData.find({
-      'sessions.sessionId': sessionId
-    })
-      .select('driverName firstName lastName sessions linkingStatus webUserId stats _id')
-      .lean();
+    console.log(`🔍 [SESSION-DRIVERS] Looking for session: ${sessionId}`);
 
-    // Extract session data for each driver
-    const participants = drivers.map((driver: any) => {
-      const session = driver.sessions.find((s: any) => s.sessionId === sessionId);
+    // Find the race session
+    const raceSession = await RaceSessionV0.findOne({ sessionId }).lean();
+
+    if (!raceSession) {
+      return NextResponse.json(
+        { error: 'Sesión no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    console.log(`✅ [SESSION-DRIVERS] Found session with ${raceSession.drivers?.length || 0} drivers`);
+
+    // Get all linked users to check who is already linked
+    const linkedUsers = await WebUser.find({
+      'kartingLink.status': 'linked',
+      'kartingLink.driverName': { $exists: true }
+    }).select('kartingLink.driverName _id').lean();
+
+    // Create map of driverName -> userId
+    const linkedDriversMap = new Map();
+    linkedUsers.forEach((user: any) => {
+      if (user.kartingLink?.driverName) {
+        linkedDriversMap.set(
+          user.kartingLink.driverName.toLowerCase(),
+          user._id.toString()
+        );
+      }
+    });
+
+    // Extract participants from race session
+    const participants = (raceSession.drivers || []).map((driver: any) => {
+      const isAlreadyLinked = linkedDriversMap.has(driver.driverName.toLowerCase());
 
       return {
-        driverRaceDataId: driver._id,
+        driverRaceDataId: null, // Not using legacy system
         driverName: driver.driverName,
-        firstName: driver.firstName,
-        lastName: driver.lastName,
-        isAlreadyLinked: driver.linkingStatus === 'linked' || !!driver.webUserId,
-        totalRaces: driver.stats.totalRaces,
-        // Session-specific data
+        firstName: undefined, // race_sessions_v0 doesn't store first/last names separately
+        lastName: undefined,
+        isAlreadyLinked,
+        totalRaces: 1, // We'd need to count across all sessions to get accurate total
         sessionData: {
-          sessionId: session.sessionId,
-          sessionName: session.sessionName,
-          sessionDate: session.sessionDate,
-          bestTime: session.bestTime,
-          bestPosition: session.bestPosition,
-          finalPosition: session.finalPosition,
-          kartNumber: session.kartNumber,
-          totalLaps: session.totalLaps,
+          sessionId: raceSession.sessionId,
+          sessionName: raceSession.sessionName,
+          sessionDate: raceSession.sessionDate,
+          bestTime: driver.bestTime || 0,
+          bestPosition: driver.finalPosition || 999,
+          finalPosition: driver.finalPosition,
+          kartNumber: driver.kartNumber,
+          totalLaps: driver.totalLaps || 0,
         }
       };
     });
 
-    // Sort by position (best first)
+    // Sort by final position (best first)
     participants.sort((a, b) => {
-      const posA = a.sessionData.bestPosition || 999;
-      const posB = b.sessionData.bestPosition || 999;
+      const posA = a.sessionData.finalPosition || 999;
+      const posB = b.sessionData.finalPosition || 999;
       return posA - posB;
     });
+
+    console.log(`📋 [SESSION-DRIVERS] Returning ${participants.length} participants`);
 
     return NextResponse.json({
       success: true,

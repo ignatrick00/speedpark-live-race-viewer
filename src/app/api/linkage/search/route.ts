@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import DriverRaceData from '@/models/DriverRaceData';
+import RaceSessionV0 from '@/models/RaceSessionV0';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 /**
  * POST /api/linkage/search
- * Search for recent race sessions (last 30 days)
+ * Search for recent race sessions (last 30 days) from race_sessions_v0
  *
  * Body: { searchQuery?: string } - Optional search by session name
  * Returns: Array of recent sessions with participant count
@@ -39,51 +39,49 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Get all drivers with sessions in last 30 days
+    // Get race sessions from last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const drivers = await DriverRaceData.find({
-      'sessions.sessionDate': { $gte: thirtyDaysAgo }
-    })
-      .select('sessions')
-      .lean();
-
-    // Aggregate all unique sessions
-    const sessionsMap = new Map<string, any>();
-
-    drivers.forEach((driver: any) => {
-      driver.sessions
-        .filter((session: any) => new Date(session.sessionDate) >= thirtyDaysAgo)
-        .forEach((session: any) => {
-          if (!sessionsMap.has(session.sessionId)) {
-            sessionsMap.set(session.sessionId, {
-              sessionId: session.sessionId,
-              sessionName: session.sessionName,
-              sessionDate: session.sessionDate,
-              participantCount: 1,
-            });
-          } else {
-            const existing = sessionsMap.get(session.sessionId);
-            existing.participantCount++;
-          }
-        });
-    });
-
-    // Convert to array and sort by date (most recent first)
-    let sessions = Array.from(sessionsMap.values())
-      .sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime());
+    // Build query
+    const query: any = {
+      sessionDate: { $gte: thirtyDaysAgo },
+      sessionType: 'carrera', // Solo carreras válidas
+      // Excluir carreras de otras categorías (K1, K2, GT, etc.)
+      sessionName: {
+        $not: {
+          $regex: /f1|f2|f3|k 1|k 2|k 3|k1|k2|k3|gt|mujeres|women|junior| m(?!\w)/i
+        }
+      }
+    };
 
     // Apply search filter if provided
     if (searchQuery && searchQuery.trim().length > 0) {
-      const searchRegex = new RegExp(searchQuery.trim(), 'i');
-      sessions = sessions.filter(session =>
-        searchRegex.test(session.sessionName)
-      );
+      query.sessionName = {
+        ...query.sessionName,
+        $regex: searchQuery.trim(),
+        $options: 'i'
+      };
     }
 
-    // Limit to 50 most recent
-    sessions = sessions.slice(0, 50);
+    console.log('🔍 [LINKAGE-SEARCH] Query:', JSON.stringify(query, null, 2));
+
+    // Fetch sessions from race_sessions_v0
+    let sessions = await RaceSessionV0.find(query)
+      .select('sessionId sessionName sessionDate totalDrivers')
+      .sort({ sessionDate: -1 })
+      .limit(50)
+      .lean();
+
+    console.log(`✅ [LINKAGE-SEARCH] Found ${sessions.length} sessions`);
+
+    // Format response
+    sessions = sessions.map((session: any) => ({
+      sessionId: session.sessionId,
+      sessionName: session.sessionName,
+      sessionDate: session.sessionDate,
+      participantCount: session.totalDrivers || 0,
+    }));
 
     return NextResponse.json({
       success: true,
