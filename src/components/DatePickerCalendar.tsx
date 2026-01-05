@@ -57,8 +57,9 @@ export default function DatePickerCalendar({ selectedDate, onDateChange, maxDate
   const handleDayClick = (day: number) => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    const newDate = new Date(year, month, day);
-    const dateStr = newDate.toISOString().split('T')[0];
+
+    // Formato YYYY-MM-DD sin conversión UTC (usa hora local)
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
     // Check if date is in the future
     if (maxDate && dateStr > maxDate) {
@@ -89,7 +90,7 @@ export default function DatePickerCalendar({ selectedDate, onDateChange, maxDate
   const isDateSelected = (day: number) => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    const dateStr = new Date(year, month, day).toISOString().split('T')[0];
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return dateStr === selectedDate;
   };
 
@@ -97,15 +98,19 @@ export default function DatePickerCalendar({ selectedDate, onDateChange, maxDate
     if (!maxDate) return false;
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    const dateStr = new Date(year, month, day).toISOString().split('T')[0];
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return dateStr > maxDate;
   };
 
   const isToday = (day: number) => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    const dateStr = new Date(year, month, day).toISOString().split('T')[0];
-    const todayStr = new Date().toISOString().split('T')[0];
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    // Obtener fecha de hoy en hora local (sin UTC)
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
     return dateStr === todayStr;
   };
 
