@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import AdminGuard from '@/components/AdminGuard';
 
 interface LapRecord {
@@ -28,6 +29,7 @@ interface SystemConfig {
 
 export default function LapTimesAdminPage() {
   const router = useRouter();
+  const { token } = useAuth(); // Obtener token para autenticación
   const [records, setRecords] = useState<LapRecord[]>([]);
   const [config, setConfig] = useState<SystemConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +62,24 @@ export default function LapTimesAdminPage() {
   useEffect(() => {
     loadRecords();
   }, [page, filterValid, filterDriver, filterSession, sortBy, top10Mode]);
+
+  // Helper para fetch autenticado
+  const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return fetch(url, {
+      ...options,
+      credentials: 'include',
+      headers
+    });
+  };
 
   const loadConfig = async () => {
     try {
@@ -101,12 +121,7 @@ export default function LapTimesAdminPage() {
       }
 
       console.log('🔍 Fetching:', `/api/admin/lap-times?${params}`);
-      const res = await fetch(`/api/admin/lap-times?${params}`, {
-        credentials: 'include', // Importante: incluir cookies
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const res = await authenticatedFetch(`/api/admin/lap-times?${params}`);
       console.log('📡 Response status:', res.status, res.statusText);
       const data = await res.json();
 
