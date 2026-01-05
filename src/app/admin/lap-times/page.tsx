@@ -37,8 +37,8 @@ export default function LapTimesAdminPage() {
   const [filterValid, setFilterValid] = useState<string>('all');
   const [filterDriver, setFilterDriver] = useState('');
   const [filterSession, setFilterSession] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'bestTime'>('date');
-  const [top10Mode, setTop10Mode] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'bestTime'>('bestTime'); // Default: mejor tiempo
+  const [top10Mode, setTop10Mode] = useState(true); // Default: Top 10 activado
 
   // Config editing
   const [minLapTimeSeconds, setMinLapTimeSeconds] = useState(35);
@@ -246,8 +246,9 @@ export default function LapTimesAdminPage() {
             </button>
           </div>
 
-          {/* Configuration Section */}
-          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-xl p-6 mb-8">
+          {/* Configuration Section (oculto en modo Top 10) */}
+          {!top10Mode && (
+            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-xl p-6 mb-8">
             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
               ⚙️ Configuración de Validación
             </h2>
@@ -303,8 +304,10 @@ export default function LapTimesAdminPage() {
               </button>
             </div>
           </div>
+          )}
 
-          {/* Stats */}
+          {/* Stats (oculto en modo Top 10) */}
+          {!top10Mode && (
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
               <p className="text-sm text-gray-400">Registros Válidos</p>
@@ -319,6 +322,7 @@ export default function LapTimesAdminPage() {
               <p className="text-3xl font-bold text-blue-400">{stats.totalCount}</p>
             </div>
           </div>
+          )}
 
           {/* Top 10 Mode Toggle */}
           <div className="mb-6">
@@ -341,9 +345,9 @@ export default function LapTimesAdminPage() {
                   </div>
                   <button
                     onClick={disableTop10Mode}
-                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition"
+                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition flex items-center gap-2"
                   >
-                    ← Ver Todos
+                    ⚙️ Gestión de Tiempos
                   </button>
                 </div>
               </div>
