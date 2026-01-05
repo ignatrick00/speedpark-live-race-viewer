@@ -44,18 +44,25 @@ export default function LeaderboardCard({ currentUserId, friendUserId }: Leaderb
 
       if (data.success) {
         let finalLeaderboard = [...data.leaderboard];
+        const extraEntries = [];
 
         // Agregar currentUser si está fuera del top 10
         if (data.userEntry && data.userPosition && data.userPosition > 10) {
-          finalLeaderboard.push(data.userEntry);
+          extraEntries.push(data.userEntry);
         }
 
         // Agregar friendUser si está fuera del top 10
         if (data.friendEntry && data.friendPosition && data.friendPosition > 10) {
           // Evitar duplicados
-          if (!finalLeaderboard.some(e => e.webUserId === data.friendEntry.webUserId)) {
-            finalLeaderboard.push(data.friendEntry);
+          if (!extraEntries.some(e => e.webUserId === data.friendEntry.webUserId)) {
+            extraEntries.push(data.friendEntry);
           }
+        }
+
+        // Ordenar los extras por position (posición real en ranking, más bajo = mejor)
+        if (extraEntries.length > 0) {
+          extraEntries.sort((a, b) => a.position - b.position);
+          finalLeaderboard = [...finalLeaderboard, ...extraEntries];
         }
 
         setLeaderboard(finalLeaderboard);
