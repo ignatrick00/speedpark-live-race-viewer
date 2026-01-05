@@ -105,9 +105,17 @@ export async function GET(req: NextRequest) {
 
       const participantsList = await Promise.all(race.participants.map(async (p: any) => {
         let userName = 'Piloto';
+        let driverName = p.driverName || null; // Use stored driverName from participant
+
         try {
           const user = await WebUser.findById(p.userId);
           if (user) {
+            // If driverName wasn't stored (old participants), get it from user's kartingLink
+            if (!driverName && user.kartingLink?.driverName) {
+              driverName = user.kartingLink.driverName;
+            }
+
+            // Fallback to user profile name if no driver name available
             userName = user.profile?.alias ||
                       `${user.profile?.firstName || ''} ${user.profile?.lastName || ''}`.trim() ||
                       user.email;
@@ -120,6 +128,7 @@ export async function GET(req: NextRequest) {
           userId: p.userId?.toString(),
           kartNumber: p.kartNumber,
           name: userName,
+          driverName: driverName, // Include SMS-Timing driver name
           joinedAt: p.joinedAt,
         };
       }));
