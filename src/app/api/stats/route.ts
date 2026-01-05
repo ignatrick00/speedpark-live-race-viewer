@@ -17,13 +17,46 @@ export async function GET(request: NextRequest) {
     );
   }
   try {
+    // Get date range from query params
+    const { searchParams } = new URL(request.url);
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+    const mode = searchParams.get('mode'); // 'daily', 'usage', 'heatmap'
+
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+
+    if (startDateParam) {
+      startDate = new Date(startDateParam);
+    }
+    if (endDateParam) {
+      endDate = new Date(endDateParam);
+      endDate.setHours(23, 59, 59, 999); // Incluir todo el día final
+    }
+
+    // Handle special modes
+    if (mode === 'daily' && startDate && endDate) {
+      const dailyRevenue = await StatsService.getDailyRevenue(startDate, endDate);
+      return NextResponse.json({ dailyRevenue });
+    }
+
+    if (mode === 'usage' && startDate && endDate) {
+      const usageAnalysis = await StatsService.getLowUsageAnalysis(startDate, endDate);
+      return NextResponse.json({ usageAnalysis });
+    }
+
+    if (mode === 'heatmap' && startDate && endDate) {
+      const heatmap = await StatsService.getUsageHeatmap(startDate, endDate);
+      return NextResponse.json({ heatmap });
+    }
+
     // Get stats from race_sessions_v0 (NEW)
     let v0Stats = null
     let recentSessions = []
     let error = null
 
     try {
-      v0Stats = await StatsService.getCombinedStatsFromV0()
+      v0Stats = await StatsService.getCombinedStatsFromV0(startDate, endDate)
       recentSessions = await StatsService.getRecentSessions(20)
     } catch (v0Error) {
       console.warn('⚠️ V0 stats unavailable:', v0Error)
@@ -52,6 +85,10 @@ export async function GET(request: NextRequest) {
         revenue: s.revenue,
         timestamp: new Date(s.timestamp).toLocaleString('es-CL')
       })),
+      dateRange: startDate && endDate ? {
+        start: startDate.toISOString(),
+        end: endDate.toISOString()
+      } : null,
       sources: {
         v0: 'available',
         json: 'deprecated'

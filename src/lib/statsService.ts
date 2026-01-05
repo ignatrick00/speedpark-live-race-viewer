@@ -1,5 +1,4 @@
 import connectDB from './mongodb';
-import RaceSession from '@/models/RaceSession';
 import UserLinkingService from './userLinkingService';
 import { getStatsTracker } from './stats-tracker';
 
@@ -127,45 +126,50 @@ export class StatsService {
   }
   
   /**
-   * Get MongoDB-specific statistics
+   * Get MongoDB-specific statistics from RaceSessionV0
    */
   private static async getMongoStats() {
     try {
-      const [
-        totalSessions,
-        totalDriversInMongo,
-        totalRevenue,
-        linkedUsers,
-        todaySessions
-      ] = await Promise.all([
-        RaceSession.countDocuments(),
-        RaceSession.aggregate([
-          { $unwind: '$drivers' },
-          { $group: { _id: '$drivers.name' } },
-          { $count: 'uniqueDrivers' }
-        ]),
-        RaceSession.aggregate([
-          { $group: { _id: null, totalRevenue: { $sum: '$revenue' } } }
-        ]),
-        RaceSession.aggregate([
-          { $unwind: '$linkedUsers' },
-          { $match: { 'linkedUsers.webUserId': { $ne: null } } },
-          { $count: 'linkedUsers' }
-        ]),
-        RaceSession.countDocuments({
-          timestamp: {
-            $gte: new Date(new Date().setHours(0, 0, 0, 0))
-          }
-        })
-      ]);
-      
+      await connectDB();
+      const RaceSessionV0 = (await import('@/models/RaceSessionV0')).default;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const sessions = await RaceSessionV0.find({
+        sessionName: { $regex: /clasificacion/i }
+      }).lean();
+
+      const totalSessions = sessions.length;
+
+      // Pilotos únicos totales
+      const uniqueDriverNames = new Set<string>();
+      sessions.forEach((s: any) => {
+        s.drivers?.forEach((d: any) => {
+          uniqueDriverNames.add(d.driverName);
+        });
+      });
+
+      // Sesiones hoy
+      const todaySessions = sessions.filter((s: any) => {
+        const sessionDate = new Date(s.sessionDate);
+        sessionDate.setHours(0, 0, 0, 0);
+        return sessionDate.getTime() === today.getTime();
+      }).length;
+
+      // Calcular revenue total
+      const totalDriverParticipations = sessions.reduce((acc: number, s: any) =>
+        acc + (s.drivers?.length || 0), 0
+      );
+      const totalRevenue = totalDriverParticipations * 17000;
+
       return {
         totalSessions,
-        uniqueDrivers: totalDriversInMongo[0]?.uniqueDrivers || 0,
-        totalRevenue: totalRevenue[0]?.totalRevenue || 0,
-        linkedUsers: linkedUsers[0]?.linkedUsers || 0,
+        uniqueDrivers: uniqueDriverNames.size,
+        totalRevenue,
+        linkedUsers: 0, // No tracking in V0
         todaySessions,
-        avgDriversPerSession: totalSessions > 0 ? Math.round((totalDriversInMongo[0]?.uniqueDrivers || 0) / totalSessions) : 0,
+        avgDriversPerSession: totalSessions > 0 ? Math.round(totalDriverParticipations / totalSessions) : 0,
       };
     } catch (error) {
       console.error('❌ Error getting MongoDB stats:', error);
@@ -214,17 +218,26 @@ export class StatsService {
   }
 
   /**
-   * Get combined stats from race_sessions_v0
+   * Get combined stats from race_sessions_v0 with optional date range
    */
-  static async getCombinedStatsFromV0() {
+  static async getCombinedStatsFromV0(startDate?: Date, endDate?: Date) {
     try {
       await connectDB();
       const RaceSessionV0 = (await import('@/models/RaceSessionV0')).default;
 
-      // Obtener todas las sesiones de clasificación
-      const sessions = await RaceSessionV0.find({
+      // Construir query con filtro de fechas
+      const query: any = {
         sessionName: { $regex: /clasificacion/i }
-      }).lean();
+      };
+
+      if (startDate || endDate) {
+        query.sessionDate = {};
+        if (startDate) query.sessionDate.$gte = startDate;
+        if (endDate) query.sessionDate.$lte = endDate;
+      }
+
+      // Obtener todas las sesiones de clasificación en el rango
+      const sessions = await RaceSessionV0.find(query).lean();
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -308,6 +321,171 @@ export class StatsService {
     } catch (error) {
       console.error('❌ Error getting combined stats from V0:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get daily revenue breakdown for a date range
+   */
+  static async getDailyRevenue(startDate: Date, endDate: Date) {
+    try {
+      await connectDB();
+      const RaceSessionV0 = (await import('@/models/RaceSessionV0')).default;
+
+      const sessions = await RaceSessionV0.find({
+        sessionName: { $regex: /clasificacion/i },
+        sessionDate: { $gte: startDate, $lte: endDate }
+      }).lean();
+
+      // Agrupar por día
+      const dailyMap = new Map<string, { revenue: number, sessions: number, drivers: number }>();
+
+      sessions.forEach((s: any) => {
+        const date = new Date(s.sessionDate);
+        const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+
+        const current = dailyMap.get(dateKey) || { revenue: 0, sessions: 0, drivers: 0 };
+        const driversCount = s.drivers?.length || 0;
+
+        current.revenue += driversCount * 17000;
+        current.sessions += 1;
+        current.drivers += driversCount;
+
+        dailyMap.set(dateKey, current);
+      });
+
+      // Convertir a array y ordenar por fecha
+      return Array.from(dailyMap.entries())
+        .map(([date, data]) => ({
+          date,
+          ...data
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+    } catch (error) {
+      console.error('❌ Error getting daily revenue:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get low usage analysis (horarios con menos uso)
+   */
+  static async getLowUsageAnalysis(startDate: Date, endDate: Date) {
+    try {
+      await connectDB();
+      const RaceSessionV0 = (await import('@/models/RaceSessionV0')).default;
+
+      const sessions = await RaceSessionV0.find({
+        sessionName: { $regex: /clasificacion/i },
+        sessionDate: { $gte: startDate, $lte: endDate }
+      }).lean();
+
+      // Analizar uso por hora del día (0-23)
+      const hourlyUsage = new Array(24).fill(0).map((_, hour) => ({
+        hour,
+        sessions: 0,
+        drivers: 0,
+        revenue: 0
+      }));
+
+      // Analizar uso por día de la semana (0=Domingo, 6=Sábado)
+      const weekdayUsage = new Array(7).fill(0).map((_, day) => ({
+        day,
+        dayName: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][day],
+        sessions: 0,
+        drivers: 0,
+        revenue: 0
+      }));
+
+      sessions.forEach((s: any) => {
+        const date = new Date(s.sessionDate);
+        const hour = date.getHours();
+        const weekday = date.getDay();
+        const driversCount = s.drivers?.length || 0;
+        const revenue = driversCount * 17000;
+
+        hourlyUsage[hour].sessions += 1;
+        hourlyUsage[hour].drivers += driversCount;
+        hourlyUsage[hour].revenue += revenue;
+
+        weekdayUsage[weekday].sessions += 1;
+        weekdayUsage[weekday].drivers += driversCount;
+        weekdayUsage[weekday].revenue += revenue;
+      });
+
+      // Encontrar horarios de bajo uso
+      const avgSessionsPerHour = hourlyUsage.reduce((acc, h) => acc + h.sessions, 0) / 24;
+      const lowUsageHours = hourlyUsage
+        .filter(h => h.sessions < avgSessionsPerHour * 0.5) // Menos del 50% del promedio
+        .sort((a, b) => a.sessions - b.sessions);
+
+      // Encontrar días de bajo uso
+      const avgSessionsPerDay = weekdayUsage.reduce((acc, d) => acc + d.sessions, 0) / 7;
+      const lowUsageDays = weekdayUsage
+        .filter(d => d.sessions < avgSessionsPerDay * 0.7) // Menos del 70% del promedio
+        .sort((a, b) => a.sessions - b.sessions);
+
+      return {
+        hourlyUsage,
+        weekdayUsage,
+        lowUsageHours,
+        lowUsageDays,
+        avgSessionsPerHour,
+        avgSessionsPerDay
+      };
+
+    } catch (error) {
+      console.error('❌ Error getting low usage analysis:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get usage heatmap (hour x weekday)
+   */
+  static async getUsageHeatmap(startDate: Date, endDate: Date) {
+    try {
+      await connectDB();
+      const RaceSessionV0 = (await import('@/models/RaceSessionV0')).default;
+
+      const sessions = await RaceSessionV0.find({
+        sessionName: { $regex: /clasificacion/i },
+        sessionDate: { $gte: startDate, $lte: endDate }
+      }).lean();
+
+      console.log(`📊 Heatmap: Found ${sessions.length} sessions between ${startDate.toISOString()} and ${endDate.toISOString()}`);
+
+      // Crear matriz 7 días x 24 horas (0=Domingo, 6=Sábado)
+      const heatmap = Array.from({ length: 7 }, () =>
+        Array.from({ length: 24 }, () => ({ sessions: 0, drivers: 0, revenue: 0 }))
+      );
+
+      sessions.forEach((s: any) => {
+        const date = new Date(s.sessionDate);
+        const hour = date.getHours();
+        const weekday = date.getDay();
+        const driversCount = s.drivers?.length || 0;
+        const revenue = driversCount * 17000;
+
+        console.log(`  📅 Session: ${s.sessionName} - ${date.toISOString()} - Day: ${weekday} (${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][weekday]}) - Hour: ${hour}:00`);
+
+        heatmap[weekday][hour].sessions += 1;
+        heatmap[weekday][hour].drivers += driversCount;
+        heatmap[weekday][hour].revenue += revenue;
+      });
+
+      // Contar celdas con datos
+      const cellsWithData = heatmap.reduce((count, day) =>
+        count + day.filter(cell => cell.sessions > 0).length, 0
+      );
+      console.log(`📊 Heatmap generated: ${cellsWithData} cells with data`);
+
+      return heatmap;
+
+    } catch (error) {
+      console.error('❌ Error getting usage heatmap:', error);
+      return null;
     }
   }
 }
