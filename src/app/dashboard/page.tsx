@@ -672,7 +672,9 @@ export default function DashboardPage() {
         {/* Page Title */}
         <header className="text-center mb-8 relative">
           <h1 className="font-bold text-4xl md:text-6xl mb-3 tracking-wider bg-gradient-to-r from-electric-blue via-sky-blue to-karting-gold bg-clip-text text-transparent">
-            {isViewingFriend ? 'DASHBOARD DE AMIGO' : 'MI DASHBOARD'}
+            {isViewingFriend && linkedDriverName
+              ? `DASHBOARD DE ${linkedDriverName.toUpperCase()}`
+              : 'MI DASHBOARD'}
           </h1>
         </header>
 
@@ -694,7 +696,9 @@ export default function DashboardPage() {
                           Nombre de Piloto:
                         </td>
                         <td className="py-4 px-6 text-white font-bold text-lg">
-                          {user.profile.firstName} {user.profile.lastName}
+                          {isViewingFriend && friendProfile
+                            ? `${friendProfile.firstName} ${friendProfile.lastName}`
+                            : `${user.profile.firstName} ${user.profile.lastName}`}
                         </td>
                       </tr>
                       <tr className="border-b border-blue-800/30">
