@@ -894,7 +894,10 @@ export default function DashboardPage() {
               {/* Right Column - Additional Stats */}
               <div className="space-y-6">
                 {/* Leaderboard */}
-                <LeaderboardCard currentUserId={user?.id} />
+                <LeaderboardCard
+                  currentUserId={user?.id}
+                  friendUserId={isViewingFriend ? targetUserId : undefined}
+                />
 
                 {/* Achievements */}
                 <AchievementsBadge

@@ -14,35 +14,48 @@ interface LeaderboardEntry {
 
 interface LeaderboardCardProps {
   currentUserId?: string;
+  friendUserId?: string; // ID del amigo cuyo dashboard estás viendo
 }
 
-export default function LeaderboardCard({ currentUserId }: LeaderboardCardProps) {
+export default function LeaderboardCard({ currentUserId, friendUserId }: LeaderboardCardProps) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLeaderboard();
-  }, []);
+  }, [currentUserId, friendUserId]);
 
   const fetchLeaderboard = async () => {
     try {
       setLoading(true);
 
-      // 🆕 Usar race_sessions_v0 con endpoint nuevo
-      const url = currentUserId
-        ? `/api/leaderboard-v0?limit=10&userId=${currentUserId}`
-        : '/api/leaderboard-v0?limit=10';
+      // 🆕 Incluir ambos userIds si existen
+      let url = '/api/leaderboard-v0?limit=10';
+      if (currentUserId) {
+        url += `&userId=${currentUserId}`;
+      }
+      if (friendUserId && friendUserId !== currentUserId) {
+        url += `&friendUserId=${friendUserId}`;
+      }
 
       const response = await fetch(url);
       const data = await response.json();
 
       if (data.success) {
-        let finalLeaderboard = data.leaderboard;
+        let finalLeaderboard = [...data.leaderboard];
 
-        // If user has a position and is NOT in the top 10, add them at the end
+        // Agregar currentUser si está fuera del top 10
         if (data.userEntry && data.userPosition && data.userPosition > 10) {
-          finalLeaderboard = [...data.leaderboard, data.userEntry];
+          finalLeaderboard.push(data.userEntry);
+        }
+
+        // Agregar friendUser si está fuera del top 10
+        if (data.friendEntry && data.friendPosition && data.friendPosition > 10) {
+          // Evitar duplicados
+          if (!finalLeaderboard.some(e => e.webUserId === data.friendEntry.webUserId)) {
+            finalLeaderboard.push(data.friendEntry);
+          }
         }
 
         setLeaderboard(finalLeaderboard);
@@ -113,13 +126,16 @@ export default function LeaderboardCard({ currentUserId }: LeaderboardCardProps)
         <div className="space-y-2">
           {leaderboard.map((entry, index) => {
             const isCurrentUser = currentUserId && entry.webUserId === currentUserId;
-            const showDivider = index === 10 && isCurrentUser; // Show divider before user if they're outside top 10
+            const isFriendUser = friendUserId && entry.webUserId === friendUserId;
+            const showDivider = index === 10 && (isCurrentUser || isFriendUser);
 
             return (
               <React.Fragment key={entry.position}>
                 {showDivider && (
                   <div className="border-t border-dashed border-electric-blue/40 my-4 pt-2">
-                    <div className="text-xs text-sky-blue/60 text-center mb-2">Tu posición</div>
+                    <div className="text-xs text-sky-blue/60 text-center mb-2">
+                      {isCurrentUser && isFriendUser ? 'Ambos fuera del Top 10' : isCurrentUser ? 'Tu posición' : 'Posición del piloto'}
+                    </div>
                   </div>
                 )}
                 <div
@@ -127,12 +143,14 @@ export default function LeaderboardCard({ currentUserId }: LeaderboardCardProps)
                     flex items-center gap-3 p-3 rounded-lg
                     ${isCurrentUser
                       ? 'bg-gradient-to-r from-karting-gold/20 to-electric-blue/20 border-2 border-karting-gold/60 shadow-lg shadow-karting-gold/20'
+                      : isFriendUser
+                      ? 'bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-2 border-purple-400/60 shadow-lg shadow-purple-400/20'
                       : entry.position <= 3
                       ? 'bg-gradient-to-r from-electric-blue/10 to-transparent border border-electric-blue/20'
                       : 'bg-racing-black/50 border border-gray-700/30'
                     }
                     hover:border-sky-blue/50 transition-all duration-200
-                    ${isCurrentUser ? 'scale-105' : ''}
+                    ${(isCurrentUser || isFriendUser) ? 'scale-105' : ''}
                   `}
                 >
                   {/* Position */}
@@ -142,9 +160,10 @@ export default function LeaderboardCard({ currentUserId }: LeaderboardCardProps)
 
                   {/* Driver Info */}
                   <div className="flex-1 min-w-0">
-                    <div className={`font-bold truncate ${isCurrentUser ? 'text-karting-gold' : 'text-white'} flex items-center gap-2`}>
+                    <div className={`font-bold truncate ${isCurrentUser ? 'text-karting-gold' : isFriendUser ? 'text-purple-300' : 'text-white'} flex items-center gap-2`}>
                       {entry.driverName}
                       {isCurrentUser && <span className="text-xs">👈 TÚ</span>}
+                      {isFriendUser && <span className="text-xs">👁️ VIENDO</span>}
                     </div>
                     <div className="text-xs text-sky-blue/70 flex gap-3">
                       <span>{entry.totalRaces} carreras</span>
@@ -155,7 +174,7 @@ export default function LeaderboardCard({ currentUserId }: LeaderboardCardProps)
 
                   {/* Best Time */}
                   <div className="text-right">
-                    <div className={`text-lg font-bold ${isCurrentUser ? 'text-karting-gold animate-pulse' : 'text-karting-gold'}`}>
+                    <div className={`text-lg font-bold ${isCurrentUser || isFriendUser ? 'text-karting-gold animate-pulse' : 'text-karting-gold'}`}>
                       {formatTime(entry.bestLapTime)}
                     </div>
                     <div className="text-xs text-gray-400">Mejor tiempo</div>

@@ -17,8 +17,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '10');
     const userId = searchParams.get('userId'); // Para incluir posición del usuario si no está en top
+    const friendUserId = searchParams.get('friendUserId'); // Para incluir posición del amigo también
 
-    console.log(`🏆 [LEADERBOARD-V0] Fetching leaderboard (limit: ${limit}, userId: ${userId})`);
+    console.log(`🏆 [LEADERBOARD-V0] Fetching leaderboard (limit: ${limit}, userId: ${userId}, friendUserId: ${friendUserId})`);
 
     // Aggregation para obtener clasificación general (sin linkedUserId)
     const leaderboard = await RaceSessionV0.aggregate([
@@ -159,11 +160,79 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Si se solicita friendUserId y no está en el top, buscar su posición
+    let friendEntry = null;
+    let friendPosition = null;
+    if (friendUserId && !formattedLeaderboard.some(e => e.webUserId === friendUserId)) {
+      // Buscar driverName del amigo (SINGLE SOURCE OF TRUTH)
+      const friendUser = await WebUser.findById(friendUserId).select('kartingLink').lean();
+
+      if (friendUser && (friendUser as any).kartingLink?.status === 'linked' && (friendUser as any).kartingLink?.driverName) {
+        const friendDriverName = (friendUser as any).kartingLink.driverName;
+        console.log(`🔍 [LEADERBOARD-V0] Looking for friend's driver: "${friendDriverName}"`);
+
+        // Obtener posición completa del amigo (reutilizar allDrivers si ya se calculó)
+        const allDrivers = await RaceSessionV0.aggregate([
+          // 0. 🏁 FILTRO CRÍTICO: Solo carreras válidas
+          {
+            $match: {
+              sessionType: 'carrera',
+              sessionName: {
+                $not: {
+                  $regex: /f1|f2|f3|k 1|k 2|k 3|k1|k2|k3|gt|mujeres|women|junior| m(?!\w)/i
+                }
+              }
+            }
+          },
+          { $unwind: '$drivers' },
+          { $match: { 'drivers.bestTime': { $gt: 0 } } },
+          {
+            $group: {
+              _id: '$drivers.driverName',
+              bestLapTime: { $min: '$drivers.bestTime' },
+              totalRaces: { $sum: 1 },
+              podiums: {
+                $sum: {
+                  $cond: [{ $lte: ['$drivers.finalPosition', 3] }, 1, 0]
+                }
+              },
+              bestPosition: { $min: '$drivers.finalPosition' }
+            }
+          },
+          { $sort: { bestLapTime: 1 } }
+        ]);
+
+        // Buscar por driverName (case-insensitive)
+        const friendIndex = allDrivers.findIndex(d =>
+          d._id.toLowerCase() === friendDriverName.toLowerCase()
+        );
+
+        if (friendIndex !== -1) {
+          const friendDriver = allDrivers[friendIndex];
+          friendEntry = {
+            position: friendIndex + 1,
+            driverName: friendDriver._id,
+            bestLapTime: friendDriver.bestLapTime,
+            totalRaces: friendDriver.totalRaces,
+            podiums: friendDriver.podiums,
+            bestPosition: friendDriver.bestPosition,
+            webUserId: friendUserId
+          };
+          friendPosition = friendIndex + 1;
+          console.log(`👁️ [LEADERBOARD-V0] Friend position: ${friendPosition}`);
+        }
+      } else {
+        console.log(`⚠️ [LEADERBOARD-V0] Friend ${friendUserId} is not linked to any driver`);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       leaderboard: formattedLeaderboard,
       userEntry,
       userPosition: userEntry?.position || null,
+      friendEntry,
+      friendPosition,
       totalDrivers: leaderboard.length,
       timestamp: new Date().toISOString()
     });
