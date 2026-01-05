@@ -81,7 +81,9 @@ export default function TopKartsDayV0() {
   // Format current date as "Lunes 11"
   const formatCurrentDate = () => {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const date = new Date(selectedDate);
+    // Parsear la fecha en timezone de Chile para evitar desfase de días
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // Crear fecha local (no UTC)
     const dayName = days[date.getDay()];
     const dayNumber = date.getDate();
     return `${dayName} ${dayNumber}`;
