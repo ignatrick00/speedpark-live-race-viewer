@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
       // Formatear para la UI
       const records = top10.map((entry, index) => ({
         _id: `${entry.sessionId}-${entry._id}`,
+        sessionId: entry.sessionId, // Guardar sessionId para eliminar
         sessionName: entry.sessionName,
         driverName: entry._id,
         lapNumber: entry.lapNumber || 0,
@@ -121,7 +122,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// DELETE: Eliminar un registro de tiempo (TODO: Implementar para RaceSessionV0)
+// DELETE: Eliminar un registro de tiempo de un piloto en una sesión
 export async function DELETE(request: NextRequest) {
   try {
     console.log('🗑️ DELETE /api/admin/lap-times');
@@ -135,13 +136,39 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Funcionalidad de eliminación aún no implementada para RaceSessionV0'
-      },
-      { status: 501 }
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('sessionId');
+    const driverName = searchParams.get('driverName');
+
+    if (!sessionId || !driverName) {
+      return NextResponse.json(
+        { success: false, error: 'Se requiere sessionId y driverName' },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    // Eliminar el driver del array de drivers en la sesión
+    const result = await RaceSessionV0.findByIdAndUpdate(
+      sessionId,
+      { $pull: { drivers: { driverName } } },
+      { new: true }
     );
+
+    if (!result) {
+      return NextResponse.json(
+        { success: false, error: 'Sesión no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    console.log(`✅ Driver eliminado: ${driverName} de sesión ${sessionId}`);
+
+    return NextResponse.json({
+      success: true,
+      message: `Registro de ${driverName} eliminado exitosamente`
+    });
 
   } catch (error) {
     console.error('❌ Error deleting lap time:', error);
