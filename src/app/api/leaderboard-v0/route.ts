@@ -22,6 +22,19 @@ export async function GET(request: NextRequest) {
 
     // Aggregation para obtener clasificación general (sin linkedUserId)
     const leaderboard = await RaceSessionV0.aggregate([
+      // 0. 🏁 FILTRO CRÍTICO: Solo carreras válidas (misma lógica que raceSessionServiceV0.ts)
+      {
+        $match: {
+          sessionType: 'carrera', // Solo carreras (no clasificación, práctica, etc.)
+          // Excluir carreras de otras categorías/pistas (K1, K2, K3, GT, F1, Mujeres, Junior, etc.)
+          sessionName: {
+            $not: {
+              $regex: /f1|f2|f3|k 1|k 2|k 3|k1|k2|k3|gt|mujeres|women|junior| m(?!\w)/i
+            }
+          }
+        }
+      },
+
       // 1. Descomponer drivers array
       { $unwind: '$drivers' },
 
@@ -94,6 +107,17 @@ export async function GET(request: NextRequest) {
 
         // Obtener posición completa del usuario
         const allDrivers = await RaceSessionV0.aggregate([
+          // 0. 🏁 FILTRO CRÍTICO: Solo carreras válidas (misma lógica que raceSessionServiceV0.ts)
+          {
+            $match: {
+              sessionType: 'carrera',
+              sessionName: {
+                $not: {
+                  $regex: /f1|f2|f3|k 1|k 2|k 3|k1|k2|k3|gt|mujeres|women|junior| m(?!\w)/i
+                }
+              }
+            }
+          },
           { $unwind: '$drivers' },
           { $match: { 'drivers.bestTime': { $gt: 0 } } },
           {
