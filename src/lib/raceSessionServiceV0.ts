@@ -267,8 +267,9 @@ export class RaceSessionServiceV0 {
     if (nameLower.includes('carrera') || nameLower.includes('race')) {
       // Excluir carreras de otras pistas/configuraciones/categorías
       const invalidKeywords = [
-        'f1', 'k 1', 'k 2', 'k 3', 'k1', 'k2', 'k3',
-        'gt', 'mujeres', 'women', 'junior'
+        'f1', 'f2', 'f3', 'k 1', 'k 2', 'k 3', 'k1', 'k2', 'k3',
+        'gt', 'mujeres', 'women', 'junior',
+        ' m', // "Carrera M" (espacio antes para evitar false positives)
       ];
       const hasInvalidKeyword = invalidKeywords.some(keyword => nameLower.includes(keyword));
 

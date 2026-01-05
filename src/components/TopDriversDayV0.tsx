@@ -141,7 +141,7 @@ export default function TopDriversV0Day() {
       {/* Best Times List - ALWAYS show when data available */}
       {bestTimes.length > 0 && (
         <div className="space-y-3">
-          {bestTimes.slice(0, 5).map((entry) => (
+          {bestTimes.slice(0, 10).map((entry) => (
             <div
               key={entry.position}
               className="bg-racing-black/40 border border-sky-blue/10 rounded-lg p-4 hover:border-electric-blue/30 transition-all"
