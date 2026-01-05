@@ -16,15 +16,14 @@ interface DriverData {
 export class StatsService {
 
   /**
-   * Convert UTC date to Chile timezone (America/Santiago = UTC-3)
+   * Get hour and weekday from date
+   * MongoDB already stores dates with Chile timezone, so we just use getHours/getDay directly
    */
   private static toChileTime(date: Date): { hour: number, weekday: number, date: Date } {
-    // Convertir a hora de Chile usando toLocaleString
-    const chileDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
     return {
-      hour: chileDate.getHours(),
-      weekday: chileDate.getDay(),
-      date: chileDate
+      hour: date.getHours(),
+      weekday: date.getDay(),
+      date: date
     };
   }
 
