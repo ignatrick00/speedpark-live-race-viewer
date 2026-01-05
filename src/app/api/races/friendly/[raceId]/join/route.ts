@@ -133,6 +133,7 @@ export async function POST(
       userId,
       kartNumber,
       joinedAt: new Date(),
+      driverName: user.kartingLink?.driverName || null, // Use SMS-Timing driver name if linked
     };
 
     const updatedRace = await FriendlyRace.findOneAndUpdate(

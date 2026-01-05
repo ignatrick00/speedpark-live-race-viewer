@@ -20,6 +20,7 @@ interface Participant {
   kartNumber: number;
   name: string;
   joinedAt: Date;
+  driverName?: string; // SMS-Timing driver name from kartingLink
 }
 
 interface Race {
@@ -1949,7 +1950,7 @@ function RaceCard({
               >
                 <span className="text-sky-blue flex items-center gap-2">
                   <span className="text-gold font-digital">#{participant.kartNumber}</span>
-                  <span>{participant.name}</span>
+                  <span>{participant.driverName || participant.name}</span>
                 </span>
               </div>
             ))}

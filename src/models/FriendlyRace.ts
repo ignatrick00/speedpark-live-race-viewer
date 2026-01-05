@@ -9,6 +9,7 @@ export interface IParticipant {
   userId: mongoose.Types.ObjectId;
   kartNumber: number;
   joinedAt: Date;
+  driverName?: string; // SMS-Timing driver name from kartingLink
 }
 
 export interface IFriendlyRace extends Document {
@@ -51,6 +52,10 @@ const participantSchema = new Schema<IParticipant>({
   joinedAt: {
     type: Date,
     default: Date.now,
+  },
+  driverName: {
+    type: String,
+    required: false, // Optional - may not have linked driver name
   },
 }, { _id: false });
 
