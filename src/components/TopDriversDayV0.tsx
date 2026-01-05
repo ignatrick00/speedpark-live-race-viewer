@@ -110,9 +110,22 @@ export default function TopDriversV0Day() {
             </h3>
           </div>
 
-          {/* Current Date Display (read-only) */}
-          <div className="text-sm text-sky-blue/70 font-medium">
-            {formatCurrentDate()}
+          {/* Date Selector */}
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-sky-blue/70 font-medium">
+              📅 Fecha:
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              onClick={(e) => e.stopPropagation()} // Evitar abrir modal al hacer clic
+              className="px-3 py-1.5 bg-racing-black border border-electric-blue/30 rounded-lg text-white text-sm focus:border-electric-blue/60 focus:outline-none hover:border-electric-blue/50 transition-colors"
+              max={new Date().toISOString().split('T')[0]} // No permitir fechas futuras
+            />
+            <div className="text-sm text-sky-blue/50 font-medium">
+              {formatCurrentDate()}
+            </div>
           </div>
         </div>
 
@@ -191,14 +204,11 @@ export default function TopDriversV0Day() {
           >
             {/* Modal Header */}
             <div className="sticky top-0 bg-racing-black/95 border-b border-electric-blue/20 p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-2xl font-bold text-electric-blue flex items-center gap-2">
                     🏆 Top 10 Pilotos del Día
                   </h2>
-                  <p className="text-sm text-sky-blue/70 font-medium mt-1">
-                    {formatCurrentDate()}
-                  </p>
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
@@ -206,6 +216,23 @@ export default function TopDriversV0Day() {
                 >
                   ✕
                 </button>
+              </div>
+
+              {/* Date Selector in Modal */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-sky-blue/70 font-medium">
+                  📅 Seleccionar Fecha:
+                </label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="px-3 py-2 bg-racing-black border border-electric-blue/30 rounded-lg text-white text-sm focus:border-electric-blue/60 focus:outline-none hover:border-electric-blue/50 transition-colors"
+                  max={new Date().toISOString().split('T')[0]}
+                />
+                <div className="text-sm text-sky-blue/50 font-medium">
+                  {formatCurrentDate()}
+                </div>
               </div>
             </div>
 
@@ -238,6 +265,9 @@ export default function TopDriversV0Day() {
                               {entry.driverName}
                             </div>
                             <div className="text-xs text-sky-blue/60">
+                              {entry.sessionName}
+                            </div>
+                            <div className="text-xs text-sky-blue/40 mt-0.5">
                               Kart #{entry.kartNumber} • {entry.sessionDateTime || entry.sessionTime}
                             </div>
                           </div>
