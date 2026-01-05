@@ -970,6 +970,8 @@ function FriendlyUpcomingView({
   const { token, user } = useAuth();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [raceToLeave, setRaceToLeave] = useState<{ id: string; name: string } | null>(null);
 
   const handleJoinClick = (race: Race) => {
     // Check if user is authenticated
@@ -980,6 +982,37 @@ function FriendlyUpcomingView({
 
     setSelectedRace(race);
     setShowJoinModal(true);
+  };
+
+  const handleLeaveRace = (raceId: string, raceName: string) => {
+    setRaceToLeave({ id: raceId, name: raceName });
+    setShowLeaveConfirm(true);
+  };
+
+  const confirmLeaveRace = async () => {
+    if (!raceToLeave) return;
+
+    try {
+      const response = await fetch(`/api/races/friendly/${raceToLeave.id}/leave`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowLeaveConfirm(false);
+        setRaceToLeave(null);
+        onRefresh();
+      } else {
+        alert(data.error || 'Error al desinscribirte de la carrera');
+      }
+    } catch (error) {
+      console.error('Error leaving race:', error);
+      alert('Error al desinscribirte de la carrera');
+    }
   };
 
   const handleDeleteRace = async (raceId: string) => {
@@ -1105,6 +1138,7 @@ function FriendlyUpcomingView({
             race={race}
             currentUserId={user?.id}
             onJoinClick={() => handleJoinClick(race)}
+            onLeaveClick={() => handleLeaveRace(race._id, race.name)}
             onDeleteClick={() => handleDeleteRace(race._id)}
             onConfirmClick={() => handleConfirmRace(race._id)}
           />
@@ -1126,6 +1160,44 @@ function FriendlyUpcomingView({
             onRefresh();
           }}
         />
+      )}
+
+      {/* Leave Confirmation Modal */}
+      {showLeaveConfirm && raceToLeave && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gradient-to-br from-midnight via-red-500/10 to-midnight border-2 border-red-500/50 rounded-xl p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">🚪</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-3">
+                DESINSCRIBIRSE DE CARRERA
+              </h3>
+              <p className="text-sky-blue/80 text-lg mb-2">
+                ¿Estás seguro de que quieres desinscribirte de:
+              </p>
+              <p className="text-electric-blue font-bold text-xl">
+                "{raceToLeave.name}"?
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowLeaveConfirm(false);
+                  setRaceToLeave(null);
+                }}
+                className="flex-1 px-6 py-3 bg-slate-600/20 border border-slate-500/50 text-slate-300 rounded-lg hover:bg-slate-600/30 transition-all font-racing"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={confirmLeaveRace}
+                className="flex-1 px-6 py-3 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
+              >
+                SÍ, DESINSCRIBIRME
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
@@ -1843,6 +1915,7 @@ function RaceCard({
   race,
   currentUserId,
   onJoinClick,
+  onLeaveClick,
   onDeleteClick,
   onConfirmClick,
   onViewResults,
@@ -1850,6 +1923,7 @@ function RaceCard({
   race: Race;
   currentUserId?: string;
   onJoinClick?: () => void;
+  onLeaveClick?: () => void;
   onDeleteClick?: () => void;
   onConfirmClick?: () => void;
   onViewResults?: () => void;
@@ -1997,19 +2071,27 @@ function RaceCard({
             </>
           )}
 
-          {/* Botón de unirse/unido (solo si NO es el creador) */}
-          {!isCreator && onJoinClick && (
-            <button
-              onClick={isParticipant ? undefined : onJoinClick}
-              disabled={isParticipant}
-              className={`px-4 py-2 rounded-lg font-racing transition-all ${
-                isParticipant
-                  ? 'bg-green-600/20 border border-green-500/50 text-green-400 cursor-not-allowed'
-                  : 'bg-electric-blue/20 border border-electric-blue/50 text-electric-blue hover:bg-electric-blue/30'
-              }`}
-            >
-              {isParticipant ? '✓ UNIDO' : 'UNIRME'}
-            </button>
+          {/* Botón de unirse/desinscribirse (solo si NO es el creador) */}
+          {!isCreator && (
+            <>
+              {isParticipant && onLeaveClick ? (
+                // Usuario YA está inscrito - mostrar botón de desinscripción
+                <button
+                  onClick={onLeaveClick}
+                  className="px-4 py-2 rounded-lg font-racing transition-all bg-red-600/20 border border-red-500/50 text-red-400 hover:bg-red-600/30"
+                >
+                  🚪 DESINSCRIBIRME
+                </button>
+              ) : !isParticipant && onJoinClick ? (
+                // Usuario NO está inscrito - mostrar botón de unirse
+                <button
+                  onClick={onJoinClick}
+                  className="px-4 py-2 rounded-lg font-racing transition-all bg-electric-blue/20 border border-electric-blue/50 text-electric-blue hover:bg-electric-blue/30"
+                >
+                  UNIRME
+                </button>
+              ) : null}
+            </>
           )}
 
           {/* Botón Ver Resultados (solo si está vinculada) */}
