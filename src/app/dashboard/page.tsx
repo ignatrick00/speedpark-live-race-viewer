@@ -818,8 +818,8 @@ function DashboardContent() {
                     </button>
                     <div className="bg-rb-blue/20 border border-rb-blue/40 rounded-lg px-4 py-3 flex-1">
                       <p className="text-sky-blue text-sm">
-                        📋 <strong>¿Primera vez?</strong><br/>
-                        Inscríbete en Speed Park con tu nombre: <strong>{user.profile.firstName} {user.profile.lastName}</strong>
+                        📋 <strong>¿No has corrido antes en esta pista?</strong><br/>
+                        Inscríbete en la aplicación <strong>ActivityBox</strong> de Speed Park con un alias que te identifique, ya sea tu nombre y apellido (<strong>{user.profile.firstName} {user.profile.lastName}</strong>) o algún alias.
                       </p>
                     </div>
                   </div>
