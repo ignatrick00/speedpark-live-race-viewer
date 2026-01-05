@@ -1056,19 +1056,14 @@ function FriendlyUpcomingView({
     );
   }
 
-  // Filter upcoming races: future dates only, NOT linked/finalized, and user NOT already registered
+  // Filter upcoming races: future dates only, and NOT linked/finalized
+  // NOTE: We DO show races where user is registered (they appear in both "Próximas" and "Mis Carreras")
   const upcomingRaces = races.filter(race => {
     const raceDate = new Date(race.date);
     const now = new Date();
     const isFuture = raceDate >= now;
     const isNotLinked = !race.linkedRaceSessionId && race.raceStatus !== 'linked' && race.raceStatus !== 'finalized';
-
-    // Exclude races where current user is already registered
-    const isUserRegistered = user?.id && race.participantsList?.some(
-      (participant) => participant.userId === user.id
-    );
-
-    return isFuture && isNotLinked && !isUserRegistered;
+    return isFuture && isNotLinked;
   });
 
   if (isLoading) {
