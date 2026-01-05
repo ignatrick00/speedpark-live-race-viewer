@@ -11,8 +11,9 @@ interface DatePickerCalendarProps {
 export default function DatePickerCalendar({ selectedDate, onDateChange, maxDate }: DatePickerCalendarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(() => {
-    const date = new Date(selectedDate);
-    return new Date(date.getFullYear(), date.getMonth(), 1);
+    // Parsear manualmente para evitar conversión UTC
+    const [year, month] = selectedDate.split('-').map(Number);
+    return new Date(year, month - 1, 1);
   });
 
   const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -23,11 +24,13 @@ export default function DatePickerCalendar({ selectedDate, onDateChange, maxDate
 
   const formatDisplayDate = (dateStr: string) => {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const date = new Date(dateStr);
+    // Parsear manualmente para evitar conversión UTC
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     const dayName = days[date.getDay()];
     const dayNumber = date.getDate();
-    const month = months[date.getMonth()];
-    return `${dayName} ${dayNumber} de ${month}`;
+    const monthName = months[date.getMonth()];
+    return `${dayName} ${dayNumber} de ${monthName}`;
   };
 
   // Get all days for current month view
@@ -76,11 +79,20 @@ export default function DatePickerCalendar({ selectedDate, onDateChange, maxDate
 
   const goToNextMonth = () => {
     const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-    const today = maxDate ? new Date(maxDate) : new Date();
+
+    // Parsear maxDate manualmente para evitar conversión UTC
+    let maxYear, maxMonth;
+    if (maxDate) {
+      [maxYear, maxMonth] = maxDate.split('-').map(Number);
+    } else {
+      const now = new Date();
+      maxYear = now.getFullYear();
+      maxMonth = now.getMonth() + 1; // getMonth() es 0-indexed
+    }
 
     // Don't go to future months beyond maxDate
-    if (nextMonth.getFullYear() > today.getFullYear() ||
-        (nextMonth.getFullYear() === today.getFullYear() && nextMonth.getMonth() > today.getMonth())) {
+    if (nextMonth.getFullYear() > maxYear ||
+        (nextMonth.getFullYear() === maxYear && nextMonth.getMonth() + 1 > maxMonth)) {
       return;
     }
 
@@ -155,12 +167,15 @@ export default function DatePickerCalendar({ selectedDate, onDateChange, maxDate
               <button
                 onClick={goToNextMonth}
                 className="p-2 hover:bg-electric-blue/10 rounded-lg transition-colors text-electric-blue disabled:opacity-30 disabled:cursor-not-allowed"
-                disabled={
-                  maxDate &&
-                  (currentMonth.getFullYear() > new Date(maxDate).getFullYear() ||
-                    (currentMonth.getFullYear() === new Date(maxDate).getFullYear() &&
-                      currentMonth.getMonth() >= new Date(maxDate).getMonth()))
-                }
+                disabled={(() => {
+                  if (!maxDate) return false;
+                  const [maxYear, maxMonth] = maxDate.split('-').map(Number);
+                  return (
+                    currentMonth.getFullYear() > maxYear ||
+                    (currentMonth.getFullYear() === maxYear &&
+                      currentMonth.getMonth() + 1 >= maxMonth)
+                  );
+                })()}
               >
                 →
               </button>

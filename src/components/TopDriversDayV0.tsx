@@ -20,12 +20,12 @@ export default function TopDriversV0Day() {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    // Default: hoy en Chile en formato YYYY-MM-DD
+    // Default: hoy en hora local en formato YYYY-MM-DD (sin conversión UTC)
     const today = new Date();
-    const chileDate = today.toLocaleDateString('en-CA', {
-      timeZone: 'America/Santiago'
-    }); // en-CA da formato YYYY-MM-DD
-    return chileDate;
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   });
 
   useEffect(() => {
@@ -91,7 +91,9 @@ export default function TopDriversV0Day() {
   // Format current date as "Lunes 11"
   const formatCurrentDate = () => {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const date = new Date(selectedDate);
+    // Parsear manualmente para evitar conversión UTC
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     const dayName = days[date.getDay()];
     const dayNumber = date.getDate();
     return `${dayName} ${dayNumber}`;
@@ -116,7 +118,10 @@ export default function TopDriversV0Day() {
             <DatePickerCalendar
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
-              maxDate={new Date().toISOString().split('T')[0]}
+              maxDate={(() => {
+                const now = new Date();
+                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+              })()}
             />
           </div>
         </div>
@@ -214,7 +219,10 @@ export default function TopDriversV0Day() {
               <DatePickerCalendar
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
-                maxDate={new Date().toISOString().split('T')[0]}
+                maxDate={(() => {
+                  const now = new Date();
+                  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                })()}
               />
             </div>
 
