@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PersonalStatsCard from '@/components/PersonalStatsCard';
 import RaceHistoryTable from '@/components/RaceHistoryTable';
 import ProgressChart from '@/components/ProgressChart';
@@ -48,12 +48,20 @@ export interface PersonalStats {
 export default function DashboardPage() {
   const { user, stats: authStats, isLoading, isAuthenticated, token } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Check if viewing another user's dashboard
+  const viewingUserId = searchParams.get('userId');
+  const isViewingFriend = !!viewingUserId && viewingUserId !== user?.id;
+  const targetUserId = viewingUserId || user?.id;
+
   const [stats, setStats] = useState<PersonalStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [userSquadronId, setUserSquadronId] = useState<string | undefined>();
   const [squadronName, setSquadronName] = useState<string | null>(null);
   const [linkedDriverName, setLinkedDriverName] = useState<string | null>(null);
+  const [friendProfile, setFriendProfile] = useState<any>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -64,11 +72,16 @@ export default function DashboardPage() {
 
   // Load real stats using exact matching system
   useEffect(() => {
-    if (user && isAuthenticated) {
+    if (user && isAuthenticated && targetUserId) {
       loadRealUserStats();
       loadUserSquadron();
+
+      // If viewing friend, load their profile info
+      if (isViewingFriend) {
+        loadFriendProfile();
+      }
     }
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, targetUserId, viewingUserId]);
 
   const loadUserSquadron = async () => {
     if (!token) return;
@@ -89,18 +102,32 @@ export default function DashboardPage() {
     }
   };
 
+  const loadFriendProfile = async () => {
+    if (!viewingUserId || !token) return;
+    try {
+      const response = await fetch(`/api/users/${viewingUserId}/stats`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setFriendProfile(data.user);
+      }
+    } catch (error) {
+      console.error('Error loading friend profile:', error);
+    }
+  };
+
   const loadRealUserStats = async () => {
     try {
       setLoading(true);
 
-
-      if (!user || !user.id) {
+      if (!targetUserId) {
         setStats(null);
         return;
       }
 
-      // 🆕 USAR NUEVO ENDPOINT CON race_sessions_v0
-      const statsResponse = await fetch(`/api/user-stats?webUserId=${user.id}`);
+      // 🆕 USAR NUEVO ENDPOINT CON race_sessions_v0 (acepta userId de amigo también)
+      const statsResponse = await fetch(`/api/user-stats?webUserId=${targetUserId}`);
       const statsData = await statsResponse.json();
 
       console.log('📊 [DASHBOARD] Stats from V0:', statsData);
@@ -619,10 +646,33 @@ export default function DashboardPage() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto p-6">
+        {/* Friend View Banner */}
+        {isViewingFriend && friendProfile && (
+          <div className="mb-6 bg-gradient-to-r from-purple-600/20 via-purple-500/20 to-pink-600/20 border-2 border-purple-400/50 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">👤</span>
+                <div>
+                  <p className="text-sm text-purple-300 uppercase tracking-wide">Viendo dashboard de</p>
+                  <h2 className="text-xl font-racing text-white">
+                    {friendProfile.alias || `${friendProfile.firstName} ${friendProfile.lastName}`}
+                  </h2>
+                </div>
+              </div>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="px-4 py-2 bg-purple-500/20 border border-purple-400/50 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-all font-racing"
+              >
+                ← MI DASHBOARD
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Page Title */}
         <header className="text-center mb-8 relative">
           <h1 className="font-bold text-4xl md:text-6xl mb-3 tracking-wider bg-gradient-to-r from-electric-blue via-sky-blue to-karting-gold bg-clip-text text-transparent">
-            MI DASHBOARD
+            {isViewingFriend ? 'DASHBOARD DE AMIGO' : 'MI DASHBOARD'}
           </h1>
         </header>
 
