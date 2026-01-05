@@ -78,11 +78,12 @@ export async function GET(request: Request) {
 
     // Process each driver to find their best time with this kart
     drivers.forEach((driver: any) => {
-      // Filter sessions: must be this kart AND within date range
+      // Filter sessions: must be this kart AND within date range AND tipo CARRERA
       const relevantSessions = driver.sessions.filter((session: any) => {
         const isCorrectKart = session.kartNumber === kartNumber;
         const isInDateRange = dateFilter ? new Date(session.sessionDate) >= dateFilter : true;
-        return isCorrectKart && isInDateRange;
+        const isRaceSession = session.sessionType === 'carrera'; // 🏁 Solo carreras para rankings
+        return isCorrectKart && isInDateRange && isRaceSession;
       });
 
       if (relevantSessions.length === 0) return;

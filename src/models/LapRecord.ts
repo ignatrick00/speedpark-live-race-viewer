@@ -23,10 +23,15 @@ export interface ILapRecord extends Document {
   positionChange?: number; // Change from previous lap
   lapTimeImprovement?: number; // Improvement from previous lap
   isPersonalBest?: boolean; // If this lap was driver's best
-  
+
+  // Validation fields
+  isValid: boolean; // Si el tiempo es válido para rankings
+  invalidReason?: 'below_minimum' | 'above_maximum' | 'wrong_session_type' | 'manual_deletion' | 'other';
+  validatedAt?: Date; // Cuándo se validó
+
   // Raw SMS data for full traceability
   rawSMSData: any;
-  
+
   // Linking confidence
   linkingConfidence: 'high' | 'medium' | 'low' | 'manual';
   linkingMethod: 'exact_match' | 'alias_match' | 'manual_link' | 'person_id';
@@ -99,11 +104,23 @@ const lapRecordSchema = new Schema<ILapRecord>({
   positionChange: Number,
   lapTimeImprovement: Number,
   isPersonalBest: Boolean,
-  
+
+  // Validation fields
+  isValid: {
+    type: Boolean,
+    default: true,
+    index: true
+  },
+  invalidReason: {
+    type: String,
+    enum: ['below_minimum', 'above_maximum', 'wrong_session_type', 'manual_deletion', 'other']
+  },
+  validatedAt: Date,
+
   // Raw and linking data
-  rawSMSData: { 
-    type: Schema.Types.Mixed, 
-    required: true 
+  rawSMSData: {
+    type: Schema.Types.Mixed,
+    required: true
   },
   linkingConfidence: {
     type: String,
@@ -124,5 +141,6 @@ const lapRecordSchema = new Schema<ILapRecord>({
 lapRecordSchema.index({ sessionId: 1, driverName: 1, lapNumber: 1 });
 lapRecordSchema.index({ webUserId: 1, timestamp: -1 });
 lapRecordSchema.index({ personId: 1, timestamp: -1 });
+lapRecordSchema.index({ isValid: 1, bestTime: 1 }); // Para rankings optimizados
 
 export default mongoose.models.LapRecord || mongoose.model<ILapRecord>('LapRecord', lapRecordSchema);

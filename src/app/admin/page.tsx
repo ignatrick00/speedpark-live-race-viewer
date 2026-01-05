@@ -19,13 +19,21 @@ export default function AdminPage() {
       color: 'from-blue-500 to-cyan-500'
     },
     {
+      id: 'lap-times',
+      name: 'Gestión de Tiempos de Vuelta',
+      icon: '⏱️',
+      path: '/admin/lap-times',
+      description: 'Configurar validación y gestionar tiempos de ranking',
+      color: 'from-red-500 to-pink-500',
+      badge: 'NEW'
+    },
+    {
       id: 'organizers',
       name: 'Gestión de Organizadores',
       icon: '🎯',
       path: '/admin/organizers',
       description: 'Aprobar solicitudes y gestionar permisos de organizadores',
-      color: 'from-yellow-500 to-amber-500',
-      badge: 'NEW'
+      color: 'from-yellow-500 to-amber-500'
     },
     {
       id: 'linkage-requests',

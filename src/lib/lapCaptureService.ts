@@ -4,6 +4,7 @@ import DriverIdentityService from './driverIdentityService';
 import DriverRaceDataService from './driverRaceDataService';
 import BestDriverTime from '@/models/BestDriverTimes';
 import BestKartTime from '@/models/BestKartTimes';
+import SystemConfig from '@/models/SystemConfig';
 
 interface SMSDriverData {
   N: string; // Name
@@ -212,8 +213,36 @@ export class LapCaptureService {
         previousDriver.T - currentDriver.T : 0;
       
       const isPersonalBest = currentDriver.B === currentDriver.T && currentDriver.T > 0;
-      
-      // Create lap record
+
+      // 🔍 VALIDACIÓN DE TIEMPO - Obtener configuración del sistema
+      const config = await SystemConfig.getConfig();
+      const bestTime = currentDriver.B || 0;
+
+      let isValid = true;
+      let invalidReason: 'below_minimum' | 'above_maximum' | 'wrong_session_type' | undefined;
+
+      // Validar solo si es una sesión de CARRERA
+      const isRaceSession = sessionName && sessionName.toLowerCase().includes('carrera');
+
+      if (!isRaceSession) {
+        isValid = false;
+        invalidReason = 'wrong_session_type';
+      } else if (bestTime > 0) {
+        // Validar tiempo mínimo
+        if (bestTime < config.minLapTime) {
+          isValid = false;
+          invalidReason = 'below_minimum';
+          console.log(`⚠️ TIEMPO INVÁLIDO (muy bajo): ${driverName} - ${bestTime}ms < ${config.minLapTime}ms`);
+        }
+        // Validar tiempo máximo
+        else if (config.maxLapTime && bestTime > config.maxLapTime) {
+          isValid = false;
+          invalidReason = 'above_maximum';
+          console.log(`⚠️ TIEMPO INVÁLIDO (muy alto): ${driverName} - ${bestTime}ms > ${config.maxLapTime}ms`);
+        }
+      }
+
+      // Create lap record con validación
       const lapRecord = new LapRecord({
         sessionId,
         sessionName,
@@ -222,7 +251,7 @@ export class LapCaptureService {
         driverName,
         personId: linkingResult.personId,
         webUserId: linkingResult.webUserId,
-        
+
         // Real SMS data
         position: currentDriver.P || 0,
         kartNumber: currentDriver.K || 0,
@@ -231,12 +260,17 @@ export class LapCaptureService {
         lastTime: currentDriver.T || 0,
         averageTime: currentDriver.A || 0,
         gapToLeader: currentDriver.G || '0.000',
-        
+
         // Calculated metrics
         positionChange,
         lapTimeImprovement,
         isPersonalBest,
-        
+
+        // Validation
+        isValid,
+        invalidReason,
+        validatedAt: new Date(),
+
         // Linking and raw data
         rawSMSData: currentDriver,
         linkingConfidence: linkingResult.confidence,
@@ -450,11 +484,21 @@ export class LapCaptureService {
     try {
       const sessionName = smsData.N;
       const sessionDate = new Date();
-      const sessionTime = sessionDate.toLocaleTimeString('es-CL', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      const sessionTime = sessionDate.toLocaleTimeString('es-CL', {
+        hour: '2-digit',
+        minute: '2-digit'
       });
       const sessionId = `${sessionName}_${sessionDate.toDateString()}`;
+
+      // 🔍 VALIDACIÓN: Solo actualizar rankings si es sesión de CARRERA
+      const isRaceSession = sessionName && sessionName.toLowerCase().includes('carrera');
+      if (!isRaceSession) {
+        console.log(`⏭️ Skipping rankings update - not a CARRERA session: ${sessionName}`);
+        return;
+      }
+
+      // Obtener configuración de validación
+      const config = await SystemConfig.getConfig();
 
       console.log(`🏆 Processing ${smsData.D.length} drivers for real-time records...`);
 
@@ -462,9 +506,20 @@ export class LapCaptureService {
         const driverName = driverData.N?.trim();
         const kartNumber = driverData.K;
         const bestTime = driverData.B; // Best time in milliseconds
-        
+
         // Skip invalid data
         if (!driverName || !kartNumber || !bestTime || bestTime <= 0) {
+          continue;
+        }
+
+        // 🔍 VALIDACIÓN DE TIEMPO - Verificar tiempo mínimo y máximo
+        if (bestTime < config.minLapTime) {
+          console.log(`⚠️ TIEMPO INVÁLIDO (muy bajo): ${driverName} - ${bestTime}ms < ${config.minLapTime}ms - NO actualiza ranking`);
+          continue;
+        }
+
+        if (config.maxLapTime && bestTime > config.maxLapTime) {
+          console.log(`⚠️ TIEMPO INVÁLIDO (muy alto): ${driverName} - ${bestTime}ms > ${config.maxLapTime}ms - NO actualiza ranking`);
           continue;
         }
 

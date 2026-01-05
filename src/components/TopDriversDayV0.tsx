@@ -150,6 +150,9 @@ export default function TopDriversV0Day() {
                       {entry.driverName}
                     </div>
                     <div className="text-xs text-sky-blue/60">
+                      {entry.sessionName}
+                    </div>
+                    <div className="text-xs text-sky-blue/40 mt-0.5">
                       Kart #{entry.kartNumber} • {entry.sessionDateTime || entry.sessionTime}
                     </div>
                   </div>

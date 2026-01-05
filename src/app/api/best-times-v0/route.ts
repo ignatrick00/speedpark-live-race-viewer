@@ -69,10 +69,16 @@ export async function GET(request: Request) {
 
     console.log(`🏆 [BEST-TIMES-V0] Fetching ${type} for period: ${period}`);
 
+    // 🏁 FILTRO CRÍTICO: Solo incluir sesiones de CARRERA para rankings
+    const sessionTypeFilter = {
+      ...dateFilter,
+      sessionType: 'carrera' // Solo carreras cuentan para rankings
+    };
+
     if (type === 'drivers') {
       // Mejores tiempos de PILOTOS
       const bestTimes = await RaceSessionV0.aggregate([
-        { $match: dateFilter },
+        { $match: sessionTypeFilter }, // ✅ Ahora filtra por tipo de sesión
         { $unwind: '$drivers' },
         { $match: { 'drivers.bestTime': { $gt: 0 } } },
         // ✅ FIX: Ordenar por bestTime ANTES de agrupar
@@ -120,7 +126,7 @@ export async function GET(request: Request) {
     } else {
       // Mejores tiempos de KARTS
       const bestKartTimes = await RaceSessionV0.aggregate([
-        { $match: dateFilter },
+        { $match: sessionTypeFilter }, // ✅ Ahora filtra por tipo de sesión
         { $unwind: '$drivers' },
         { $match: { 'drivers.bestTime': { $gt: 0 } } },
         // ✅ FIX: Ordenar por bestTime ANTES de agrupar

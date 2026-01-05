@@ -22,10 +22,11 @@ export async function GET(request: NextRequest) {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
-      // Get all lap records from today
+      // Get all lap records from today - SOLO VÁLIDOS
       const todayRecords = await LapRecord.find({
         timestamp: { $gte: startOfToday },
-        bestTime: { $gt: 0 }
+        bestTime: { $gt: 0 },
+        isValid: true // Solo tiempos válidos para rankings
       }).lean();
 
       console.log(`📊 Found ${todayRecords.length} lap records from today`);

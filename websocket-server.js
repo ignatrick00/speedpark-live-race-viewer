@@ -178,13 +178,12 @@ async function recordSessionStats(smsData) {
     const sessionName = smsData.N
     const driversData = smsData.D
 
-    // 💰 SOLO SE COBRA EN CLASIFICACIÓN - CARRERA ES GRATIS/INCLUIDA
-    const isHeat = sessionName && sessionName.toLowerCase().includes('heat')
-    const isClasificacion = sessionName && sessionName.toLowerCase().includes('clasificacion')
+    // 🏁 SOLO PROCESAR CARRERAS PARA RANKINGS
+    // Las clasificaciones se cobran pero NO cuentan para rankings de mejor tiempo
     const isCarrera = sessionName && sessionName.toLowerCase().includes('carrera')
 
-    if (!isHeat || isCarrera || !isClasificacion) {
-      return // Solo procesar clasificaciones
+    if (!isCarrera) {
+      return // Solo procesar carreras para rankings
     }
 
     // Crear identificador único para este HEAT específico
@@ -236,10 +235,10 @@ async function recordSessionStats(smsData) {
 
     if (response.ok) {
       processedSessions.set(sessionId, now)
-      console.log(`✅ CLASIFICACIÓN registrada: ${sessionName} - ${driverNames.length} conductores × $17,000`)
+      console.log(`✅ CARRERA registrada para rankings: ${sessionName} - ${driverNames.length} conductores`)
     } else {
       const errorText = await response.text()
-      console.log('⚠️ Error registrando HEAT:', response.status, errorText)
+      console.log('⚠️ Error registrando CARRERA:', response.status, errorText)
     }
 
   } catch (error) {
@@ -346,7 +345,8 @@ async function captureLapByLapData(smsData) {
 }
 
 console.log('🎯 WebSocket Server listo para conexiones')
-console.log('💰 MODO FINAL: SOLO Clasificaciones (se cobran) - Carreras son gratis/incluidas')
-console.log('🏁 NUEVO: Captura lap-by-lap VUELTA POR VUELTA con datos reales SMS-Timing')
+console.log('🏁 MODO RANKINGS: SOLO sesiones con "CARRERA" cuentan para rankings de mejor tiempo')
+console.log('📊 NUEVO: Captura lap-by-lap VUELTA POR VUELTA con datos reales SMS-Timing')
 console.log('🧠 OPTIMIZACIÓN: Memory-first architecture - Solo guarda al completar vuelta')
 console.log('💾 Backup automático cada 2 minutos para sesiones activas')
+console.log('✅ VALIDACIÓN: Tiempos con validación automática según configuración admin')
