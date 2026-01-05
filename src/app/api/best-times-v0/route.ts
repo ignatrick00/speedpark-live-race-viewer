@@ -68,11 +68,20 @@ export async function GET(request: Request) {
 
     console.log(`🏆 [BEST-TIMES-V0] Fetching ${type} for period: ${period}`);
 
-    // 🏁 FILTRO CRÍTICO: Solo incluir sesiones de CARRERA para rankings
+    // 🏁 FILTRO CRÍTICO: Solo incluir sesiones de CARRERA VÁLIDAS para rankings
+    // Aplicar la MISMA lógica que raceSessionServiceV0.ts (líneas 258-288)
     const sessionTypeFilter = {
       ...dateFilter,
-      sessionType: 'carrera' // Solo carreras cuentan para rankings
+      sessionType: 'carrera', // Solo carreras (no clasificación, práctica, etc.)
+      // Excluir carreras de otras categorías/pistas (K1, K2, K3, GT, F1, Mujeres, Junior, etc.)
+      sessionName: {
+        $not: {
+          $regex: /f1|f2|f3|k 1|k 2|k 3|k1|k2|k3|gt|mujeres|women|junior| m(?!\w)/i
+        }
+      }
     };
+
+    console.log(`🔍 [FILTER] Applied race validation filter - excluding invalid race types`);
 
     if (type === 'drivers') {
       // Mejores tiempos de PILOTOS
