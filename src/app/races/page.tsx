@@ -54,6 +54,23 @@ export default function RacesPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
+  // Calculate available friendly races (upcoming, not registered, not linked/finalized)
+  const getAvailableFriendlyRacesCount = () => {
+    return friendlyRaces.filter(race => {
+      const raceDate = new Date(race.date);
+      const now = new Date();
+      const isFuture = raceDate >= now;
+      const isNotLinked = !race.linkedRaceSessionId && race.raceStatus !== 'linked' && race.raceStatus !== 'finalized';
+
+      // Exclude races where current user is already registered
+      const isUserRegistered = user?.id && race.participantsList?.some(
+        (participant) => participant.userId === user.id
+      );
+
+      return isFuture && isNotLinked && !isUserRegistered;
+    }).length;
+  };
+
   useEffect(() => {
     console.log('🔄 ViewMode changed to:', viewMode);
   }, [viewMode]);
@@ -280,7 +297,7 @@ export default function RacesPage() {
             onSelectChampionships={() => setViewMode('championships')}
             onSelectFriendly={() => setViewMode('friendly')}
             onSelectMyEvents={() => setViewMode('my-registered-events')}
-            upcomingFriendlyCount={friendlyRaces.filter(r => new Date(r.date) >= new Date()).length}
+            upcomingFriendlyCount={getAvailableFriendlyRacesCount()}
           />
         )}
 
@@ -314,7 +331,7 @@ export default function RacesPage() {
             onSelectPast={() => setViewMode('friendly-past')}
             onSelectCreate={() => setViewMode('friendly-create')}
             onBack={() => setViewMode('selection')}
-            upcomingFriendlyCount={friendlyRaces.filter(r => new Date(r.date) >= new Date()).length}
+            upcomingFriendlyCount={getAvailableFriendlyRacesCount()}
           />
         )}
 
@@ -1039,13 +1056,19 @@ function FriendlyUpcomingView({
     );
   }
 
-  // Filter upcoming races: future dates only, and NOT linked/finalized
+  // Filter upcoming races: future dates only, NOT linked/finalized, and user NOT already registered
   const upcomingRaces = races.filter(race => {
     const raceDate = new Date(race.date);
     const now = new Date();
     const isFuture = raceDate >= now;
     const isNotLinked = !race.linkedRaceSessionId && race.raceStatus !== 'linked' && race.raceStatus !== 'finalized';
-    return isFuture && isNotLinked;
+
+    // Exclude races where current user is already registered
+    const isUserRegistered = user?.id && race.participantsList?.some(
+      (participant) => participant.userId === user.id
+    );
+
+    return isFuture && isNotLinked && !isUserRegistered;
   });
 
   if (isLoading) {
