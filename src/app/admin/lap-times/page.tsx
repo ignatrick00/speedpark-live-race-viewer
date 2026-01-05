@@ -100,16 +100,22 @@ export default function LapTimesAdminPage() {
         }
       }
 
+      console.log('🔍 Fetching:', `/api/admin/lap-times?${params}`);
       const res = await fetch(`/api/admin/lap-times?${params}`);
       const data = await res.json();
 
+      console.log('📦 API Response:', data);
+
       if (data.success) {
+        console.log('✅ Records received:', data.records?.length);
         setRecords(data.records);
         setTotalPages(data.pagination.totalPages);
         setStats(data.stats);
+      } else {
+        console.error('❌ API returned success=false:', data.error);
       }
     } catch (error) {
-      console.error('Error loading records:', error);
+      console.error('❌ Error loading records:', error);
     } finally {
       setLoading(false);
     }
@@ -442,14 +448,15 @@ export default function LapTimesAdminPage() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                      <td colSpan={top10Mode ? 9 : 9} className="px-4 py-8 text-center text-gray-400">
                         Cargando registros...
                       </td>
                     </tr>
                   ) : records.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
-                        No se encontraron registros
+                      <td colSpan={top10Mode ? 9 : 9} className="px-4 py-8 text-center text-gray-400">
+                        No se encontraron registros.
+                        {top10Mode && <span className="block mt-2 text-sm">Modo: Top 10 histórico</span>}
                       </td>
                     </tr>
                   ) : (
