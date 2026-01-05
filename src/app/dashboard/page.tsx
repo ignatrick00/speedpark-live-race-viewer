@@ -63,6 +63,7 @@ function DashboardContent() {
   const [squadronName, setSquadronName] = useState<string | null>(null);
   const [linkedDriverName, setLinkedDriverName] = useState<string | null>(null);
   const [friendProfile, setFriendProfile] = useState<any>(null);
+  const [pendingLinkageRequest, setPendingLinkageRequest] = useState<any>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -76,6 +77,11 @@ function DashboardContent() {
     if (user && isAuthenticated && targetUserId) {
       loadRealUserStats();
       loadUserSquadron();
+
+      // Only check pending requests for current user, not when viewing friends
+      if (!isViewingFriend) {
+        checkPendingLinkageRequest();
+      }
 
       // If viewing friend, load their profile info
       if (isViewingFriend) {
@@ -100,6 +106,33 @@ function DashboardContent() {
       }
     } catch (error) {
       console.error('Error loading user squadron:', error);
+    }
+  };
+
+  const checkPendingLinkageRequest = async () => {
+    if (!token) return;
+    try {
+      console.log('🔍 [PENDING-REQUEST] Checking for pending linkage request...');
+      const response = await fetch('/api/linkage/request', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+
+      if (data.success && data.requests && data.requests.length > 0) {
+        // Find the most recent pending request
+        const pending = data.requests.find((req: any) => req.status === 'pending');
+        if (pending) {
+          console.log('⏳ [PENDING-REQUEST] Found pending request:', pending);
+          setPendingLinkageRequest(pending);
+        } else {
+          console.log('✅ [PENDING-REQUEST] No pending requests');
+          setPendingLinkageRequest(null);
+        }
+      }
+    } catch (error) {
+      console.error('❌ [PENDING-REQUEST] Error checking pending requests:', error);
     }
   };
 
@@ -801,50 +834,88 @@ function DashboardContent() {
         {/* Show welcome banner if user has no real data yet */}
         {!stats && user.kartingLink.status === 'pending_first_race' && (
           <div className="max-w-4xl mx-auto">
-            <div className="bg-gradient-to-br from-electric-blue/10 to-rb-blue/10 border border-electric-blue/30 rounded-lg p-8">
-              <div className="flex flex-col md:flex-row items-center gap-6">
-                <div className="text-7xl">🏁</div>
-                <div className="flex-1 text-center md:text-left">
-                  <h2 className="font-bold text-3xl text-electric-blue mb-3">¡BIENVENIDO AL CIRCUITO!</h2>
-                  <p className="text-sky-blue/80 mb-4">
-                    ¿Ya corriste en <strong>Speed Park</strong>? Vincula tu perfil de corredor para ver tus estadísticas reales.
-                  </p>
-                  <div className="flex flex-col md:flex-row gap-3">
-                    <button
-                      onClick={() => setShowLinkModal(true)}
-                      className="bg-electric-blue hover:bg-electric-blue/80 text-dark-bg font-bold py-3 px-6 rounded-lg transition-all"
-                    >
-                      🔗 Vincular mi Perfil
-                    </button>
-                    <div className="bg-rb-blue/20 border border-rb-blue/40 rounded-lg px-4 py-3 flex-1">
-                      <p className="text-sky-blue text-sm">
-                        📋 <strong>¿No has corrido antes en esta pista?</strong><br/>
-                        Inscríbete en la aplicación <strong>ActivityBox</strong> de Speed Park con un alias que te identifique, ya sea tu nombre y apellido (<strong>{user.profile.firstName} {user.profile.lastName}</strong>) o algún alias.
-                      </p>
+            {/* Show pending approval state if request exists */}
+            {pendingLinkageRequest ? (
+              <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-2 border-yellow-500/40 rounded-lg p-8">
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="text-7xl">⏳</div>
+                  <div className="flex-1 text-center md:text-left">
+                    <h2 className="font-bold text-3xl text-yellow-400 mb-3">SOLICITUD DE VINCULACIÓN PENDIENTE</h2>
+                    <p className="text-sky-blue/80 mb-4">
+                      Tu solicitud de vinculación está siendo revisada por un administrador.
+                    </p>
+                    <div className="bg-black/30 border border-yellow-500/30 rounded-lg p-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-400 font-semibold">Nombre del piloto:</span>
+                        <span className="text-white">{pendingLinkageRequest.selectedDriverName}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-400 font-semibold">Fecha de solicitud:</span>
+                        <span className="text-white">{new Date(pendingLinkageRequest.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-400 font-semibold">Estado:</span>
+                        <div className="inline-flex items-center gap-2 bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 px-3 py-1 rounded-lg">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                          <span className="font-semibold text-sm">EN REVISIÓN</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sky-blue/60 text-sm mt-4">
+                      💡 Recibirás una notificación cuando tu solicitud sea aprobada.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Show normal welcome banner if no pending request */
+              <div className="bg-gradient-to-br from-electric-blue/10 to-rb-blue/10 border border-electric-blue/30 rounded-lg p-8">
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="text-7xl">🏁</div>
+                  <div className="flex-1 text-center md:text-left">
+                    <h2 className="font-bold text-3xl text-electric-blue mb-3">¡BIENVENIDO AL CIRCUITO!</h2>
+                    <p className="text-sky-blue/80 mb-4">
+                      ¿Ya corriste en <strong>Speed Park</strong>? Vincula tu perfil de corredor para ver tus estadísticas reales.
+                    </p>
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <button
+                        onClick={() => setShowLinkModal(true)}
+                        className="bg-electric-blue hover:bg-electric-blue/80 text-dark-bg font-bold py-3 px-6 rounded-lg transition-all"
+                      >
+                        🔗 Vincular mi Perfil
+                      </button>
+                      <div className="bg-rb-blue/20 border border-rb-blue/40 rounded-lg px-4 py-3 flex-1">
+                        <p className="text-sky-blue text-sm">
+                          📋 <strong>¿No has corrido antes en esta pista?</strong><br/>
+                          Inscríbete en la aplicación <strong>ActivityBox</strong> de Speed Park con un alias que te identifique, ya sea tu nombre y apellido (<strong>{user.profile.firstName} {user.profile.lastName}</strong>) o algún alias.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Info Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <div className="bg-gray-800/50 border border-sky-blue/30 rounded-lg p-4">
-                <div className="text-3xl mb-2">🔍</div>
-                <h3 className="text-white font-semibold mb-1">Busca tu Perfil</h3>
-                <p className="text-gray-400 text-sm">Encuentra tus carreras recientes por nombre</p>
+            {/* Info Cards - Only show if no pending request */}
+            {!pendingLinkageRequest && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div className="bg-gray-800/50 border border-sky-blue/30 rounded-lg p-4">
+                  <div className="text-3xl mb-2">🔍</div>
+                  <h3 className="text-white font-semibold mb-1">Busca tu Perfil</h3>
+                  <p className="text-gray-400 text-sm">Encuentra tus carreras recientes por nombre</p>
+                </div>
+                <div className="bg-gray-800/50 border border-sky-blue/30 rounded-lg p-4">
+                  <div className="text-3xl mb-2">✅</div>
+                  <h3 className="text-white font-semibold mb-1">Verifica tu Identidad</h3>
+                  <p className="text-gray-400 text-sm">Selecciona una carrera en la que participaste</p>
+                </div>
+                <div className="bg-gray-800/50 border border-sky-blue/30 rounded-lg p-4">
+                  <div className="text-3xl mb-2">⚡</div>
+                  <h3 className="text-white font-semibold mb-1">Acceso Inmediato</h3>
+                  <p className="text-gray-400 text-sm">Un admin aprobará tu solicitud rápidamente</p>
+                </div>
               </div>
-              <div className="bg-gray-800/50 border border-sky-blue/30 rounded-lg p-4">
-                <div className="text-3xl mb-2">✅</div>
-                <h3 className="text-white font-semibold mb-1">Verifica tu Identidad</h3>
-                <p className="text-gray-400 text-sm">Selecciona una carrera en la que participaste</p>
-              </div>
-              <div className="bg-gray-800/50 border border-sky-blue/30 rounded-lg p-4">
-                <div className="text-3xl mb-2">⚡</div>
-                <h3 className="text-white font-semibold mb-1">Acceso Inmediato</h3>
-                <p className="text-gray-400 text-sm">Un admin aprobará tu solicitud rápidamente</p>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -939,6 +1010,7 @@ function DashboardContent() {
         onSuccess={() => {
           setShowLinkModal(false);
           loadRealUserStats(); // Reload stats after successful link
+          checkPendingLinkageRequest(); // Check for new pending request
         }}
         token={token || ''}
         userFullName={`${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`}
