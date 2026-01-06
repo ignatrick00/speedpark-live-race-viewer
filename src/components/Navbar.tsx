@@ -99,7 +99,7 @@ export default function Navbar() {
                 alt="Karteando.cl"
                 width={250}
                 height={140}
-                className="h-24 w-auto sm:h-[140px] rounded-xl object-contain"
+                className="h-16 w-auto sm:h-[140px] rounded-xl object-contain"
               />
               <div className="min-w-0 flex flex-col">
                 <p className="text-sm sm:text-lg font-racing italic tracking-wider uppercase bg-gradient-to-r from-electric-blue to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(0,212,255,0.5)] leading-tight">
