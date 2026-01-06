@@ -979,6 +979,9 @@ function FriendlyUpcomingView({
   const [raceToConfirm, setRaceToConfirm] = useState<{ id: string; name: string } | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [raceToInvite, setRaceToInvite] = useState<Race | null>(null);
+  const [showSuccessConfirmModal, setShowSuccessConfirmModal] = useState(false);
+  const [showErrorConfirmModal, setShowErrorConfirmModal] = useState(false);
+  const [confirmErrorMessage, setConfirmErrorMessage] = useState('');
 
   const handleJoinClick = (race: Race) => {
     // Check if user is authenticated
@@ -1074,13 +1077,21 @@ function FriendlyUpcomingView({
       if (data.success) {
         setShowConfirmRaceModal(false);
         setRaceToConfirm(null);
-        onRefresh();
+        setShowSuccessConfirmModal(true);
+        setTimeout(() => {
+          setShowSuccessConfirmModal(false);
+          onRefresh();
+        }, 2500);
       } else {
-        alert(data.error || 'Error al confirmar la carrera');
+        setShowConfirmRaceModal(false);
+        setConfirmErrorMessage(data.error || 'Error al confirmar la carrera');
+        setShowErrorConfirmModal(true);
       }
     } catch (error) {
       console.error('Error confirming race:', error);
-      alert('Error al confirmar la carrera');
+      setShowConfirmRaceModal(false);
+      setConfirmErrorMessage('Error al confirmar la carrera');
+      setShowErrorConfirmModal(true);
     }
   };
 
@@ -1303,6 +1314,49 @@ function FriendlyUpcomingView({
         </div>
       )}
 
+      {/* Success Confirm Modal */}
+      {showSuccessConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-green-500/20 to-midnight border-2 border-green-500/50 rounded-xl p-8 shadow-2xl">
+            <div className="text-center">
+              <div className="text-6xl mb-4">✅</div>
+              <h3 className="text-2xl font-racing text-green-400 mb-3">
+                ¡EVENTO CONFIRMADO!
+              </h3>
+              <p className="text-sky-blue/80 text-lg mb-2">
+                La reserva está confirmada con Speedpark
+              </p>
+              <p className="text-electric-blue/70 text-sm">
+                Los participantes pueden ver que el evento está listo
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Confirm Modal */}
+      {showErrorConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-red-500/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-3">
+                ERROR
+              </h3>
+              <p className="text-sky-blue/80 text-lg">
+                {confirmErrorMessage}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowErrorConfirmModal(false)}
+              className="w-full px-6 py-3 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
+            >
+              CERRAR
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Invite Friends Modal */}
       {showInviteModal && raceToInvite && token && (
         <InviteFriendsModal
@@ -1438,6 +1492,9 @@ function FriendlyJoinView({
   const [raceToDelete, setRaceToDelete] = useState<{ id: string; name: string } | null>(null);
   const [showConfirmRaceModal, setShowConfirmRaceModal] = useState(false);
   const [raceToConfirm, setRaceToConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [showSuccessConfirmModal, setShowSuccessConfirmModal] = useState(false);
+  const [showErrorConfirmModal, setShowErrorConfirmModal] = useState(false);
+  const [confirmErrorMessage, setConfirmErrorMessage] = useState('');
 
   const handleJoinClick = (race: Race) => {
     // Check if user is authenticated
@@ -1502,13 +1559,21 @@ function FriendlyJoinView({
       if (data.success) {
         setShowConfirmRaceModal(false);
         setRaceToConfirm(null);
-        onRefresh();
+        setShowSuccessConfirmModal(true);
+        setTimeout(() => {
+          setShowSuccessConfirmModal(false);
+          onRefresh();
+        }, 2500);
       } else {
-        alert(data.error || 'Error al confirmar la carrera');
+        setShowConfirmRaceModal(false);
+        setConfirmErrorMessage(data.error || 'Error al confirmar la carrera');
+        setShowErrorConfirmModal(true);
       }
     } catch (error) {
       console.error('Error confirming race:', error);
-      alert('Error al confirmar la carrera');
+      setShowConfirmRaceModal(false);
+      setConfirmErrorMessage('Error al confirmar la carrera');
+      setShowErrorConfirmModal(true);
     }
   };
 
@@ -2472,6 +2537,9 @@ function RaceCard({
     currentUserId,
     isCreator,
     isParticipant,
+    status: race.status,
+    isFull,
+    isChampionship,
   });
 
   return (
@@ -2513,7 +2581,7 @@ function RaceCard({
             </div>
           )}
           {/* Badge de estado de confirmación */}
-          {!isChampionship && race.status === 'open' && (
+          {!isChampionship && race.status !== 'confirmed' && (
             <div className="px-3 py-1 rounded-lg text-xs font-racing bg-orange-500/20 text-orange-400 border border-orange-400/30">
               ⏳ PENDIENTE
             </div>
@@ -2687,6 +2755,9 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
   const [raceToConfirm, setRaceToConfirm] = useState<{ id: string; name: string } | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [raceToInvite, setRaceToInvite] = useState<Race | null>(null);
+  const [showSuccessConfirmModal, setShowSuccessConfirmModal] = useState(false);
+  const [showErrorConfirmModal, setShowErrorConfirmModal] = useState(false);
+  const [confirmErrorMessage, setConfirmErrorMessage] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
