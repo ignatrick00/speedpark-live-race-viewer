@@ -2465,6 +2465,24 @@ function InviteFriendsModal({
           </div>
         </div>
 
+        {/* WhatsApp Share Button */}
+        <div className="mb-6 p-4 bg-gradient-to-br from-green-500/10 to-green-600/10 border-2 border-green-500/50 rounded-xl">
+          <p className="text-green-400 font-racing text-sm mb-3 text-center">
+            📱 O COMPARTE ESTA CARRERA POR WHATSAPP
+          </p>
+          <a
+            href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+              `¡Únete a mi carrera en Karteando! 🏁\n\n${race.name}\n📅 ${new Date(race.date).toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n🕐 ${race.time}\n\n🎯 Cupos limitados: ${availableSpots}/${race.maxParticipants}\n\n👉 ${window.location.origin}/races/friendly/${race._id}`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600/20 border-2 border-green-500/50 text-green-400 rounded-lg hover:bg-green-600/30 transition-all font-racing text-sm"
+          >
+            <span className="text-2xl">💬</span>
+            COMPARTIR POR WHATSAPP
+          </a>
+        </div>
+
         {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin text-6xl mb-4">🏁</div>
