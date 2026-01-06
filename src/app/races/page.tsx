@@ -1667,6 +1667,8 @@ function FriendlyCreateView({
   const [isCreating, setIsCreating] = useState(false);
   const [useCustomDate, setUseCustomDate] = useState(false);
   const [customDateStr, setCustomDateStr] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdRaceName, setCreatedRaceName] = useState('');
 
   // Generar próximos 14 días
   const getNext14Days = () => {
@@ -1730,8 +1732,13 @@ function FriendlyCreateView({
       const data = await response.json();
 
       if (data.success) {
-        alert(`¡Carrera creada exitosamente! Te has unido automáticamente con el kart #${data.race.kartNumber}.`);
-        onSuccess();
+        setCreatedRaceName(raceName);
+        setShowSuccessModal(true);
+        // Auto-close and redirect after 2.5 seconds
+        setTimeout(() => {
+          setShowSuccessModal(false);
+          onSuccess();
+        }, 2500);
       } else {
         alert(data.error || 'Error al crear la carrera');
       }
@@ -1999,6 +2006,26 @@ function FriendlyCreateView({
           Se te asignará un kart automáticamente al crear la carrera
         </p>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-green-500/20 to-midnight border-2 border-green-500/50 rounded-xl p-8 shadow-2xl">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🏁</div>
+              <h3 className="text-2xl font-racing text-green-400 mb-3">
+                ¡CARRERA CREADA EXITOSAMENTE!
+              </h3>
+              <p className="text-electric-blue font-bold text-xl mb-2">
+                {createdRaceName}
+              </p>
+              <p className="text-sky-blue/70 text-lg">
+                Te has unido automáticamente
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
