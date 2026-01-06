@@ -78,7 +78,9 @@ export default function FriendlyRacePage() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}), // Empty body - kart will be auto-assigned
       });
 
       const data = await response.json();
@@ -169,33 +171,7 @@ export default function FriendlyRacePage() {
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Simple Header - No modals to avoid conflicts */}
-      <div className="relative z-20 border-b border-blue-800/30 bg-black/90 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <a href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <img
-                src="/images/Friendly-races/logo karteando.png"
-                alt="Karteando.cl"
-                className="h-16 w-auto rounded-xl object-contain"
-              />
-              <div className="flex flex-col">
-                <p className="text-sm font-racing italic tracking-wider uppercase bg-gradient-to-r from-electric-blue to-cyan-400 bg-clip-text text-transparent">
-                  Racing Platform
-                </p>
-              </div>
-            </a>
-            {user && (
-              <a
-                href="/races"
-                className="px-6 py-2 text-cyan-400 hover:text-white border border-cyan-400/50 rounded-lg transition-all hover:bg-cyan-400/10 font-racing text-sm"
-              >
-                MIS CARRERAS
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
+      <Navbar />
 
       {/* Background Effects */}
       <div className="fixed inset-0 z-0">
