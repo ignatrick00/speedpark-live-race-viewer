@@ -81,7 +81,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: 'Carrera confirmada exitosamente. Los participantes no podrán unirse.',
+      message: 'Evento confirmado con Speedpark. Los participantes pueden seguir uniéndose si hay cupos.',
     });
 
   } catch (error) {

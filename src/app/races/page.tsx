@@ -1269,16 +1269,16 @@ function FriendlyUpcomingView({
             <div className="text-center mb-6">
               <div className="text-6xl mb-4">✅</div>
               <h3 className="text-2xl font-racing text-green-400 mb-3">
-                CONFIRMAR CARRERA
+                CONFIRMAR EVENTO
               </h3>
               <p className="text-sky-blue/80 text-lg mb-2">
-                ¿Confirmar esta carrera?
+                ¿Ya confirmaste la reserva con Speedpark?
               </p>
               <p className="text-electric-blue font-bold text-xl mb-2">
                 "{raceToConfirm.name}"
               </p>
               <p className="text-yellow-400/70 text-sm">
-                Los participantes no podrán unirse después de confirmar
+                Los participantes verán que el evento está confirmado, pero podrán seguir uniéndose si hay cupos disponibles
               </p>
             </div>
 
@@ -1615,16 +1615,16 @@ function FriendlyJoinView({
             <div className="text-center mb-6">
               <div className="text-6xl mb-4">✅</div>
               <h3 className="text-2xl font-racing text-green-400 mb-3">
-                CONFIRMAR CARRERA
+                CONFIRMAR EVENTO
               </h3>
               <p className="text-sky-blue/80 text-lg mb-2">
-                ¿Confirmar esta carrera?
+                ¿Ya confirmaste la reserva con Speedpark?
               </p>
               <p className="text-electric-blue font-bold text-xl mb-2">
                 "{raceToConfirm.name}"
               </p>
               <p className="text-yellow-400/70 text-sm">
-                Los participantes no podrán unirse después de confirmar
+                Los participantes verán que el evento está confirmado, pero podrán seguir uniéndose si hay cupos disponibles
               </p>
             </div>
 
@@ -2512,6 +2512,22 @@ function RaceCard({
               ✓ VINCULADA
             </div>
           )}
+          {/* Badge de estado de confirmación */}
+          {!isChampionship && race.status === 'open' && (
+            <div className="px-3 py-1 rounded-lg text-xs font-racing bg-orange-500/20 text-orange-400 border border-orange-400/30">
+              ⏳ PENDIENTE
+            </div>
+          )}
+          {!isChampionship && race.status === 'confirmed' && (
+            <div className="px-3 py-1 rounded-lg text-xs font-racing bg-green-500/20 text-green-400 border border-green-400/30">
+              ✅ CONFIRMADO
+            </div>
+          )}
+          {!isChampionship && isFull && (
+            <div className="px-3 py-1 rounded-lg text-xs font-racing bg-red-500/20 text-red-400 border border-red-400/30">
+              🔒 LLENA
+            </div>
+          )}
         </div>
       </div>
 
@@ -2578,7 +2594,7 @@ function RaceCard({
                 onClick={onConfirmClick}
                 className="px-3 py-2 rounded-lg font-racing transition-all bg-green-600/20 border border-green-500/50 text-green-400 hover:bg-green-600/30 text-sm"
               >
-                ✓ CONFIRMAR
+                ✓ CONFIRMAR EVENTO
               </button>
               <button
                 onClick={onDeleteClick}
@@ -3103,16 +3119,16 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
             <div className="text-center mb-6">
               <div className="text-6xl mb-4">✅</div>
               <h3 className="text-2xl font-racing text-green-400 mb-3">
-                CONFIRMAR CARRERA
+                CONFIRMAR EVENTO
               </h3>
               <p className="text-sky-blue/80 text-lg mb-2">
-                ¿Confirmar esta carrera?
+                ¿Ya confirmaste la reserva con Speedpark?
               </p>
               <p className="text-electric-blue font-bold text-xl mb-2">
                 "{raceToConfirm.name}"
               </p>
               <p className="text-yellow-400/70 text-sm">
-                Los participantes no podrán unirse después de confirmar
+                Los participantes verán que el evento está confirmado, pero podrán seguir uniéndose si hay cupos disponibles
               </p>
             </div>
 
