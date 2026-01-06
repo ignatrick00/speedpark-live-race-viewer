@@ -284,14 +284,14 @@ export default function FriendlyRacePage() {
                 {joining ? '⏳ UNIÉNDOTE...' : '🏁 UNIRSE A LA CARRERA'}
               </button>
             ) : (
-              <div className="bg-gradient-to-br from-midnight via-gold/10 to-midnight border-2 border-gold/50 rounded-xl p-6">
+              <div className="bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-cyan-500/10 border-2 border-cyan-400/50 rounded-xl p-6">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-gold/90 font-racing text-sm sm:text-base flex items-center gap-2">
+                  <p className="text-cyan-300 font-racing text-sm sm:text-base flex items-center gap-2">
                     📝 Para inscribirte en esta carrera debes hacer login
                   </p>
                   <button
                     onClick={() => setShowLoginModal(true)}
-                    className="px-6 py-3 bg-gradient-to-r from-gold to-yellow-500 text-midnight font-racing text-lg rounded-lg hover:shadow-2xl hover:shadow-gold/50 transition-all whitespace-nowrap"
+                    className="px-6 py-3 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-racing text-lg rounded-lg hover:shadow-2xl hover:shadow-cyan-400/50 transition-all whitespace-nowrap"
                   >
                     🔐 LOGIN
                   </button>
