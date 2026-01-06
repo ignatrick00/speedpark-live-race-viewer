@@ -2367,6 +2367,10 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
   const [showUnregisterConfirm, setShowUnregisterConfirm] = useState<string | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [raceToLeave, setRaceToLeave] = useState<{ id: string; name: string } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [raceToDelete, setRaceToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [showConfirmRaceModal, setShowConfirmRaceModal] = useState(false);
+  const [raceToConfirm, setRaceToConfirm] = useState<{ id: string; name: string } | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
@@ -2510,6 +2514,94 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
     }
   };
 
+  const handleDeleteClick = (raceId: string, raceName: string) => {
+    setRaceToDelete({ id: raceId, name: raceName });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteRace = async () => {
+    if (!raceToDelete) return;
+
+    try {
+      const response = await fetch(`/api/races/friendly/${raceToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowDeleteConfirm(false);
+        setRaceToDelete(null);
+        setToast({
+          message: 'Carrera eliminada exitosamente',
+          type: 'success'
+        });
+        fetchMyFriendlyRaces();
+        if (onRefresh) {
+          onRefresh();
+        }
+      } else {
+        setToast({
+          message: data.error || 'Error al eliminar la carrera',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting race:', error);
+      setToast({
+        message: 'Error al eliminar la carrera',
+        type: 'error'
+      });
+    }
+  };
+
+  const handleConfirmClick = (raceId: string, raceName: string) => {
+    setRaceToConfirm({ id: raceId, name: raceName });
+    setShowConfirmRaceModal(true);
+  };
+
+  const confirmRace = async () => {
+    if (!raceToConfirm) return;
+
+    try {
+      const response = await fetch(`/api/races/friendly/${raceToConfirm.id}/confirm`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowConfirmRaceModal(false);
+        setRaceToConfirm(null);
+        setToast({
+          message: 'Carrera confirmada exitosamente',
+          type: 'success'
+        });
+        fetchMyFriendlyRaces();
+        if (onRefresh) {
+          onRefresh();
+        }
+      } else {
+        setToast({
+          message: data.error || 'Error al confirmar la carrera',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error confirming race:', error);
+      setToast({
+        message: 'Error al confirmar la carrera',
+        type: 'error'
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-20">
@@ -2572,7 +2664,8 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
               race={race}
               currentUserId={userId}
               onLeaveClick={() => handleLeaveRace(race._id, race.name)}
-              showOnlyLeaveButton={true}
+              onDeleteClick={() => handleDeleteClick(race._id, race.name)}
+              onConfirmClick={() => handleConfirmClick(race._id, race.name)}
             />
           ))}
         </div>
@@ -2650,6 +2743,88 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
                 className="flex-1 px-6 py-3 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
               >
                 SÍ, DESINSCRIBIRME
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && raceToDelete && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gradient-to-br from-midnight via-red-900/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-3">
+                ELIMINAR CARRERA
+              </h3>
+              <p className="text-sky-blue/80 text-lg mb-2">
+                ¿Estás seguro de que quieres eliminar esta carrera?
+              </p>
+              <p className="text-electric-blue font-bold text-xl mb-2">
+                "{raceToDelete.name}"
+              </p>
+              <p className="text-red-400/70 text-sm">
+                Esta acción no se puede deshacer
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setRaceToDelete(null);
+                }}
+                className="flex-1 px-6 py-3 bg-slate-600/20 border border-slate-500/50 text-slate-300 rounded-lg hover:bg-slate-600/30 transition-all font-racing"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={confirmDeleteRace}
+                className="flex-1 px-6 py-3 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
+              >
+                SÍ, ELIMINAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Race Modal */}
+      {showConfirmRaceModal && raceToConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gradient-to-br from-midnight via-green-500/10 to-midnight border-2 border-green-500/50 rounded-xl p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">✅</div>
+              <h3 className="text-2xl font-racing text-green-400 mb-3">
+                CONFIRMAR CARRERA
+              </h3>
+              <p className="text-sky-blue/80 text-lg mb-2">
+                ¿Confirmar esta carrera?
+              </p>
+              <p className="text-electric-blue font-bold text-xl mb-2">
+                "{raceToConfirm.name}"
+              </p>
+              <p className="text-yellow-400/70 text-sm">
+                Los participantes no podrán unirse después de confirmar
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowConfirmRaceModal(false);
+                  setRaceToConfirm(null);
+                }}
+                className="flex-1 px-6 py-3 bg-slate-600/20 border border-slate-500/50 text-slate-300 rounded-lg hover:bg-slate-600/30 transition-all font-racing"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={confirmRace}
+                className="flex-1 px-6 py-3 bg-green-600/20 border border-green-500/50 text-green-400 rounded-lg hover:bg-green-600/30 transition-all font-racing"
+              >
+                SÍ, CONFIRMAR
               </button>
             </div>
           </div>
