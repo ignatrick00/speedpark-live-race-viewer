@@ -2701,12 +2701,14 @@ function RaceCard({
           {/* Botones del creador */}
           {isCreator && (
             <>
-              <button
-                onClick={onConfirmClick}
-                className="px-3 py-2 rounded-lg font-racing transition-all bg-green-600/20 border border-green-500/50 text-green-400 hover:bg-green-600/30 text-sm"
-              >
-                ✓ CONFIRMAR EVENTO
-              </button>
+              {race.status !== 'confirmed' && (
+                <button
+                  onClick={onConfirmClick}
+                  className="px-3 py-2 rounded-lg font-racing transition-all bg-green-600/20 border border-green-500/50 text-green-400 hover:bg-green-600/30 text-sm"
+                >
+                  ✓ CONFIRMAR EVENTO
+                </button>
+              )}
               <button
                 onClick={onDeleteClick}
                 className="px-3 py-2 rounded-lg font-racing transition-all bg-red-600/20 border border-red-500/50 text-red-400 hover:bg-red-600/30 text-sm"
