@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
-import LoginModal from '@/components/auth/LoginModal';
-import RegisterModal from '@/components/auth/RegisterModal';
 
 interface Race {
   _id: string;
@@ -34,12 +32,19 @@ export default function FriendlyRacePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [joining, setJoining] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   useEffect(() => {
     fetchRace();
   }, [params.raceId]);
+
+  // Auto-join when user logs in
+  useEffect(() => {
+    const shouldAutoJoin = sessionStorage.getItem('autoJoinRace');
+    if (token && shouldAutoJoin === params.raceId) {
+      sessionStorage.removeItem('autoJoinRace');
+      handleJoin();
+    }
+  }, [token, params.raceId]);
 
   const fetchRace = async () => {
     try {
@@ -62,7 +67,10 @@ export default function FriendlyRacePage() {
 
   const handleJoin = async () => {
     if (!token) {
-      setShowLoginModal(true);
+      // Store race ID for auto-join after login
+      sessionStorage.setItem('autoJoinRace', params.raceId as string);
+      // Redirect to login page
+      router.push(`/login?redirect=/races/friendly/${params.raceId}`);
       return;
     }
 
@@ -89,21 +97,6 @@ export default function FriendlyRacePage() {
     } finally {
       setJoining(false);
     }
-  };
-
-  const handleLoginSuccess = async () => {
-    // After successful login, automatically join the race
-    await handleJoin();
-  };
-
-  const switchToRegister = () => {
-    setShowLoginModal(false);
-    setShowRegisterModal(true);
-  };
-
-  const switchToLogin = () => {
-    setShowRegisterModal(false);
-    setShowLoginModal(true);
   };
 
   if (loading) {
@@ -290,7 +283,7 @@ export default function FriendlyRacePage() {
                     📝 Para inscribirte en esta carrera debes hacer login
                   </p>
                   <button
-                    onClick={() => setShowLoginModal(true)}
+                    onClick={handleJoin}
                     className="px-6 py-3 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-racing text-lg rounded-lg hover:shadow-2xl hover:shadow-cyan-400/50 transition-all whitespace-nowrap"
                   >
                     🔐 LOGIN
@@ -308,23 +301,6 @@ export default function FriendlyRacePage() {
           </div>
         </div>
       </div>
-
-      {/* Login Modal */}
-      <LoginModal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        onSwitchToRegister={switchToRegister}
-        redirectAfterLogin={false}
-        onSuccess={handleLoginSuccess}
-      />
-
-      {/* Register Modal */}
-      <RegisterModal
-        isOpen={showRegisterModal}
-        onClose={() => setShowRegisterModal(false)}
-        onSwitchToLogin={switchToLogin}
-        onSuccess={handleLoginSuccess}
-      />
     </div>
   );
 }
