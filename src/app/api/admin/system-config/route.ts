@@ -40,11 +40,14 @@ export async function GET(request: NextRequest) {
 // PUT: Actualizar configuración (solo admin)
 export async function PUT(request: NextRequest) {
   try {
-    console.log('✏️ PUT /api/admin/system-config');
+    console.log('✏️ PUT /api/admin/system-config - START');
 
     // Verificar que sea admin
     const adminCheck = await verifyAdmin(request);
+    console.log('🔐 Admin check result:', { isAdmin: adminCheck.isAdmin, user: adminCheck.user?.email });
+
     if (!adminCheck.isAdmin) {
+      console.error('❌ Access denied - not admin');
       return NextResponse.json(
         { success: false, error: 'Acceso denegado' },
         { status: 403 }
@@ -53,6 +56,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const { minLapTime, maxLapTime, validSessionTypes, friendlyRaceMaxParticipants } = body;
+    console.log('📦 Request body:', { minLapTime, maxLapTime, validSessionTypes, friendlyRaceMaxParticipants });
 
     // Validaciones
     if (minLapTime && (minLapTime < 1000 || minLapTime > 300000)) {
@@ -76,7 +80,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    console.log('🔌 Connecting to DB...');
     await connectDB();
+    console.log('✅ DB connected');
 
     const updates: any = {
       lastUpdatedBy: adminCheck.user?.email || 'admin'
@@ -87,9 +93,9 @@ export async function PUT(request: NextRequest) {
     if (validSessionTypes) updates.validSessionTypes = validSessionTypes;
     if (friendlyRaceMaxParticipants !== undefined) updates.friendlyRaceMaxParticipants = friendlyRaceMaxParticipants;
 
+    console.log('💾 Updating config with:', updates);
     const config = await SystemConfig.updateConfig(updates);
-
-    console.log('✅ Configuración actualizada:', updates);
+    console.log('✅ Config updated successfully');
 
     return NextResponse.json({
       success: true,

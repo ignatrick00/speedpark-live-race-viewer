@@ -58,7 +58,26 @@ export default function FriendlyRacesAdminPage() {
         })
       });
 
-      const data = await response.json();
+      // Verificar si la respuesta es OK antes de parsear JSON
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Server error:', response.status, errorText);
+        setMessage({
+          type: 'error',
+          text: `Error del servidor (${response.status}): ${errorText || 'Error desconocido'}`
+        });
+        return;
+      }
+
+      // Intentar parsear JSON solo si hay contenido
+      const text = await response.text();
+      if (!text) {
+        console.error('❌ Empty response from server');
+        setMessage({ type: 'error', text: 'Respuesta vacía del servidor' });
+        return;
+      }
+
+      const data = JSON.parse(text);
 
       if (data.success) {
         setMessage({ type: 'success', text: 'Configuración guardada exitosamente' });
@@ -68,7 +87,10 @@ export default function FriendlyRacesAdminPage() {
       }
     } catch (error) {
       console.error('Error saving config:', error);
-      setMessage({ type: 'error', text: 'Error al guardar la configuración' });
+      setMessage({
+        type: 'error',
+        text: `Error al guardar: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      });
     } finally {
       setIsSaving(false);
     }
