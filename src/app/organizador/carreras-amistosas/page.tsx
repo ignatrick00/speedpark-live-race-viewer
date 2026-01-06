@@ -588,7 +588,7 @@ export default function CarrerasAmistosasOrgPage() {
                   <div className="flex flex-wrap gap-2">
                     {selectedFriendlyRace.participantsList.map((p, idx) => (
                       <span key={idx} className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-xs text-blue-300">
-                        {p.name} (Kart #{p.kartNumber})
+                        {p.driverName || p.name} (Kart #{p.kartNumber})
                       </span>
                     ))}
                   </div>
@@ -686,10 +686,11 @@ export default function CarrerasAmistosasOrgPage() {
                                   </thead>
                                   <tbody>
                                     {raceDetails.drivers.slice(0, 10).map((driver) => {
-                                      const isParticipant = selectedFriendlyRace.participantsList.some(p =>
-                                        p.name.toLowerCase().includes(driver.driverName.toLowerCase()) ||
-                                        driver.driverName.toLowerCase().includes(p.name.toLowerCase())
-                                      );
+                                      const isParticipant = selectedFriendlyRace.participantsList.some(p => {
+                                        const participantName = (p.driverName || p.name).toLowerCase();
+                                        const driverName = driver.driverName.toLowerCase();
+                                        return participantName.includes(driverName) || driverName.includes(participantName);
+                                      });
 
                                       return (
                                         <tr
@@ -797,7 +798,7 @@ export default function CarrerasAmistosasOrgPage() {
                       <div className="flex flex-wrap gap-2">
                         {selectedFriendlyRace.participantsList.map((p, idx) => (
                           <span key={idx} className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-xs text-blue-300">
-                            {p.name} (Kart #{p.kartNumber})
+                            {p.driverName || p.name} (Kart #{p.kartNumber})
                           </span>
                         ))}
                       </div>
@@ -818,10 +819,11 @@ export default function CarrerasAmistosasOrgPage() {
                         </thead>
                         <tbody>
                           {raceDetails.drivers.map((driver) => {
-                            const isParticipant = selectedFriendlyRace.participantsList.some(p =>
-                              p.name.toLowerCase().includes(driver.driverName.toLowerCase()) ||
-                              driver.driverName.toLowerCase().includes(p.name.toLowerCase())
-                            );
+                            const isParticipant = selectedFriendlyRace.participantsList.some(p => {
+                              const participantName = (p.driverName || p.name).toLowerCase();
+                              const driverName = driver.driverName.toLowerCase();
+                              return participantName.includes(driverName) || driverName.includes(participantName);
+                            });
 
                             return (
                               <tr
