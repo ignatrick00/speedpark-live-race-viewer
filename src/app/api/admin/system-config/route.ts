@@ -3,6 +3,9 @@ import connectDB from '@/lib/mongodb';
 import SystemConfig from '@/models/SystemConfig';
 import { verifyAdmin } from '@/lib/authHelpers';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // GET: Obtener configuración actual
 export async function GET(request: NextRequest) {
   try {
