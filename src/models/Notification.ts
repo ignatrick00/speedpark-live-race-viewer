@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
-  type: 'class_cancelled_by_coach' | 'booking_cancelled_by_student' | 'friend_request' | 'friend_request_accepted' | 'race_sanction';
+  type: 'class_cancelled_by_coach' | 'booking_cancelled_by_student' | 'friend_request' | 'friend_request_accepted' | 'race_sanction' | 'friendly_race_invitation';
   title: string;
   message: string;
   metadata: {
@@ -27,6 +27,15 @@ export interface INotification extends Document {
     positionPenalty?: number;
     pointsPenalty?: number;
     description?: string;
+    // Friendly race invitation metadata
+    raceId?: string;
+    raceName?: string;
+    raceDate?: string;
+    raceTime?: string;
+    invitedBy?: string;
+    inviterName?: string;
+    availableSpots?: number;
+    invitationStatus?: 'pending' | 'accepted' | 'rejected' | 'expired';
   };
   read: boolean;
   createdAt: Date;
@@ -42,7 +51,7 @@ const NotificationSchema: Schema = new Schema({
   },
   type: {
     type: String,
-    enum: ['class_cancelled_by_coach', 'booking_cancelled_by_student', 'friend_request', 'friend_request_accepted', 'race_sanction'],
+    enum: ['class_cancelled_by_coach', 'booking_cancelled_by_student', 'friend_request', 'friend_request_accepted', 'race_sanction', 'friendly_race_invitation'],
     required: true,
   },
   title: {
@@ -81,6 +90,19 @@ const NotificationSchema: Schema = new Schema({
     positionPenalty: Number,
     pointsPenalty: Number,
     description: String,
+    // Friendly race invitation metadata
+    raceId: String,
+    raceName: String,
+    raceDate: String,
+    raceTime: String,
+    invitedBy: String,
+    inviterName: String,
+    availableSpots: Number,
+    invitationStatus: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected', 'expired'],
+      default: 'pending'
+    },
   },
   read: {
     type: Boolean,
