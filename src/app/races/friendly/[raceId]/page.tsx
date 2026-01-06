@@ -36,10 +36,19 @@ export default function FriendlyRacePage() {
   const [joining, setJoining] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [pendingJoin, setPendingJoin] = useState(false);
 
   useEffect(() => {
     fetchRace();
   }, [params.raceId]);
+
+  // Auto-join after login when token becomes available
+  useEffect(() => {
+    if (token && pendingJoin) {
+      setPendingJoin(false);
+      handleJoinAfterAuth();
+    }
+  }, [token, pendingJoin]);
 
   const fetchRace = async () => {
     try {
@@ -60,12 +69,8 @@ export default function FriendlyRacePage() {
     }
   };
 
-  const handleJoin = async () => {
-    if (!token) {
-      // Open login modal
-      setShowLoginModal(true);
-      return;
-    }
+  const handleJoinAfterAuth = async () => {
+    if (!token) return;
 
     setJoining(true);
     try {
@@ -92,9 +97,20 @@ export default function FriendlyRacePage() {
     }
   };
 
-  const handleLoginSuccess = async () => {
-    // After successful login, automatically join the race
-    await handleJoin();
+  const handleJoin = async () => {
+    if (!token) {
+      // Set flag to join after login
+      setPendingJoin(true);
+      setShowLoginModal(true);
+      return;
+    }
+
+    await handleJoinAfterAuth();
+  };
+
+  const handleLoginSuccess = () => {
+    // Don't call handleJoin here - let useEffect handle it when token updates
+    // Just close the modal - useEffect will auto-join
   };
 
   const switchToRegister = () => {
@@ -153,7 +169,33 @@ export default function FriendlyRacePage() {
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      <Navbar />
+      {/* Simple Header - No modals to avoid conflicts */}
+      <div className="relative z-20 border-b border-blue-800/30 bg-black/90 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <a href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <img
+                src="/images/Friendly-races/logo karteando.png"
+                alt="Karteando.cl"
+                className="h-16 w-auto rounded-xl object-contain"
+              />
+              <div className="flex flex-col">
+                <p className="text-sm font-racing italic tracking-wider uppercase bg-gradient-to-r from-electric-blue to-cyan-400 bg-clip-text text-transparent">
+                  Racing Platform
+                </p>
+              </div>
+            </a>
+            {user && (
+              <a
+                href="/races"
+                className="px-6 py-2 text-cyan-400 hover:text-white border border-cyan-400/50 rounded-lg transition-all hover:bg-cyan-400/10 font-racing text-sm"
+              >
+                MIS CARRERAS
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Background Effects */}
       <div className="fixed inset-0 z-0">
