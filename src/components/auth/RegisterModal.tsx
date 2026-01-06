@@ -203,7 +203,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onSucc
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 bg-midnight border border-rb-blue/50 rounded-md text-electric-blue placeholder-sky-blue/50 font-digital focus:outline-none focus:ring-2 focus:ring-electric-blue focus:border-electric-blue transition-all"
-                placeholder="Ignacio"
+                placeholder="Ayrton"
               />
             </div>
 
@@ -219,7 +219,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onSucc
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 bg-midnight border border-rb-blue/50 rounded-md text-electric-blue placeholder-sky-blue/50 font-digital focus:outline-none focus:ring-2 focus:ring-electric-blue focus:border-electric-blue transition-all"
-                placeholder="Cabrera"
+                placeholder="Senna"
               />
             </div>
           </div>
@@ -236,7 +236,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onSucc
               onChange={handleChange}
               required
               className="w-full px-4 py-2 bg-midnight border border-rb-blue/50 rounded-md text-electric-blue placeholder-sky-blue/50 font-digital focus:outline-none focus:ring-2 focus:ring-electric-blue focus:border-electric-blue transition-all"
-              placeholder="piloto@karteando.cl"
+              placeholder="ayrtonsenna@gmail.com"
             />
           </div>
 
