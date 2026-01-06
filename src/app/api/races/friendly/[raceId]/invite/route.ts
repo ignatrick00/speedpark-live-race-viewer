@@ -14,8 +14,10 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { raceId: string } }
 ) {
+  console.log('🚀 [INVITE] POST request received for raceId:', params.raceId);
   try {
     await connectDB();
+    console.log('✅ [INVITE] Database connected');
 
     // Verify authentication
     const authHeader = req.headers.get('authorization');
@@ -80,6 +82,7 @@ export async function POST(
 
     // Get friend IDs from request
     const { friendIds } = await req.json();
+    console.log('📥 [INVITE] Received friendIds:', friendIds);
 
     if (!friendIds || !Array.isArray(friendIds) || friendIds.length === 0) {
       return NextResponse.json(
@@ -111,6 +114,7 @@ export async function POST(
     // Filter out friends already in the race
     const alreadyInRace = race.participants.map(p => p.userId.toString());
     const friendsToInvite = validFriendIds.filter(fId => !alreadyInRace.includes(fId));
+    console.log('🏁 [INVITE] Valid friends to invite (not in race):', friendsToInvite);
 
     if (friendsToInvite.length === 0) {
       return NextResponse.json(
@@ -120,15 +124,34 @@ export async function POST(
     }
 
     // Check for existing pending invitations
+    // IMPORTANT: Convert string IDs to ObjectIds for MongoDB query
+    const mongoose = require('mongoose');
+    const friendObjectIds = friendsToInvite.map(id => new mongoose.Types.ObjectId(id));
+
+    console.log('🔍 [INVITE] Checking for existing invitations');
+    console.log('   Friends to check (strings):', friendsToInvite);
+    console.log('   Friends to check (ObjectIds):', friendObjectIds.map(id => id.toString()));
+    console.log('   Race ID:', params.raceId);
+
     const existingInvitations = await Notification.find({
-      userId: { $in: friendsToInvite },
+      userId: { $in: friendObjectIds },
       type: 'friendly_race_invitation',
       'metadata.raceId': params.raceId,
       'metadata.invitationStatus': 'pending'
-    });
+    }).lean();
+
+    console.log('📋 [INVITE] Found existing invitations:', existingInvitations.length);
+    if (existingInvitations.length > 0) {
+      console.log('   Existing invitations details:', existingInvitations.map(inv => ({
+        userId: inv.userId.toString(),
+        raceId: inv.metadata?.raceId,
+        status: inv.metadata?.invitationStatus
+      })));
+    }
 
     const alreadyInvitedIds = existingInvitations.map(inv => inv.userId.toString());
     const finalFriendsToInvite = friendsToInvite.filter(fId => !alreadyInvitedIds.includes(fId));
+    console.log('✨ [INVITE] Final friends to invite (after filtering):', finalFriendsToInvite);
 
     if (finalFriendsToInvite.length === 0) {
       return NextResponse.json(
@@ -143,9 +166,10 @@ export async function POST(
                        user.email;
 
     // Create notifications for each friend
+    console.log('📧 Creating notifications for friends:', finalFriendsToInvite);
     const notifications = await Promise.all(
       finalFriendsToInvite.map(async (friendId) => {
-        return await Notification.create({
+        const notification = await Notification.create({
           userId: friendId,
           type: 'friendly_race_invitation',
           title: 'Invitación a Carrera Amistosa',
@@ -162,12 +186,16 @@ export async function POST(
           },
           read: false
         });
+        console.log('✅ Notification created for friend:', friendId, notification._id);
+        return notification;
       })
     );
+    console.log('📊 Total notifications created:', notifications.length);
 
     return NextResponse.json({
       success: true,
       message: `${notifications.length} invitaciones enviadas exitosamente`,
+      sentCount: notifications.length,
       invitationsSent: notifications.length,
       skipped: {
         alreadyInRace: alreadyInRace.filter(id => friendIds.includes(id)).length,

@@ -236,6 +236,47 @@ export default function InboxPage() {
     }
   };
 
+  const handleRespondRaceInvite = async (raceId: string, notificationId: string, accept: boolean) => {
+    setResponding(notificationId);
+    try {
+      const response = await fetch(`/api/races/friendly/${raceId}/invitation/respond`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          accept,
+          notificationId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setToast({
+          message: accept ? '¡Te has unido a la carrera amistosa!' : 'Invitación rechazada',
+          type: accept ? 'success' : 'info'
+        });
+        fetchInvitations();
+        fetchNotifications();
+      } else {
+        setToast({
+          message: data.error || 'Error al responder invitación',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error responding to race invitation:', error);
+      setToast({
+        message: 'Error al responder invitación',
+        type: 'error'
+      });
+    } finally {
+      setResponding(null);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-black text-white">
@@ -511,6 +552,77 @@ export default function InboxPage() {
                           className="px-6 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 font-bold"
                         >
                           {responding === invitation.token ? '⏳' : '✕ Rechazar'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else if (invitation.type === 'friendly_race') {
+                // Friendly Race Invitation Card
+                return (
+                  <div
+                    key={`race-${invitation.notificationId}`}
+                    className="bg-gradient-to-br from-orange-900/20 via-slate-800/80 to-slate-900/90 border-2 border-orange-500/30 rounded-xl p-6 hover:border-orange-400/50 transition-all"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="text-3xl">🏁</span>
+                          <div>
+                            <h3 className="text-2xl font-racing text-white">
+                              Invitación a Carrera Amistosa
+                            </h3>
+                            <p className="text-orange-400 font-bold">{invitation.raceName}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 text-sm text-gray-400">
+                          <p>
+                            <span className="text-gray-500">Invitado por:</span>{' '}
+                            <span className="text-white">{invitation.inviterName}</span>
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Pista:</span>{' '}
+                            <span className="text-white">{invitation.raceTrack}</span>
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Fecha:</span>{' '}
+                            <span className="text-white">
+                              {new Date(invitation.raceDate).toLocaleDateString('es-CL', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })} - {invitation.raceTime}
+                            </span>
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Participantes:</span>{' '}
+                            <span className="text-white">
+                              {invitation.currentParticipants}/{invitation.maxParticipants}
+                              {' '}({invitation.availableSpots} cupo{invitation.availableSpots !== 1 ? 's' : ''} disponible{invitation.availableSpots !== 1 ? 's' : ''})
+                            </span>
+                          </p>
+                          <p className="text-xs text-sky-blue/50 mt-2">
+                            Recibida: {new Date(invitation.invitedAt).toLocaleString('es-CL')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="ml-6 flex flex-col gap-3">
+                        <button
+                          onClick={() => handleRespondRaceInvite(invitation.raceId, invitation.notificationId, true)}
+                          disabled={responding === invitation.notificationId}
+                          className="px-6 py-2 bg-green-500/20 text-green-400 border border-green-500/50 rounded-lg hover:bg-green-500/30 transition-all disabled:opacity-50 font-bold"
+                        >
+                          {responding === invitation.notificationId ? '⏳' : '✓ Aceptar'}
+                        </button>
+                        <button
+                          onClick={() => handleRespondRaceInvite(invitation.raceId, invitation.notificationId, false)}
+                          disabled={responding === invitation.notificationId}
+                          className="px-6 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-all disabled:opacity-50 font-bold"
+                        >
+                          {responding === invitation.notificationId ? '⏳' : '✕ Rechazar'}
                         </button>
                       </div>
                     </div>

@@ -6,6 +6,8 @@ import Squadron from '@/models/Squadron';
 import SquadronEvent from '@/models/SquadronEvent';
 import GroupClassInvitation from '@/models/GroupClassInvitation';
 import SquadronPointsHistory from '@/models/SquadronPointsHistory';
+import Notification from '@/models/Notification';
+import FriendlyRace from '@/models/FriendlyRace';
 import '@/models/Squadron';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -193,11 +195,61 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Get friendly race invitations from Notification collection
+    console.log(`🏁 [INVITATIONS] Buscando invitaciones de carreras amistosas para userId: ${userId}`);
+    const raceNotifications = await Notification.find({
+      userId: userId,
+      type: 'friendly_race_invitation',
+      'metadata.invitationStatus': 'pending',
+      read: false
+    }).lean();
+
+    console.log(`🏎️ [INVITATIONS] Encontradas ${raceNotifications.length} invitaciones de carreras amistosas`);
+
+    // Populate race details for each invitation
+    const raceInvites = await Promise.all(
+      raceNotifications.map(async (notification: any) => {
+        try {
+          const race = await FriendlyRace.findById(notification.metadata.raceId);
+          const inviter = await WebUser.findById(notification.metadata.invitedBy).select('email profile');
+
+          if (!race) {
+            console.log(`⚠️ Race not found for notification ${notification._id}`);
+            return null;
+          }
+
+          return {
+            type: 'friendly_race',
+            notificationId: notification._id,
+            raceId: race._id,
+            raceName: race.name,
+            raceDate: race.date,
+            raceTime: race.time,
+            raceTrack: race.track,
+            currentParticipants: race.participants.length,
+            maxParticipants: race.maxParticipants,
+            availableSpots: race.maxParticipants - race.participants.length,
+            invitedBy: inviter,
+            inviterName: notification.metadata.inviterName,
+            invitedAt: notification.createdAt,
+            _id: notification._id,
+          };
+        } catch (error) {
+          console.error(`Error processing race invitation ${notification._id}:`, error);
+          return null;
+        }
+      })
+    );
+
+    // Filter out null values (races that don't exist anymore)
+    const validRaceInvites = raceInvites.filter(invite => invite !== null);
+
     // Combine all invitations
     const allInvitations = [
       ...squadronInvites,
       ...eventInvitations,
-      ...classInvites
+      ...classInvites,
+      ...validRaceInvites
     ].sort((a, b) => new Date(b.invitedAt).getTime() - new Date(a.invitedAt).getTime());
 
     return NextResponse.json({

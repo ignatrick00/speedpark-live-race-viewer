@@ -977,6 +977,8 @@ function FriendlyUpcomingView({
   const [raceToDelete, setRaceToDelete] = useState<{ id: string; name: string } | null>(null);
   const [showConfirmRaceModal, setShowConfirmRaceModal] = useState(false);
   const [raceToConfirm, setRaceToConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [raceToInvite, setRaceToInvite] = useState<Race | null>(null);
 
   const handleJoinClick = (race: Race) => {
     // Check if user is authenticated
@@ -1082,6 +1084,11 @@ function FriendlyUpcomingView({
     }
   };
 
+  const handleInviteFriendsClick = (race: Race) => {
+    setRaceToInvite(race);
+    setShowInviteModal(true);
+  };
+
   // Check if user is not authenticated
   if (!token && !isLoading) {
     return (
@@ -1154,6 +1161,7 @@ function FriendlyUpcomingView({
             onLeaveClick={() => handleLeaveRace(race._id, race.name)}
             onDeleteClick={() => handleDeleteClick(race._id, race.name)}
             onConfirmClick={() => handleConfirmClick(race._id, race.name)}
+            onInviteFriendsClick={() => handleInviteFriendsClick(race)}
           />
         ))}
       </div>
@@ -1293,6 +1301,22 @@ function FriendlyUpcomingView({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Invite Friends Modal */}
+      {showInviteModal && raceToInvite && token && (
+        <InviteFriendsModal
+          race={raceToInvite}
+          token={token}
+          onClose={() => {
+            setShowInviteModal(false);
+            setRaceToInvite(null);
+          }}
+          onSuccess={() => {
+            setShowInviteModal(false);
+            setRaceToInvite(null);
+          }}
+        />
       )}
     </>
   );
@@ -2151,6 +2175,268 @@ function JoinRaceModal({
   );
 }
 
+// Invite Friends Modal Component
+function InviteFriendsModal({
+  race,
+  token,
+  onClose,
+  onSuccess,
+}: {
+  race: Race;
+  token: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [friends, setFriends] = useState<any[]>([]);
+  const [selectedFriendIds, setSelectedFriendIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [sentCount, setSentCount] = useState(0);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Fetch friends list
+  useEffect(() => {
+    const fetchFriends = async () => {
+      try {
+        const response = await fetch('/api/friends', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al cargar amigos');
+        }
+
+        const data = await response.json();
+        setFriends(data.friends || []);
+      } catch (error) {
+        console.error('Error fetching friends:', error);
+        alert('Error al cargar la lista de amigos');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFriends();
+  }, [token]);
+
+  // Toggle friend selection
+  const toggleFriend = (friendId: string) => {
+    const newSelected = new Set(selectedFriendIds);
+    if (newSelected.has(friendId)) {
+      newSelected.delete(friendId);
+    } else {
+      newSelected.add(friendId);
+    }
+    setSelectedFriendIds(newSelected);
+  };
+
+  // Send invitations
+  const handleSendInvitations = async () => {
+    if (selectedFriendIds.size === 0) {
+      setErrorMessage('Selecciona al menos un amigo');
+      setShowErrorModal(true);
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const response = await fetch(`/api/races/friendly/${race._id}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          friendIds: Array.from(selectedFriendIds),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al enviar invitaciones');
+      }
+
+      if (data.success) {
+        setSentCount(data.sentCount || 0);
+        setShowSuccessModal(true);
+        // Auto-close after 2.5 seconds
+        setTimeout(() => {
+          setShowSuccessModal(false);
+          onSuccess();
+        }, 2500);
+      }
+    } catch (error) {
+      console.error('Error sending invitations:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Error al enviar invitaciones');
+      setShowErrorModal(true);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Check if friend is already in race
+  const isFriendInRace = (friendId: string) => {
+    const participants = race.participantsList || race.participants || [];
+    return participants.some((p: any) => (p.userId?.toString() || p.userId) === friendId);
+  };
+
+  // Available spots
+  const participants = race.participantsList || race.participants || [];
+  const availableSpots = race.maxParticipants - participants.length;
+
+  // Success Modal
+  if (showSuccessModal) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-green-500/20 to-midnight border-2 border-green-500/50 rounded-xl p-8 shadow-2xl">
+          <div className="text-center">
+            <div className="text-6xl mb-4">✅</div>
+            <h3 className="text-2xl font-racing text-green-400 mb-3">
+              ¡INVITACIONES ENVIADAS!
+            </h3>
+            <p className="text-electric-blue font-bold text-xl mb-2">
+              {sentCount} invitación{sentCount !== 1 ? 'es' : ''} enviada{sentCount !== 1 ? 's' : ''}
+            </p>
+            <p className="text-sky-blue/70 text-lg">
+              Tus amigos recibirán la notificación
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error Modal
+  if (showErrorModal) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-red-500/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 shadow-2xl">
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h3 className="text-2xl font-racing text-red-400 mb-3">
+              ERROR
+            </h3>
+            <p className="text-sky-blue/70 text-lg">
+              {errorMessage}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowErrorModal(false)}
+            className="w-full px-6 py-3 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
+          >
+            CERRAR
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-2xl bg-gradient-to-br from-midnight via-cyan-500/10 to-midnight border-2 border-cyan-500/50 rounded-xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="text-center mb-6">
+          <div className="text-6xl mb-4">👥</div>
+          <h3 className="text-2xl font-racing text-cyan-400 mb-3">
+            INVITAR AMIGOS
+          </h3>
+          <p className="text-electric-blue font-bold text-xl mb-2">
+            {race.name}
+          </p>
+          <p className="text-sky-blue/70 text-sm">
+            📅 {new Date(race.date).toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • 🕐 {race.time}
+          </p>
+          <div className="mt-3 inline-block px-4 py-2 bg-cyan-600/20 border border-cyan-500/50 rounded-lg">
+            <p className="text-cyan-400 font-racing text-sm">
+              🎯 Cupos disponibles: {availableSpots}/{race.maxParticipants}
+            </p>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin text-6xl mb-4">🏁</div>
+            <p className="text-sky-blue/70">Cargando amigos...</p>
+          </div>
+        ) : friends.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">😔</div>
+            <p className="text-sky-blue/70 text-lg">
+              No tienes amigos agregados aún
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
+            {friends.map((friend) => {
+              const isInRace = isFriendInRace(friend.userId);
+              const isSelected = selectedFriendIds.has(friend.userId);
+
+              return (
+                <div
+                  key={friend.userId}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    isInRace
+                      ? 'bg-slate-600/10 border-slate-500/30 opacity-50 cursor-not-allowed'
+                      : isSelected
+                      ? 'bg-cyan-600/20 border-cyan-500/50'
+                      : 'bg-midnight/50 border-electric-blue/30 hover:border-electric-blue/50 cursor-pointer'
+                  }`}
+                  onClick={() => !isInRace && toggleFriend(friend.userId)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-electric-blue font-bold">
+                        {friend.alias || `${friend.firstName} ${friend.lastName}`}
+                      </p>
+                      <p className="text-sky-blue/50 text-sm">{friend.email}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {isInRace ? (
+                        <span className="px-3 py-1 bg-green-600/20 border border-green-500/50 rounded text-green-400 text-xs font-racing">
+                          ✅ YA INSCRITO
+                        </span>
+                      ) : (
+                        <div className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                          isSelected
+                            ? 'bg-cyan-500 border-cyan-400'
+                            : 'border-electric-blue/50'
+                        }`}>
+                          {isSelected && <span className="text-white text-sm">✓</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            disabled={isSending}
+            className="flex-1 px-6 py-3 bg-slate-600/20 border border-slate-500/50 text-slate-300 rounded-lg hover:bg-slate-600/30 transition-all font-racing disabled:opacity-50"
+          >
+            CANCELAR
+          </button>
+          <button
+            onClick={handleSendInvitations}
+            disabled={isSending || selectedFriendIds.size === 0 || friends.length === 0}
+            className="flex-1 px-6 py-3 bg-cyan-600/20 border border-cyan-500/50 text-cyan-400 rounded-lg hover:bg-cyan-600/30 transition-all font-racing disabled:opacity-50"
+          >
+            {isSending ? '⏳ ENVIANDO...' : `📨 INVITAR (${selectedFriendIds.size})`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Race Card Component
 function RaceCard({
   race,
@@ -2160,6 +2446,7 @@ function RaceCard({
   onDeleteClick,
   onConfirmClick,
   onViewResults,
+  onInviteFriendsClick,
   showOnlyLeaveButton,
 }: {
   race: Race;
@@ -2169,6 +2456,7 @@ function RaceCard({
   onDeleteClick?: () => void;
   onConfirmClick?: () => void;
   onViewResults?: () => void;
+  onInviteFriendsClick?: () => void;
   showOnlyLeaveButton?: boolean;
 }) {
   const isChampionship = race.type === 'championship';
@@ -2315,6 +2603,16 @@ function RaceCard({
             </>
           )}
 
+          {/* Botón Invitar Amigos (solo si es participante, hay cupos y no es championship) */}
+          {!isChampionship && isParticipant && !isFull && onInviteFriendsClick && (
+            <button
+              onClick={onInviteFriendsClick}
+              className="px-4 py-2 rounded-lg font-racing transition-all bg-cyan-600/20 border border-cyan-500/50 text-cyan-400 hover:bg-cyan-600/30 text-sm"
+            >
+              👥 INVITAR AMIGOS
+            </button>
+          )}
+
           {/* Botón de unirse/desinscribirse (solo si NO es el creador) */}
           {!isCreator && (
             <>
@@ -2371,6 +2669,8 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
   const [raceToDelete, setRaceToDelete] = useState<{ id: string; name: string } | null>(null);
   const [showConfirmRaceModal, setShowConfirmRaceModal] = useState(false);
   const [raceToConfirm, setRaceToConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [raceToInvite, setRaceToInvite] = useState<Race | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
@@ -2602,6 +2902,11 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
     }
   };
 
+  const handleInviteFriendsClick = (race: Race) => {
+    setRaceToInvite(race);
+    setShowInviteModal(true);
+  };
+
   if (loading) {
     return (
       <div className="text-center py-20">
@@ -2666,6 +2971,7 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
               onLeaveClick={() => handleLeaveRace(race._id, race.name)}
               onDeleteClick={() => handleDeleteClick(race._id, race.name)}
               onConfirmClick={() => handleConfirmClick(race._id, race.name)}
+              onInviteFriendsClick={() => handleInviteFriendsClick(race)}
             />
           ))}
         </div>
@@ -2829,6 +3135,22 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
             </div>
           </div>
         </div>
+      )}
+
+      {/* Invite Friends Modal */}
+      {showInviteModal && raceToInvite && (
+        <InviteFriendsModal
+          race={raceToInvite}
+          token={token}
+          onClose={() => {
+            setShowInviteModal(false);
+            setRaceToInvite(null);
+          }}
+          onSuccess={() => {
+            setShowInviteModal(false);
+            setRaceToInvite(null);
+          }}
+        />
       )}
     </div>
   );
