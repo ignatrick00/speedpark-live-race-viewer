@@ -370,6 +370,7 @@ export default function RacesPage() {
           <MyRegisteredEventsView
             token={token}
             userId={user?.id}
+            onRefresh={fetchRaces}
           />
         )}
       </div>
@@ -2135,15 +2136,19 @@ function RaceCard({
 }
 
 // My Registered Events View
-function MyRegisteredEventsView({ token, userId }: { token: string; userId?: string }) {
+function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; userId?: string; onRefresh?: () => void }) {
   const [events, setEvents] = useState<any[]>([]);
+  const [friendlyRaces, setFriendlyRaces] = useState<Race[]>([]);
   const [loading, setLoading] = useState(true);
   const [unregisteringEventId, setUnregisteringEventId] = useState<string | null>(null);
   const [showUnregisterConfirm, setShowUnregisterConfirm] = useState<string | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [raceToLeave, setRaceToLeave] = useState<{ id: string; name: string } | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     fetchMyEvents();
+    fetchMyFriendlyRaces();
   }, []);
 
   const fetchMyEvents = async () => {
@@ -2160,6 +2165,34 @@ function MyRegisteredEventsView({ token, userId }: { token: string; userId?: str
       }
     } catch (error) {
       console.error('Error fetching my events:', error);
+    }
+  };
+
+  const fetchMyFriendlyRaces = async () => {
+    try {
+      const response = await fetch('/api/races/friendly?filter=all', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Filter races where user is participant
+        const myRaces = (data.races || []).filter((race: Race) => {
+          const isParticipant = race.participantsList?.some(
+            (participant: any) => participant.userId === userId
+          );
+          const raceDate = new Date(race.date);
+          const now = new Date();
+          const isFuture = raceDate >= now;
+          const isNotFinalized = !race.linkedRaceSessionId && race.raceStatus !== 'linked' && race.raceStatus !== 'finalized';
+          return isParticipant && isFuture && isNotFinalized;
+        });
+        setFriendlyRaces(myRaces);
+      }
+    } catch (error) {
+      console.error('Error fetching my friendly races:', error);
     } finally {
       setLoading(false);
     }
@@ -2208,6 +2241,52 @@ function MyRegisteredEventsView({ token, userId }: { token: string; userId?: str
     }
   };
 
+  const handleLeaveRace = (raceId: string, raceName: string) => {
+    setRaceToLeave({ id: raceId, name: raceName });
+    setShowLeaveConfirm(true);
+  };
+
+  const confirmLeaveRace = async () => {
+    if (!raceToLeave) return;
+
+    try {
+      const response = await fetch(`/api/races/friendly/${raceToLeave.id}/leave`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowLeaveConfirm(false);
+        setRaceToLeave(null);
+        setToast({
+          message: 'Te has desinscrito de la carrera exitosamente',
+          type: 'success'
+        });
+        // Refresh local list
+        fetchMyFriendlyRaces();
+        // Also refresh main races list
+        if (onRefresh) {
+          onRefresh();
+        }
+      } else {
+        setToast({
+          message: data.error || 'Error al desinscribirte de la carrera',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error leaving race:', error);
+      setToast({
+        message: 'Error al desinscribirte de la carrera',
+        type: 'error'
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-20">
@@ -2217,7 +2296,7 @@ function MyRegisteredEventsView({ token, userId }: { token: string; userId?: str
     );
   }
 
-  if (events.length === 0) {
+  if (events.length === 0 && friendlyRaces.length === 0) {
     return (
       <div className="bg-gradient-to-br from-midnight via-purple-500/10 to-midnight border-2 border-purple-400/50 rounded-xl p-12 text-center">
         <div className="text-6xl mb-4">📋</div>
@@ -2239,15 +2318,42 @@ function MyRegisteredEventsView({ token, userId }: { token: string; userId?: str
           MIS CARRERAS INSCRITAS
         </h2>
       </div>
-      {events.map((event) => (
-        <SquadronEventCard
-          key={event._id}
-          event={event}
-          showUnregisterButton={true}
-          onUnregister={(e) => handleUnregisterClick(event._id, e)}
-          isUnregistering={unregisteringEventId === event._id}
-        />
-      ))}
+
+      {/* Campeonatos de Escuadrón */}
+      {events.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-xl font-racing text-cyan-400 flex items-center gap-2">
+            <span>🏆</span> CAMPEONATOS DE ESCUADRÓN
+          </h3>
+          {events.map((event) => (
+            <SquadronEventCard
+              key={event._id}
+              event={event}
+              showUnregisterButton={true}
+              onUnregister={(e) => handleUnregisterClick(event._id, e)}
+              isUnregistering={unregisteringEventId === event._id}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Carreras Amistosas */}
+      {friendlyRaces.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-xl font-racing text-electric-blue flex items-center gap-2">
+            <span>🏁</span> CARRERAS AMISTOSAS
+          </h3>
+          {friendlyRaces.map((race) => (
+            <RaceCard
+              key={race._id}
+              race={race}
+              currentUserId={userId}
+              onLeaveClick={() => handleLeaveRace(race._id, race.name)}
+              showOnlyLeaveButton={true}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toast && (
@@ -2258,7 +2364,7 @@ function MyRegisteredEventsView({ token, userId }: { token: string; userId?: str
         />
       )}
 
-      {/* Unregister Confirmation Modal */}
+      {/* Unregister Confirmation Modal (Squadron Events) */}
       {showUnregisterConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-gradient-to-br from-midnight via-red-900/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 max-w-md mx-4 shadow-2xl">
@@ -2283,6 +2389,44 @@ function MyRegisteredEventsView({ token, userId }: { token: string; userId?: str
                 className="flex-1 px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded-lg font-racing transition-all"
               >
                 RETIRARME
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Confirmation Modal (Friendly Races) */}
+      {showLeaveConfirm && raceToLeave && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gradient-to-br from-midnight via-red-500/10 to-midnight border-2 border-red-500/50 rounded-xl p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">🚪</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-3">
+                DESINSCRIBIRSE DE CARRERA
+              </h3>
+              <p className="text-sky-blue/80 text-lg mb-2">
+                ¿Estás seguro de que quieres desinscribirte de:
+              </p>
+              <p className="text-electric-blue font-bold text-xl">
+                "{raceToLeave.name}"?
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowLeaveConfirm(false);
+                  setRaceToLeave(null);
+                }}
+                className="flex-1 px-6 py-3 bg-slate-600/20 border border-slate-500/50 text-slate-300 rounded-lg hover:bg-slate-600/30 transition-all font-racing"
+              >
+                CANCELAR
+              </button>
+              <button
+                onClick={confirmLeaveRace}
+                className="flex-1 px-6 py-3 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
+              >
+                SÍ, DESINSCRIBIRME
               </button>
             </div>
           </div>
