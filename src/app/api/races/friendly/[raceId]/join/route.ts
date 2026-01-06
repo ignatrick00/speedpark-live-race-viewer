@@ -155,11 +155,9 @@ export async function POST(
       );
     }
 
-    // Update status if full
-    if (updatedRace.participants.length >= updatedRace.maxParticipants) {
-      updatedRace.status = 'full';
-      await updatedRace.save();
-    }
+    // Note: We don't change status to 'full' here anymore
+    // The 'full' state is determined by participants.length >= maxParticipants
+    // Status only tracks confirmation state: 'open' or 'confirmed'
 
     console.log(`✅ [JOIN-RACE] User ${userId} joined race ${raceId} with kart ${kartNumber}`);
 

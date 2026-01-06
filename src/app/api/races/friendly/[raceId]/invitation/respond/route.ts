@@ -168,10 +168,9 @@ export async function POST(
       driverName: user.kartingLink?.driverName || undefined
     });
 
-    // Update race status if it becomes full
-    if (race.participants.length >= race.maxParticipants) {
-      race.status = 'full';
-    }
+    // Note: We don't change status to 'full' here anymore
+    // The 'full' state is determined by participants.length >= maxParticipants
+    // Status only tracks confirmation state: 'open' or 'confirmed'
 
     await race.save();
 
@@ -180,8 +179,8 @@ export async function POST(
     notification.read = true;
     await notification.save();
 
-    // Expire other pending invitations for this race (since it might be full now)
-    if (race.status === 'full') {
+    // Expire other pending invitations if race is now full
+    if (race.participants.length >= race.maxParticipants) {
       await Notification.updateMany(
         {
           type: 'friendly_race_invitation',

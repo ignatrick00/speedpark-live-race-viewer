@@ -109,11 +109,9 @@ export async function DELETE(
       );
     }
 
-    // Update status if race is no longer full
-    if (updatedRace.status === 'full' && updatedRace.participants.length < updatedRace.maxParticipants) {
-      updatedRace.status = 'open';
-      await updatedRace.save();
-    }
+    // Note: We don't change status here anymore
+    // The 'full' state is determined by participants.length >= maxParticipants
+    // Status only tracks confirmation state: 'open' or 'confirmed'
 
     console.log(`✅ [LEAVE-RACE] User ${userId} left race ${raceId}`);
 
