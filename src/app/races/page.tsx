@@ -1123,18 +1123,12 @@ function FriendlyUpcomingView({
 
   // Filter upcoming races: future dates only, and NOT linked/finalized
   // NOTE: We DO show races where user is registered (they appear in both "Próximas" and "Mis Carreras")
-  // TEMPORARY: Also show past races that are NOT linked (for testing linking functionality)
   const upcomingRaces = races.filter(race => {
     const raceDate = new Date(race.date);
     const now = new Date();
     const isFuture = raceDate >= now;
     const isNotLinked = !race.linkedRaceSessionId && race.raceStatus !== 'linked' && race.raceStatus !== 'finalized';
-
-    // TEMPORARY: Show all non-linked races regardless of date (for testing)
-    return isNotLinked;
-
-    // TODO: Restore this line when done testing
-    // return isFuture && isNotLinked;
+    return isFuture && isNotLinked;
   });
 
   if (isLoading) {
