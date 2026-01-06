@@ -360,7 +360,7 @@ export default function RacesPage() {
             onBack={() => setViewMode('selection')}
             onSuccess={() => {
               fetchRaces();
-              setViewMode('friendly-join');
+              setViewMode('my-registered-events');
             }}
             onLoginClick={() => setShowLoginModal(true)}
           />
