@@ -1713,6 +1713,49 @@ function FriendlyJoinView({
           </div>
         </div>
       )}
+
+      {/* Success Confirm Modal */}
+      {showSuccessConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-green-500/20 to-midnight border-2 border-green-500/50 rounded-xl p-8 shadow-2xl">
+            <div className="text-center">
+              <div className="text-6xl mb-4">✅</div>
+              <h3 className="text-2xl font-racing text-green-400 mb-3">
+                ¡EVENTO CONFIRMADO!
+              </h3>
+              <p className="text-sky-blue/80 text-lg mb-2">
+                La reserva está confirmada con Speedpark
+              </p>
+              <p className="text-electric-blue/70 text-sm">
+                Los participantes pueden ver que el evento está listo
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Confirm Modal */}
+      {showErrorConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-red-500/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-3">
+                ERROR
+              </h3>
+              <p className="text-sky-blue/80 text-lg">
+                {confirmErrorMessage}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowErrorConfirmModal(false)}
+              className="w-full px-6 py-3 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
+            >
+              CERRAR
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -3220,6 +3263,49 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
                 SÍ, CONFIRMAR
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Confirm Modal */}
+      {showSuccessConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-green-500/20 to-midnight border-2 border-green-500/50 rounded-xl p-8 shadow-2xl">
+            <div className="text-center">
+              <div className="text-6xl mb-4">✅</div>
+              <h3 className="text-2xl font-racing text-green-400 mb-3">
+                ¡EVENTO CONFIRMADO!
+              </h3>
+              <p className="text-sky-blue/80 text-lg mb-2">
+                La reserva está confirmada con Speedpark
+              </p>
+              <p className="text-electric-blue/70 text-sm">
+                Los participantes pueden ver que el evento está listo
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Confirm Modal */}
+      {showErrorConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-red-500/20 to-midnight border-2 border-red-500/50 rounded-xl p-8 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-3">
+                ERROR
+              </h3>
+              <p className="text-sky-blue/80 text-lg">
+                {confirmErrorMessage}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowErrorConfirmModal(false)}
+              className="w-full px-6 py-3 bg-red-600/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-600/30 transition-all font-racing"
+            >
+              CERRAR
+            </button>
           </div>
         </div>
       )}
