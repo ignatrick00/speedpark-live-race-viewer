@@ -69,6 +69,87 @@ export default function LiveRaceViewer() {
   const [kartsError, setKartsError] = useState<string | null>(null)
   const [kartsFirstLoad, setKartsFirstLoad] = useState(true)
 
+  // Estado para modal fullscreen horizontal (solo móviles)
+  const [showFullscreenTable, setShowFullscreenTable] = useState(false)
+
+  // Función para entrar en pantalla completa y forzar landscape
+  const enterFullscreen = async () => {
+    setShowFullscreenTable(true)
+
+    // Esperar un frame para que el modal se renderice
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    const element = document.getElementById('fullscreen-table-modal')
+    if (element) {
+      try {
+        // Entrar en fullscreen
+        if (element.requestFullscreen) {
+          await element.requestFullscreen()
+        } else if ((element as any).webkitRequestFullscreen) {
+          await (element as any).webkitRequestFullscreen()
+        } else if ((element as any).mozRequestFullScreen) {
+          await (element as any).mozRequestFullScreen()
+        }
+
+        // Forzar orientación landscape
+        if (screen.orientation && screen.orientation.lock) {
+          try {
+            await screen.orientation.lock('landscape')
+          } catch (err) {
+            console.log('Orientation lock not supported:', err)
+          }
+        }
+      } catch (err) {
+        console.log('Fullscreen not supported:', err)
+      }
+    }
+  }
+
+  // Función para salir de pantalla completa
+  const exitFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen()
+      } else if ((document as any).webkitFullscreenElement) {
+        await (document as any).webkitExitFullscreen()
+      } else if ((document as any).mozFullScreenElement) {
+        await (document as any).mozCancelFullScreen()
+      }
+
+      // Desbloquear orientación
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock()
+      }
+    } catch (err) {
+      console.log('Exit fullscreen error:', err)
+    }
+
+    setShowFullscreenTable(false)
+  }
+
+  // Detectar cuando el usuario sale de fullscreen con ESC
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement && !(document as any).mozFullScreenElement) {
+        setShowFullscreenTable(false)
+        // Desbloquear orientación
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock()
+        }
+      }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange)
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange)
+    }
+  }, [])
+
   // Estados derivados de WebSocket (mantener para datos en tiempo real)
   const isLive = isConnected && !!raceData
   const activeDrivers = raceData?.activeDrivers || 0
@@ -278,11 +359,21 @@ export default function LiveRaceViewer() {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-400/5 to-blue-600/5 rounded-2xl"></div>
             
             <div className="relative z-10">
-              <h2 className="font-racing text-3xl text-white mb-8 tracking-wider">
-                🏆 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white" style={{
-                  textShadow: '0 0 10px rgba(135, 206, 235, 0.8), 0 0 20px rgba(0, 87, 184, 0.4)'
-                }}>Posiciones en Tiempo Real</span>
-              </h2>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="font-racing text-3xl text-white tracking-wider">
+                  🏆 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white" style={{
+                    textShadow: '0 0 10px rgba(135, 206, 235, 0.8), 0 0 20px rgba(0, 87, 184, 0.4)'
+                  }}>Posiciones en Tiempo Real</span>
+                </h2>
+
+                {/* Botón fullscreen solo móviles */}
+                <button
+                  onClick={enterFullscreen}
+                  className="md:hidden px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-racing text-sm rounded-lg hover:shadow-lg hover:shadow-cyan-400/50 transition-all flex items-center gap-2"
+                >
+                  ⛶ Pantalla Completa
+                </button>
+              </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse border-spacing-y-2">
@@ -379,6 +470,106 @@ export default function LiveRaceViewer() {
         </div>
 
       </div>
+
+      {/* Modal Fullscreen Horizontal (solo móviles) */}
+      {showFullscreenTable && (
+        <div id="fullscreen-table-modal" className="fixed inset-0 bg-black z-50 overflow-auto">
+          {/* Header con botón salir de pantalla completa */}
+          <div className="sticky top-0 bg-black/90 backdrop-blur-sm border-b border-cyan-400/30 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h3 className="font-racing text-xl text-cyan-400">🏁 Posiciones en Tiempo Real</h3>
+              <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-cyan-400 animate-pulse' : 'bg-gray-400'}`}></div>
+            </div>
+            <button
+              onClick={exitFullscreen}
+              className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-colors font-racing text-sm flex items-center gap-2"
+            >
+              ⛶ Salir de Pantalla Completa
+            </button>
+          </div>
+
+          {/* Tabla rotada en horizontal */}
+          <div className="p-4">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border-spacing-y-2">
+                <thead>
+                  <tr className="border-b-2 border-blue-800/30">
+                    <th className="text-left py-3 px-2 font-racing text-sky-400 tracking-wider uppercase text-xs whitespace-nowrap">POS</th>
+                    <th className="text-left py-3 px-3 font-racing text-sky-400 tracking-wider uppercase text-xs whitespace-nowrap">PILOTO</th>
+                    <th className="text-right py-3 px-3 font-racing text-sky-400 tracking-wider uppercase text-xs whitespace-nowrap">KART</th>
+                    <th className="text-right py-3 px-3 font-racing text-sky-400 tracking-wider uppercase text-xs whitespace-nowrap">VUELTA</th>
+                    <th className="text-right py-3 px-3 font-racing text-sky-400 tracking-wider uppercase text-xs whitespace-nowrap">MEJOR</th>
+                    <th className="text-right py-3 px-3 font-racing text-sky-400 tracking-wider uppercase text-xs whitespace-nowrap">ÚLTIMA</th>
+                    <th className="text-right py-3 px-3 font-racing text-sky-400 tracking-wider uppercase text-xs whitespace-nowrap">PROMEDIO</th>
+                    <th className="text-right py-3 px-3 font-racing text-sky-400 tracking-wider uppercase text-xs whitespace-nowrap">GAP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {drivers.length > 0 ? drivers.map((driver) => (
+                    <tr
+                      key={driver.pos}
+                      className="bg-black/40 border-b border-blue-800/20"
+                    >
+                      <td className="py-3 px-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
+                          driver.pos === 1 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-black' :
+                          driver.pos === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-black' :
+                          driver.pos === 3 ? 'bg-gradient-to-br from-orange-600 to-orange-800 text-white' :
+                          'bg-blue-900/30 text-white border border-cyan-400'
+                        }`}>
+                          {driver.pos}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="font-racing text-white text-sm font-semibold uppercase whitespace-nowrap">{driver.name}</div>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="font-digital text-sky-400 font-bold text-sm">#{driver.kart}</div>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="font-digital text-white text-sm">{driver.lap}</div>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="font-digital text-cyan-400 text-sm font-bold whitespace-nowrap">{driver.bestTime}</div>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="font-digital text-blue-300 text-sm whitespace-nowrap">{driver.lastTime}</div>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="font-digital text-blue-300 text-sm whitespace-nowrap">{driver.avgTime}</div>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className={`font-digital font-bold text-sm whitespace-nowrap ${driver.gap === '--' ? 'text-green-400' : 'text-orange-400'}`}>
+                          {driver.gap}
+                        </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center">
+                        <div className="text-blue-300">
+                          {error ? (
+                            <div>
+                              <div className="text-red-400 mb-2">❌ Error: {error}</div>
+                              <button onClick={reconnect} className="text-cyan-400 hover:text-white transition-colors">
+                                🔄 Reintentar
+                              </button>
+                            </div>
+                          ) : !isConnected ? (
+                            <div className="animate-pulse">🔄 Conectando...</div>
+                          ) : (
+                            <div>⏳ Esperando datos...</div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
