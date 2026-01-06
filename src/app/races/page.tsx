@@ -1827,6 +1827,7 @@ function JoinRaceModal({
   onSuccess: () => void;
 }) {
   const [isJoining, setIsJoining] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const hasAttemptedJoin = useRef(false);
 
   // Auto-join on mount with random kart assignment (backend handles it)
@@ -1876,8 +1877,12 @@ function JoinRaceModal({
       console.log('📦 Response data:', data);
 
       if (data.success) {
-        alert(`¡Te has unido a la carrera exitosamente! Kart asignado: #${data.kartNumber}`);
-        onSuccess();
+        setShowSuccessModal(true);
+        // Auto-close success modal and refresh after 2 seconds
+        setTimeout(() => {
+          setShowSuccessModal(false);
+          onSuccess();
+        }, 2000);
       } else {
         alert(data.error || 'Error al unirse a la carrera');
         onClose();
@@ -1891,6 +1896,26 @@ function JoinRaceModal({
     }
   };
 
+  // Success Modal
+  if (showSuccessModal) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-green-500/20 to-midnight border-2 border-green-500/50 rounded-xl p-8 shadow-2xl">
+          <div className="text-center">
+            <div className="text-6xl mb-4">✅</div>
+            <h3 className="text-2xl font-racing text-green-400 mb-3">
+              ¡TE HAS UNIDO A LA CARRERA EXITOSAMENTE!
+            </h3>
+            <p className="text-sky-blue/70 text-lg">
+              {race.name}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading Modal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-md bg-gradient-to-br from-midnight via-electric-blue/20 to-midnight border-2 border-electric-blue/50 rounded-xl p-8">
@@ -2020,11 +2045,11 @@ function RaceCard({
             {race.participantsList.map((participant, idx) => (
               <div
                 key={participant.userId || idx}
-                className="flex items-center justify-between text-sm"
+                className="flex items-center gap-2 text-sm"
               >
-                <span className="text-sky-blue flex items-center gap-2">
-                  <span className="text-gold font-digital">#{participant.kartNumber}</span>
-                  <span>{participant.driverName || participant.name}</span>
+                <span className="text-sky-blue/70 font-digital">{idx + 1})</span>
+                <span className="text-sky-blue">
+                  {participant.driverName || participant.name}
                 </span>
               </div>
             ))}
