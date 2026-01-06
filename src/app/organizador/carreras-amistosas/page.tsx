@@ -311,10 +311,13 @@ export default function CarrerasAmistosasOrgPage() {
   const calculateMatchScore = (friendlyRaceParticipants: any[], sessionDrivers: any[], sessionTotalDrivers: number) => {
     if (!friendlyRaceParticipants || friendlyRaceParticipants.length === 0) return 0;
 
-    const participantNames = friendlyRaceParticipants.map(p => p.name.toLowerCase());
+    // Use driverName (SMS Timing format) if available, otherwise fallback to name
+    const participantNames = friendlyRaceParticipants.map(p =>
+      (p.driverName || p.name).toLowerCase()
+    );
     const driverNames = sessionDrivers.map((d: any) => d.driverName.toLowerCase());
 
-    // Count matching names
+    // Count matching names (exact match or partial match)
     const matches = participantNames.filter(name =>
       driverNames.some(driver => driver.includes(name) || name.includes(driver))
     );
