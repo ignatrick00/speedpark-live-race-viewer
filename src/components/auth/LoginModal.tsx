@@ -10,9 +10,10 @@ interface LoginModalProps {
   onClose: () => void;
   onSwitchToRegister: () => void;
   redirectAfterLogin?: boolean;
+  onSuccess?: () => void;
 }
 
-export default function LoginModal({ isOpen, onClose, onSwitchToRegister, redirectAfterLogin = true }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose, onSwitchToRegister, redirectAfterLogin = true, onSuccess }: LoginModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -35,8 +36,12 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister, redire
         setEmail('');
         setPassword('');
         onClose();
-        // Redirect to dashboard after successful login (optional)
-        if (redirectAfterLogin) {
+
+        // Call custom success callback if provided
+        if (onSuccess) {
+          onSuccess();
+        } else if (redirectAfterLogin) {
+          // Redirect to dashboard after successful login (optional)
           router.push('/dashboard');
         }
       } else {

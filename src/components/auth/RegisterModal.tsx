@@ -8,9 +8,10 @@ interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
+  onSuccess?: () => void;
 }
 
-export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModalProps) {
+export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, onSuccess }: RegisterModalProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -71,10 +72,17 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
           setRegisteredEmail(result.email || formData.email);
           // Don't reset form or close modal - keep it open to show verification message
         } else {
-          // Auto-login successful - redirect to dashboard
+          // Auto-login successful
           resetForm();
           onClose();
-          router.push('/dashboard');
+
+          // Call custom success callback if provided
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            // Default: redirect to dashboard
+            router.push('/dashboard');
+          }
         }
       } else {
         setError(result.error || 'Registration failed');

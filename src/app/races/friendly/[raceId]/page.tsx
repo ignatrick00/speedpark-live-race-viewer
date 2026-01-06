@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
+import LoginModal from '@/components/auth/LoginModal';
+import RegisterModal from '@/components/auth/RegisterModal';
 
 interface Race {
   _id: string;
@@ -32,6 +34,8 @@ export default function FriendlyRacePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [joining, setJoining] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   useEffect(() => {
     fetchRace();
@@ -58,7 +62,7 @@ export default function FriendlyRacePage() {
 
   const handleJoin = async () => {
     if (!token) {
-      router.push(`/login?redirect=/races/friendly/${params.raceId}`);
+      setShowLoginModal(true);
       return;
     }
 
@@ -74,8 +78,8 @@ export default function FriendlyRacePage() {
       const data = await response.json();
 
       if (data.success) {
-        // Redirect to races page
-        router.push('/races');
+        // Refresh race data to show updated state
+        await fetchRace();
       } else {
         alert(data.error || 'Error al unirse a la carrera');
       }
@@ -85,6 +89,21 @@ export default function FriendlyRacePage() {
     } finally {
       setJoining(false);
     }
+  };
+
+  const handleLoginSuccess = async () => {
+    // After successful login, automatically join the race
+    await handleJoin();
+  };
+
+  const switchToRegister = () => {
+    setShowLoginModal(false);
+    setShowRegisterModal(true);
+  };
+
+  const switchToLogin = () => {
+    setShowRegisterModal(false);
+    setShowLoginModal(true);
   };
 
   if (loading) {
@@ -265,12 +284,19 @@ export default function FriendlyRacePage() {
                 {joining ? '⏳ UNIÉNDOTE...' : '🏁 UNIRSE A LA CARRERA'}
               </button>
             ) : (
-              <button
-                onClick={() => router.push(`/login?redirect=/races/friendly/${params.raceId}`)}
-                className="w-full py-4 bg-gradient-to-r from-gold to-yellow-500 text-midnight font-racing text-xl rounded-lg hover:shadow-2xl hover:shadow-gold/50 transition-all"
-              >
-                🔐 INICIAR SESIÓN PARA UNIRSE
-              </button>
+              <>
+                <div className="bg-gradient-to-br from-midnight via-gold/10 to-midnight border-2 border-gold/50 rounded-xl p-4 text-center mb-4">
+                  <p className="text-gold/80 font-racing text-sm">
+                    📝 Para inscribirte en esta carrera debes hacer login
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="w-full py-4 bg-gradient-to-r from-gold to-yellow-500 text-midnight font-racing text-xl rounded-lg hover:shadow-2xl hover:shadow-gold/50 transition-all"
+                >
+                  🔐 INICIAR SESIÓN PARA UNIRSE
+                </button>
+              </>
             )}
 
             <button
@@ -282,6 +308,23 @@ export default function FriendlyRacePage() {
           </div>
         </div>
       </div>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSwitchToRegister={switchToRegister}
+        redirectAfterLogin={false}
+        onSuccess={handleLoginSuccess}
+      />
+
+      {/* Register Modal */}
+      <RegisterModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onSwitchToLogin={switchToLogin}
+        onSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }
