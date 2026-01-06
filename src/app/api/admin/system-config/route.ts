@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
         minLapTime: config.minLapTime,
         maxLapTime: config.maxLapTime,
         validSessionTypes: config.validSessionTypes,
+        friendlyRaceMaxParticipants: config.friendlyRaceMaxParticipants,
         lastUpdatedBy: config.lastUpdatedBy,
         updatedAt: config.updatedAt
       }
@@ -51,7 +52,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { minLapTime, maxLapTime, validSessionTypes } = body;
+    const { minLapTime, maxLapTime, validSessionTypes, friendlyRaceMaxParticipants } = body;
 
     // Validaciones
     if (minLapTime && (minLapTime < 1000 || minLapTime > 300000)) {
@@ -68,6 +69,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    if (friendlyRaceMaxParticipants !== undefined && (friendlyRaceMaxParticipants < 1 || friendlyRaceMaxParticipants > 20)) {
+      return NextResponse.json(
+        { success: false, error: 'Máximo de participantes debe estar entre 1 y 20' },
+        { status: 400 }
+      );
+    }
+
     await connectDB();
 
     const updates: any = {
@@ -77,6 +85,7 @@ export async function PUT(request: NextRequest) {
     if (minLapTime !== undefined) updates.minLapTime = minLapTime;
     if (maxLapTime !== undefined) updates.maxLapTime = maxLapTime;
     if (validSessionTypes) updates.validSessionTypes = validSessionTypes;
+    if (friendlyRaceMaxParticipants !== undefined) updates.friendlyRaceMaxParticipants = friendlyRaceMaxParticipants;
 
     const config = await SystemConfig.updateConfig(updates);
 
@@ -89,6 +98,7 @@ export async function PUT(request: NextRequest) {
         minLapTime: config.minLapTime,
         maxLapTime: config.maxLapTime,
         validSessionTypes: config.validSessionTypes,
+        friendlyRaceMaxParticipants: config.friendlyRaceMaxParticipants,
         lastUpdatedBy: config.lastUpdatedBy,
         updatedAt: config.updatedAt
       }

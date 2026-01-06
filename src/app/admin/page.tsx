@@ -44,6 +44,14 @@ export default function AdminPage() {
       color: 'from-orange-500 to-red-500'
     },
     {
+      id: 'friendly-races',
+      name: 'Carreras Amistosas',
+      icon: '🏁',
+      path: '/admin/friendly-races',
+      description: 'Configurar límite de participantes y gestionar carreras amistosas',
+      color: 'from-purple-500 to-indigo-500'
+    },
+    {
       id: 'drivers',
       name: 'Gestión de Corredores',
       icon: '🏁',

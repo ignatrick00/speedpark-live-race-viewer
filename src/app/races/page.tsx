@@ -1945,6 +1945,7 @@ function RaceCard({
   onDeleteClick,
   onConfirmClick,
   onViewResults,
+  showOnlyLeaveButton,
 }: {
   race: Race;
   currentUserId?: string;
@@ -1953,12 +1954,14 @@ function RaceCard({
   onDeleteClick?: () => void;
   onConfirmClick?: () => void;
   onViewResults?: () => void;
+  showOnlyLeaveButton?: boolean;
 }) {
   const isChampionship = race.type === 'championship';
   const isCreator = currentUserId && race.organizerId === currentUserId;
   const isParticipant = currentUserId && race.participantsList?.some(
     (participant) => participant.userId === currentUserId
   );
+  const isFull = race.maxParticipants && race.participants >= race.maxParticipants;
 
   console.log('🔍 RaceCard Debug:', {
     raceName: race.name,
@@ -2108,8 +2111,13 @@ function RaceCard({
                 >
                   🚪 DESINSCRIBIRME
                 </button>
+              ) : !isParticipant && isFull ? (
+                // Carrera llena - mostrar badge sin botón
+                <div className="px-4 py-2 rounded-lg font-racing bg-red-500/20 border border-red-500/50 text-red-400">
+                  🚫 CARRERA LLENA
+                </div>
               ) : !isParticipant && onJoinClick ? (
-                // Usuario NO está inscrito - mostrar botón de unirse
+                // Usuario NO está inscrito y hay cupos - mostrar botón de unirse
                 <button
                   onClick={onJoinClick}
                   className="px-4 py-2 rounded-lg font-racing transition-all bg-electric-blue/20 border border-electric-blue/50 text-electric-blue hover:bg-electric-blue/30"

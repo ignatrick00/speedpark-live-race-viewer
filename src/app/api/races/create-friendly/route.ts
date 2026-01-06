@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import WebUser from '@/models/WebUser';
 import FriendlyRace from '@/models/FriendlyRace';
+import SystemConfig from '@/models/SystemConfig';
 import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
@@ -85,6 +86,12 @@ export async function POST(req: NextRequest) {
     // Parse race date (allow past dates for organizers to link with historical races)
     const raceDate = new Date(date);
 
+    // Get system config to get maxParticipants limit
+    const systemConfig = await SystemConfig.getConfig();
+    const maxParticipants = systemConfig.friendlyRaceMaxParticipants || 12;
+
+    console.log(`🎯 [CREATE-FRIENDLY] Using maxParticipants from config: ${maxParticipants}`);
+
     // Create race with creator's selected kart and all required fields
     const race = await FriendlyRace.create({
       name: name.trim(),
@@ -96,7 +103,7 @@ export async function POST(req: NextRequest) {
         kartNumber,
         joinedAt: new Date(),
       }],
-      maxParticipants: 12,
+      maxParticipants,
       status: 'open',
       // Campos de vinculación (inicializados)
       raceStatus: 'pending',

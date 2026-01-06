@@ -12,6 +12,9 @@ export interface ISystemConfig extends Document {
   // Tipo de sesión válida para rankings
   validSessionTypes: string[]; // ej: ['carrera', 'race']
 
+  // Carreras amistosas
+  friendlyRaceMaxParticipants: number; // Máximo de participantes permitidos (1-20)
+
   // Metadata
   lastUpdatedBy?: string; // Email del admin que actualizó
   updatedAt: Date;
@@ -33,6 +36,13 @@ const systemConfigSchema = new Schema<ISystemConfig>({
     type: [String],
     default: ['carrera', 'race']
   },
+  friendlyRaceMaxParticipants: {
+    type: Number,
+    default: 12, // 12 participantes por defecto
+    min: 1,
+    max: 20, // Máximo 20 karts disponibles
+    required: true
+  },
   lastUpdatedBy: {
     type: String
   }
@@ -50,7 +60,8 @@ systemConfigSchema.statics.getConfig = async function() {
     config = await this.create({
       minLapTime: 35000,
       maxLapTime: 120000,
-      validSessionTypes: ['carrera', 'race']
+      validSessionTypes: ['carrera', 'race'],
+      friendlyRaceMaxParticipants: 12
     });
   }
 
