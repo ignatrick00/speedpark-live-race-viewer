@@ -196,7 +196,9 @@ function formatTime(ms: number): string {
 
 // Helper: Formatear fecha (solo hora)
 function formatDate(date: Date): string {
-  return new Date(date).toLocaleTimeString('es-CL', {
+  // Sumar 3 horas para mostrar hora de Chile (datos guardados en UTC-3)
+  const chileDate = new Date(new Date(date).getTime() + (3 * 60 * 60 * 1000));
+  return chileDate.toLocaleTimeString('es-CL', {
     hour: '2-digit',
     minute: '2-digit'
   });
@@ -204,11 +206,12 @@ function formatDate(date: Date): string {
 
 // Helper: Formatear fecha completa
 function formatDateTime(date: Date): string {
-  const d = new Date(date);
-  return d.toLocaleDateString('es-CL', {
+  // Sumar 3 horas para mostrar hora de Chile (datos guardados en UTC-3)
+  const chileDate = new Date(new Date(date).getTime() + (3 * 60 * 60 * 1000));
+  return chileDate.toLocaleDateString('es-CL', {
     day: '2-digit',
     month: 'short'
-  }) + ' ' + d.toLocaleTimeString('es-CL', {
+  }) + ' ' + chileDate.toLocaleTimeString('es-CL', {
     hour: '2-digit',
     minute: '2-digit'
   });

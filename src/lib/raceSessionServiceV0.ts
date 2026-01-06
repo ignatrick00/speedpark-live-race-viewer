@@ -46,9 +46,9 @@ export class RaceSessionServiceV0 {
 
       // 1. Generar sessionId único (nombre + fecha) - usando timezone de Chile
       const now = new Date();
-      // Convertir a timezone de Chile (America/Santiago)
-      const chileTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
-      const sessionDate = chileTime;
+      // Guardar fecha en UTC (MongoDB la guarda así)
+      // El display en frontend se encargará de mostrarla en timezone Chile
+      const sessionDate = now;
       const sessionId = this.generateSessionId(smsData.N, sessionDate);
 
       console.log(`📝 [V0-SERVICE] SessionId: ${sessionId}, Chile time: ${sessionDate.toString()}`);
@@ -246,9 +246,12 @@ export class RaceSessionServiceV0 {
 
   /**
    * Generar sessionId único
+   * Usa formato Chile timezone para agrupar carreras por día local
    */
   private static generateSessionId(sessionName: string, date: Date): string {
-    const dateStr = date.toDateString(); // e.g., "Wed Dec 04 2024"
+    // Convertir a timezone Chile para el ID (para agrupar carreras del mismo día local)
+    const chileDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+    const dateStr = chileDate.toDateString(); // e.g., "Wed Dec 04 2024"
     return `${sessionName}_${dateStr}`;
   }
 

@@ -231,8 +231,16 @@ export default function RaceResultsView({
             🏁 {raceDetails.sessionName}
           </h3>
           <p className="text-sm text-sky-blue/60">
-            {new Date(raceDetails.sessionDate).toLocaleDateString('es-CL')} • {' '}
-            {new Date(raceDetails.sessionDate).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: true })} • {' '}
+            {(() => {
+              // Sumar 3 horas para mostrar hora de Chile (datos guardados en UTC-3)
+              const chileDate = new Date(new Date(raceDetails.sessionDate).getTime() + (3 * 60 * 60 * 1000));
+              return (
+                <>
+                  {chileDate.toLocaleDateString('es-CL')} • {' '}
+                  {chileDate.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: true })} • {' '}
+                </>
+              );
+            })()}
             {raceDetails.totalDrivers} pilotos
           </p>
         </div>

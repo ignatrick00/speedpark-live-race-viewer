@@ -43,23 +43,28 @@ export async function GET(request: Request) {
     console.log(`📊 [RACES-V0] Found ${races.length} races`);
 
     // Formatear para frontend
-    const formattedRaces = races.map(race => ({
-      sessionId: race.sessionId,
-      sessionName: race.sessionName,
-      sessionDate: race.sessionDate.toISOString(),
-      sessionType: race.sessionType,
-      totalDrivers: race.totalDrivers,
-      totalLaps: race.totalLaps,
-      displayDate: new Date(race.sessionDate).toLocaleDateString('es-CL', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }),
-      displayTime: new Date(race.sessionDate).toLocaleTimeString('es-CL', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }));
+    const formattedRaces = races.map(race => {
+      // Sumar 3 horas para mostrar hora de Chile (datos guardados en UTC-3)
+      const chileDate = new Date(race.sessionDate.getTime() + (3 * 60 * 60 * 1000));
+
+      return {
+        sessionId: race.sessionId,
+        sessionName: race.sessionName,
+        sessionDate: race.sessionDate.toISOString(),
+        sessionType: race.sessionType,
+        totalDrivers: race.totalDrivers,
+        totalLaps: race.totalLaps,
+        displayDate: chileDate.toLocaleDateString('es-CL', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        }),
+        displayTime: chileDate.toLocaleTimeString('es-CL', {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      };
+    });
 
     return NextResponse.json({
       success: true,
