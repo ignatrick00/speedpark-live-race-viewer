@@ -189,6 +189,12 @@ export default function Navbar() {
                           Escuderías
                         </a>
                         <a
+                          href="/configuracion"
+                          className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30"
+                        >
+                          Configuración
+                        </a>
+                        <a
                           href="/amigos"
                           className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30 relative"
                         >
