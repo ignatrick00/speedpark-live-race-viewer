@@ -37,10 +37,10 @@ export async function GET(request: Request) {
 
     console.log(`🏎️ [KART-RECORDS-V0] Fetching records for Kart #${kartNumber}, period: ${period}`);
 
-    // 🏁 FILTRO CRÍTICO: Solo incluir sesiones de CARRERA para rankings
+    // 🏁 FILTRO CRÍTICO: Incluir sesiones de CARRERA y CLASIFICACIÓN para rankings
     const sessionTypeFilter = {
       ...dateFilter,
-      sessionType: 'carrera' // Solo carreras cuentan para rankings
+      sessionType: { $in: ['carrera', 'clasificacion'] } // Carreras y clasificaciones HEAT cuentan para rankings
     };
 
     // Buscar todos los registros de este kart
