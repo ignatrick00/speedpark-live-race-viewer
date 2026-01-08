@@ -28,8 +28,18 @@ export async function GET(request: NextRequest) {
       console.log('🏆 TOP 10 MODE: Fetching historical best times');
 
       const top10 = await RaceSessionV0.aggregate([
-        // Sesiones de carrera y clasificación
-        { $match: { sessionType: { $in: ['carrera', 'clasificacion'] } } },
+        // Sesiones de carrera y clasificación válidas (excluir F1, K1, GT, etc.)
+        {
+          $match: {
+            sessionType: { $in: ['carrera', 'clasificacion'] },
+            // Excluir carreras de otras categorías/pistas (K1, K2, K3, GT, F1, Mujeres, Junior, etc.)
+            sessionName: {
+              $not: {
+                $regex: /f1|f2|f3|k 1|k 2|k 3|k1|k2|k3|gt|mujeres|women|junior| m(?!\w)/i
+              }
+            }
+          }
+        },
         // Desenrollar drivers
         { $unwind: '$drivers' },
         // Solo tiempos válidos (> 0)
