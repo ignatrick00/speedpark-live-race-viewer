@@ -77,11 +77,12 @@ export default function RacesPage() {
   }, [viewMode]);
 
   useEffect(() => {
+    // Always fetch races (public or authenticated)
+    fetchRaces();
+
+    // Only fetch invitations if authenticated
     if (token) {
-      fetchRaces();
       fetchInvitations();
-    } else {
-      setIsLoading(false);
     }
   }, [token]);
 
@@ -90,9 +91,12 @@ export default function RacesPage() {
       setIsLoading(true);
 
       // Fetch all friendly races (both upcoming and past)
-      const friendlyResponse = await fetch('/api/races/friendly?filter=all', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      // Include auth header only if token exists (public access allowed)
+      const headers: HeadersInit = token
+        ? { 'Authorization': `Bearer ${token}` }
+        : {};
+
+      const friendlyResponse = await fetch('/api/races/friendly?filter=all', { headers });
       const friendlyData = await friendlyResponse.json();
 
       if (friendlyData.success) {
@@ -1100,27 +1104,6 @@ function FriendlyUpcomingView({
     setShowInviteModal(true);
   };
 
-  // Check if user is not authenticated
-  if (!token && !isLoading) {
-    return (
-      <div className="bg-gradient-to-br from-midnight via-red-500/10 to-midnight border-2 border-red-400/50 rounded-xl p-12 text-center">
-        <div className="text-6xl mb-4">🔒</div>
-        <h3 className="text-2xl font-racing text-red-300 mb-2">
-          AUTENTICACIÓN REQUERIDA
-        </h3>
-        <p className="text-sky-blue/70 mb-6">
-          Debes iniciar sesión para ver las próximas carreras
-        </p>
-        <button
-          onClick={onLoginClick}
-          className="inline-block bg-red-500 hover:bg-red-600 text-white font-racing px-8 py-3 rounded-lg transition-colors cursor-pointer"
-        >
-          INICIAR SESIÓN
-        </button>
-      </div>
-    );
-  }
-
   // Filter upcoming races: future dates only, and NOT linked/finalized
   // NOTE: We DO show races where user is registered (they appear in both "Próximas" and "Mis Carreras")
   const upcomingRaces = races.filter(race => {
@@ -1168,6 +1151,7 @@ function FriendlyUpcomingView({
             key={race._id}
             race={race}
             currentUserId={user?.id}
+            isAuthenticated={!!token}
             onJoinClick={() => handleJoinClick(race)}
             onLeaveClick={() => handleLeaveRace(race._id, race.name)}
             onDeleteClick={() => handleDeleteClick(race._id, race.name)}
@@ -2574,6 +2558,7 @@ function RaceCard({
   onViewResults,
   onInviteFriendsClick,
   showOnlyLeaveButton,
+  isAuthenticated = true,
 }: {
   race: Race;
   currentUserId?: string;
@@ -2584,6 +2569,7 @@ function RaceCard({
   onViewResults?: () => void;
   onInviteFriendsClick?: () => void;
   showOnlyLeaveButton?: boolean;
+  isAuthenticated?: boolean;
 }) {
   const isChampionship = race.type === 'championship';
   const isCreator = currentUserId && race.organizerId === currentUserId;
@@ -2776,8 +2762,16 @@ function RaceCard({
                 <div className="px-4 py-2 rounded-lg font-racing bg-red-500/20 border border-red-500/50 text-red-400">
                   🚫 CARRERA LLENA
                 </div>
+              ) : !isParticipant && !isAuthenticated ? (
+                // Usuario NO autenticado - mostrar botón para iniciar sesión
+                <button
+                  onClick={onJoinClick}
+                  className="px-4 py-2 rounded-lg font-racing transition-all bg-gold/20 border border-gold/50 text-gold hover:bg-gold/30"
+                >
+                  🔑 INICIAR SESIÓN PARA UNIRME
+                </button>
               ) : !isParticipant && onJoinClick ? (
-                // Usuario NO está inscrito y hay cupos - mostrar botón de unirse
+                // Usuario autenticado NO inscrito y hay cupos - mostrar botón de unirse
                 <button
                   onClick={onJoinClick}
                   className="px-4 py-2 rounded-lg font-racing transition-all bg-electric-blue/20 border border-electric-blue/50 text-electric-blue hover:bg-electric-blue/30"

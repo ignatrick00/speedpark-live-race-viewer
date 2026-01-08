@@ -13,26 +13,19 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    // Verify authentication
+    // Optional authentication - allow public access to view races
     const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { success: false, error: 'No autorizado' },
-        { status: 401 }
-      );
-    }
+    let userId: string | null = null;
 
-    const token = authHeader.substring(7);
-    let userId: string;
-
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-      userId = decoded.userId;
-    } catch (error) {
-      return NextResponse.json(
-        { success: false, error: 'Token inválido' },
-        { status: 401 }
-      );
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+        userId = decoded.userId;
+      } catch (error) {
+        // Invalid token - continue as unauthenticated user
+        console.log('⚠️ [FRIENDLY-RACES] Invalid token, continuing as guest');
+      }
     }
 
     // Get query parameters for filtering
@@ -40,7 +33,7 @@ export async function GET(req: NextRequest) {
     const filterType = searchParams.get('filter'); // 'all', 'upcoming', 'past', 'my-races'
 
     console.log(`🔍 [FRIENDLY-RACES] Filter type: ${filterType}`);
-    console.log(`🔍 [FRIENDLY-RACES] User ID: ${userId}`);
+    console.log(`🔍 [FRIENDLY-RACES] User ID: ${userId || 'guest'}`);
 
     // DEBUG: Check what races exist
     const allRaces = await FriendlyRace.find({}).limit(5).lean();
