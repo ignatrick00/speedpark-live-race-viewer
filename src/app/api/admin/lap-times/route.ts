@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
       console.log('🏆 TOP 10 MODE: Fetching historical best times');
 
       const top10 = await RaceSessionV0.aggregate([
-        // Solo sesiones de carrera
-        { $match: { sessionType: 'carrera' } },
+        // Sesiones de carrera y clasificación
+        { $match: { sessionType: { $in: ['carrera', 'clasificacion'] } } },
         // Desenrollar drivers
         { $unwind: '$drivers' },
         // Solo tiempos válidos (> 0)
