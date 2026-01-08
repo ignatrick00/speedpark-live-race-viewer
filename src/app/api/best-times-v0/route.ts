@@ -76,7 +76,7 @@ export async function GET(request: Request) {
       // Excluir carreras de otras categorías/pistas (K1, K2, K3, GT, F1, Mujeres, Junior, etc.)
       sessionName: {
         $not: {
-          $regex: /f1|f2|f3|k 1|k 2|k 3|k1|k2|k3|gt|mujeres|women|junior| m(?!\w)/i
+          $regex: /f\s?1|f\s?2|f\s?3|k\s?1|k\s?2|k\s?3|gt|mujeres|women|junior| m(?!\w)/i
         }
       }
     };
