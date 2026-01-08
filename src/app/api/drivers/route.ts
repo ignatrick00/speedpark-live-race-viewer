@@ -172,13 +172,63 @@ export async function GET(request: NextRequest) {
       })
       .select('profile.firstName profile.lastName profile.alias email kartingLink')
       .limit(10);
-      
+
       return NextResponse.json({
         success: true,
         users
       });
     }
-    
+
+    if (action === 'list_web_users') {
+      // Listar TODOS los WebUsers registrados
+      console.log('📋 [LIST-WEB-USERS] Fetching all WebUsers');
+
+      const allUsers = await WebUser.find({})
+        .select('_id email profile kartingLink createdAt roles')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      // Formatear usuarios con información de vinculación
+      const usersWithLinkStatus = allUsers.map(user => ({
+        _id: user._id,
+        email: user.email,
+        firstName: user.profile?.firstName || '',
+        lastName: user.profile?.lastName || '',
+        alias: user.profile?.alias || null,
+        isLinked: user.kartingLink?.status === 'linked',
+        linkedDriverName: user.kartingLink?.driverName || null,
+        linkStatus: user.kartingLink?.status || 'not_linked',
+        createdAt: user.createdAt,
+        roles: user.roles || []
+      }));
+
+      // Aplicar búsqueda si existe
+      let filteredUsers = usersWithLinkStatus;
+      if (search) {
+        filteredUsers = usersWithLinkStatus.filter(user =>
+          user.email.toLowerCase().includes(search.toLowerCase()) ||
+          user.firstName.toLowerCase().includes(search.toLowerCase()) ||
+          user.lastName.toLowerCase().includes(search.toLowerCase()) ||
+          (user.alias && user.alias.toLowerCase().includes(search.toLowerCase())) ||
+          (user.linkedDriverName && user.linkedDriverName.toLowerCase().includes(search.toLowerCase()))
+        );
+      }
+
+      console.log(`📊 Total WebUsers: ${allUsers.length}, Filtered: ${filteredUsers.length}`);
+      console.log(`📊 Linked: ${filteredUsers.filter(u => u.isLinked).length}, Not linked: ${filteredUsers.filter(u => !u.isLinked).length}`);
+
+      return NextResponse.json({
+        success: true,
+        users: filteredUsers,
+        total: filteredUsers.length,
+        stats: {
+          total: allUsers.length,
+          linked: usersWithLinkStatus.filter(u => u.isLinked).length,
+          notLinked: usersWithLinkStatus.filter(u => !u.isLinked).length
+        }
+      });
+    }
+
     return NextResponse.json(
       { error: 'Invalid action' },
       { status: 400 }

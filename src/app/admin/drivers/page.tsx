@@ -49,9 +49,13 @@ interface User {
 export default function DriversAdminPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const [view, setView] = useState<'sms-timing' | 'web-users'>('sms-timing');
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [webUsers, setWebUsers] = useState<any[]>([]);
+  const [webUsersStats, setWebUsersStats] = useState({ total: 0, linked: 0, notLinked: 0 });
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [webUsersLoading, setWebUsersLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [linkFilter, setLinkFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
@@ -91,6 +95,12 @@ export default function DriversAdminPage() {
     }
   }, [userSearch]);
 
+  useEffect(() => {
+    if (view === 'web-users') {
+      fetchWebUsers();
+    }
+  }, [view, search]);
+
   const fetchDrivers = async () => {
     try {
       const response = await fetch(`/api/drivers?action=list_all&search=${search}`);
@@ -114,11 +124,28 @@ export default function DriversAdminPage() {
     }
   };
 
+  const fetchWebUsers = async () => {
+    try {
+      setWebUsersLoading(true);
+      const response = await fetch(`/api/drivers?action=list_web_users&search=${search}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setWebUsers(data.users);
+        setWebUsersStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching web users:', error);
+    } finally {
+      setWebUsersLoading(false);
+    }
+  };
+
   const searchUsers = async () => {
     try {
       const response = await fetch(`/api/drivers?action=search_users&search=${userSearch}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setUsers(data.users);
       }
@@ -315,27 +342,54 @@ export default function DriversAdminPage() {
       <AdminNavbar currentPage="Administrador de Corredores - Vinculación manual y gestión de pilotos" />
       
       <div className="max-w-6xl mx-auto p-6">
-        
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 border-b border-gray-700">
+          <button
+            onClick={() => setView('sms-timing')}
+            className={`px-6 py-3 font-bold transition-all ${
+              view === 'sms-timing'
+                ? 'text-cyan-400 border-b-2 border-cyan-400'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            📊 Corredores SMS-Timing
+          </button>
+          <button
+            onClick={() => setView('web-users')}
+            className={`px-6 py-3 font-bold transition-all ${
+              view === 'web-users'
+                ? 'text-cyan-400 border-b-2 border-cyan-400'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            👥 Usuarios Web
+          </button>
+        </div>
+
         {/* Search */}
         <div className="mb-6">
           <input
             type="text"
-            placeholder="Buscar corredor por nombre..."
+            placeholder={view === 'sms-timing' ? "Buscar corredor por nombre..." : "Buscar usuario por email, nombre o alias..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && fetchDrivers()}
+            onKeyPress={(e) => e.key === 'Enter' && (view === 'sms-timing' ? fetchDrivers() : fetchWebUsers())}
             className="bg-gray-800 text-white p-3 rounded-lg border border-gray-600 focus:border-cyan-400 focus:outline-none w-full max-w-md"
           />
           <button
-            onClick={fetchDrivers}
+            onClick={view === 'sms-timing' ? fetchDrivers : fetchWebUsers}
             className="ml-2 px-4 py-3 bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors"
           >
             Buscar
           </button>
         </div>
 
-        {/* Stats with Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* SMS-Timing Drivers View */}
+        {view === 'sms-timing' && (
+          <>
+            {/* Stats with Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div
             className={`bg-gray-800 p-4 rounded-lg cursor-pointer transition-all ${linkFilter === 'all' ? 'ring-2 ring-cyan-400' : 'hover:bg-gray-700'}`}
             onClick={() => setLinkFilter('all')}
@@ -725,6 +779,94 @@ export default function DriversAdminPage() {
               </div>
             </div>
           </div>
+        )}
+          </>
+        )}
+
+        {/* Web Users View */}
+        {view === 'web-users' && (
+          <>
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-gray-800 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-cyan-400">{webUsersStats.total}</div>
+                <div className="text-sm text-gray-400">Total Usuarios Web</div>
+              </div>
+              <div className="bg-gray-800 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-green-400">{webUsersStats.linked}</div>
+                <div className="text-sm text-gray-400">Vinculados</div>
+              </div>
+              <div className="bg-gray-800 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-red-400">{webUsersStats.notLinked}</div>
+                <div className="text-sm text-gray-400">Sin Vincular</div>
+              </div>
+            </div>
+
+            {/* Web Users Table */}
+            <div className="bg-gray-800 rounded-lg overflow-hidden">
+              {webUsersLoading ? (
+                <div className="text-center py-12 text-gray-400">
+                  <div className="animate-spin text-4xl mb-4">⏳</div>
+                  Cargando usuarios...
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-700">
+                      <tr>
+                        <th className="text-left p-3">Email</th>
+                        <th className="text-left p-3">Nombre</th>
+                        <th className="text-left p-3">Apellido</th>
+                        <th className="text-left p-3">Alias</th>
+                        <th className="text-center p-3">Estado</th>
+                        <th className="text-left p-3">Driver Vinculado</th>
+                        <th className="text-center p-3">Registrado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {webUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="text-center py-8 text-gray-400">
+                            No se encontraron usuarios web
+                          </td>
+                        </tr>
+                      ) : (
+                        webUsers.map((user) => (
+                          <tr key={user._id} className="border-t border-gray-700 hover:bg-gray-700/50">
+                            <td className="p-3 text-cyan-400">{user.email}</td>
+                            <td className="p-3">{user.firstName || '-'}</td>
+                            <td className="p-3">{user.lastName || '-'}</td>
+                            <td className="p-3 text-gray-400 italic">{user.alias || '-'}</td>
+                            <td className="p-3 text-center">
+                              {user.isLinked ? (
+                                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                                  ✅ Vinculado
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">
+                                  ❌ Sin vincular
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              {user.linkedDriverName ? (
+                                <span className="text-cyan-400">{user.linkedDriverName}</span>
+                              ) : (
+                                <span className="text-gray-500">-</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-center text-gray-400 text-xs">
+                              {new Date(user.createdAt).toLocaleDateString('es-CL')}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         {/* Success Modal */}
