@@ -2653,7 +2653,7 @@ function RaceCard({
           <p className="text-sm text-green-300 font-medium">{race.results.sessionName}</p>
           <p className="text-xs text-green-400/60">
             {new Date(race.results.sessionDate).toLocaleDateString('es-CL')} • {' '}
-            {new Date(race.results.sessionDate).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: true })}
+            {new Date(race.results.sessionDate).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })}
           </p>
         </div>
       )}

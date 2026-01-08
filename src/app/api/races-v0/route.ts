@@ -44,8 +44,8 @@ export async function GET(request: Request) {
 
     // Formatear para frontend
     const formattedRaces = races.map(race => {
-      // Sumar 3 horas para mostrar hora de Chile (datos guardados en UTC-3)
-      const chileDate = new Date(race.sessionDate.getTime() + (3 * 60 * 60 * 1000));
+      // Browser convierte UTC automáticamente a timezone local de Chile
+      const sessionDate = new Date(race.sessionDate);
 
       return {
         sessionId: race.sessionId,
@@ -54,14 +54,15 @@ export async function GET(request: Request) {
         sessionType: race.sessionType,
         totalDrivers: race.totalDrivers,
         totalLaps: race.totalLaps,
-        displayDate: chileDate.toLocaleDateString('es-CL', {
+        displayDate: sessionDate.toLocaleDateString('es-CL', {
           day: '2-digit',
           month: '2-digit',
           year: 'numeric'
         }),
-        displayTime: chileDate.toLocaleTimeString('es-CL', {
+        displayTime: sessionDate.toLocaleTimeString('es-CL', {
           hour: '2-digit',
-          minute: '2-digit'
+          minute: '2-digit',
+          hour12: false
         })
       };
     });

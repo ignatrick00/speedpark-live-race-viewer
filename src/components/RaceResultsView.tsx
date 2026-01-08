@@ -232,12 +232,12 @@ export default function RaceResultsView({
           </h3>
           <p className="text-sm text-sky-blue/60">
             {(() => {
-              // Sumar 3 horas para mostrar hora de Chile (datos guardados en UTC-3)
-              const chileDate = new Date(new Date(raceDetails.sessionDate).getTime() + (3 * 60 * 60 * 1000));
+              // Browser convierte UTC automáticamente a timezone local de Chile
+              const sessionDate = new Date(raceDetails.sessionDate);
               return (
                 <>
-                  {chileDate.toLocaleDateString('es-CL')} • {' '}
-                  {chileDate.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: true })} • {' '}
+                  {sessionDate.toLocaleDateString('es-CL')} • {' '}
+                  {sessionDate.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })} • {' '}
                 </>
               );
             })()}
