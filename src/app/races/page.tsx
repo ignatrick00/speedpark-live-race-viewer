@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
@@ -44,7 +44,7 @@ interface Race {
   };
 }
 
-export default function RacesPage() {
+function RacesPageContent() {
   const { user, token } = useAuth();
   const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<ViewMode>('selection');
@@ -4406,3 +4406,17 @@ function EventResultsModal({ event, onClose }: { event: any; onClose: () => void
   );
 }
 
+export default function RacesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-midnight via-racing-black to-midnight flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-electric-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-electric-blue text-xl font-racing">Cargando...</p>
+        </div>
+      </div>
+    }>
+      <RacesPageContent />
+    </Suspense>
+  );
+}
