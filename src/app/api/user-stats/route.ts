@@ -93,14 +93,6 @@ export async function GET(request: NextRequest) {
     // Total races: only count sessions with sessionType = 'carrera'
     const raceSessions = sessions.filter(s => s.sessionType === 'carrera');
     const totalRaces = raceSessions.length;
-
-    console.log(`📊 [USER-STATS] Total sessions: ${sessions.length}, Race sessions: ${totalRaces}`);
-    console.log(`📊 [USER-STATS] Race sessions breakdown:`, raceSessions.map(r => ({
-      id: r.sessionId,
-      type: r.sessionType,
-      pos: r.position
-    })));
-
     const totalLaps = sessions.reduce((sum, s) => sum + (s.totalLaps || 0), 0);
 
     // Best time (minimum valid time)
@@ -119,11 +111,6 @@ export async function GET(request: NextRequest) {
     // Podium finishes (positions 1, 2, 3 in RACES only)
     const podiumSessions = raceSessions.filter(s => s.position && s.position <= 3);
     const podiumFinishes = podiumSessions.length;
-
-    console.log(`🏆 [USER-STATS] Podium sessions: ${podiumFinishes}`, podiumSessions.map(p => ({
-      id: p.sessionId,
-      pos: p.position
-    })));
 
     // Favorite kart (most used)
     const kartCounts: { [key: number]: number } = {};

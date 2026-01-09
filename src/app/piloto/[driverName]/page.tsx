@@ -37,13 +37,9 @@ export default function PublicDriverPage() {
         return;
       }
 
-      console.log('✅ [PUBLIC PROFILE] User found:', userData.userId, userData.driverName);
-
       // Then, fetch stats using the same API as private dashboard
       const statsResponse = await fetch(`/api/user-stats?webUserId=${userData.userId}`);
       const statsData = await statsResponse.json();
-
-      console.log('📊 [PUBLIC PROFILE] Stats API response:', statsData);
 
       if (!statsData.success) {
         setError('No se pudieron cargar las estadísticas del piloto');
@@ -83,13 +79,6 @@ export default function PublicDriverPage() {
           totalLaps: race.totalLaps || 0
         }))
       } : null;
-
-      console.log('✅ [PUBLIC PROFILE] Transformed stats:', {
-        totalRaces: transformedStats?.totalRaces,
-        totalLaps: transformedStats?.totalLaps,
-        podiumFinishes: transformedStats?.podiumFinishes,
-        bestTime: transformedStats?.bestTime
-      });
 
       setStats(transformedStats);
 
