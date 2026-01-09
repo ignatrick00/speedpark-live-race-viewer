@@ -6,25 +6,15 @@ import WebUser from '@/models/WebUser';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// Helper to create R2 client dynamically
-function getR2Client() {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-
-  if (!accountId || !accessKeyId || !secretAccessKey) {
-    throw new Error('Missing Cloudflare R2 credentials in environment variables');
-  }
-
-  return new S3Client({
-    region: 'auto',
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId,
-      secretAccessKey,
-    },
-  });
-}
+// Configure R2 client - same config as /api/upload/image
+const R2 = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  },
+});
 
 /**
  * POST /api/user/profile-photo
@@ -110,7 +100,6 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to R2
-    const R2 = getR2Client();
     await R2.send(
       new PutObjectCommand({
         Bucket: 'karteando-assets',
