@@ -183,9 +183,7 @@ export default function RaceDetailModal({
               <div className="bg-black/40 border border-cyan-400/30 rounded-lg p-6">
                 <h3 className="text-2xl font-bold text-electric-blue mb-4">📊 Resultados</h3>
                 <div className="space-y-2">
-                  {raceDetails.drivers?.map((driver: any, index: number) => {
-                    console.log(`🔍 [MODAL] Driver: ${driver.driverName}, webUserId: ${driver.webUserId}`);
-                    return (
+                  {raceDetails.drivers?.map((driver: any, index: number) => (
                     <div
                       key={index}
                       className="bg-racing-black/60 border border-sky-blue/10 rounded-lg p-4 hover:border-electric-blue/30 transition-all"
@@ -227,8 +225,7 @@ export default function RaceDetailModal({
                         )}
                       </div>
                     </div>
-                    );
-                  })}
+                  ))}
                 </div>
               </div>
             </div>
