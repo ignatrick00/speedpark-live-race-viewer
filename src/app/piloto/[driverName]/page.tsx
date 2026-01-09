@@ -218,28 +218,31 @@ export default function PublicDriverPage() {
     <>
       <Navbar />
       <div className="min-h-screen bg-gradient-to-br from-midnight via-racing-black to-midnight p-6">
-        {/* Back Button and Challenge Button */}
-        <div className="max-w-7xl mx-auto mb-4 flex items-center justify-between">
+        {/* Back Button */}
+        <div className="max-w-7xl mx-auto mb-4">
           <button
             onClick={() => router.push('/ranking')}
             className="text-sky-blue hover:text-electric-blue transition-colors flex items-center gap-2"
           >
             ← Volver a Rankings
           </button>
-
-          <button
-            onClick={handleChallengeClick}
-            className="px-6 py-3 bg-gradient-to-r from-electric-blue to-cyan-500 text-white font-racing rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all flex items-center gap-2"
-          >
-            ⚔️ Retar a Duelo
-          </button>
         </div>
 
         {/* Page Title */}
         <header className="text-center mb-8 relative">
-          <h1 className="font-bold text-4xl md:text-6xl mb-3 tracking-wider bg-gradient-to-r from-electric-blue via-sky-blue to-karting-gold bg-clip-text text-transparent">
+          <h1 className="font-bold text-4xl md:text-6xl mb-6 tracking-wider bg-gradient-to-r from-electric-blue via-sky-blue to-karting-gold bg-clip-text text-transparent">
             DASHBOARD DE {profile.driverName.toUpperCase()}
           </h1>
+
+          {/* Challenge Button - Centered below title */}
+          <div className="flex justify-center">
+            <button
+              onClick={handleChallengeClick}
+              className="px-8 py-4 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white font-racing text-xl rounded-xl hover:scale-105 hover:shadow-2xl hover:shadow-red-500/50 transition-all flex items-center gap-3 animate-bounce border-2 border-red-400/50"
+            >
+              ⚔️ RETAR A CARRERA
+            </button>
+          </div>
         </header>
 
         {/* Perfil de Piloto y Resumen - Two Columns */}

@@ -149,22 +149,28 @@ export default function ChallengeModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-racing-black/95 to-midnight/95 border-2 border-electric-blue/30 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="relative bg-gradient-to-br from-red-950/95 via-racing-black/95 to-orange-950/95 border-4 border-red-500/50 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl shadow-red-500/30">
+        {/* Fuego en esquinas */}
+        <div className="absolute top-0 left-0 text-6xl animate-pulse pointer-events-none">🔥</div>
+        <div className="absolute top-0 right-0 text-6xl animate-pulse pointer-events-none" style={{ animationDelay: '0.3s' }}>🔥</div>
+        <div className="absolute bottom-0 left-0 text-6xl animate-pulse pointer-events-none" style={{ animationDelay: '0.6s' }}>🔥</div>
+        <div className="absolute bottom-0 right-0 text-6xl animate-pulse pointer-events-none" style={{ animationDelay: '0.9s' }}>🔥</div>
+
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-electric-blue/20 to-cyan-500/20 border-b border-electric-blue/30 p-6">
+        <div className="sticky top-0 bg-gradient-to-r from-red-600/30 via-orange-600/30 to-red-600/30 border-b-2 border-red-500/50 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-3xl font-racing text-electric-blue mb-2">
-                🏁 Retar a Duelo
+              <h2 className="text-4xl font-racing text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-red-400 mb-2 animate-pulse">
+                ⚔️ RETO DE BATALLA
               </h2>
-              <p className="text-sky-blue/70">
-                Invita a <span className="text-karting-gold font-bold">{challengedDriverName}</span> a una carrera amistosa
+              <p className="text-orange-200/90 text-lg">
+                🔥 Desafía a <span className="text-red-400 font-bold text-xl">{challengedDriverName}</span> a una batalla en pista
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-sky-blue hover:text-electric-blue transition-colors text-2xl"
+              className="text-red-400 hover:text-red-300 transition-colors text-3xl hover:scale-110 transform"
             >
               ✕
             </button>
@@ -198,8 +204,8 @@ export default function ChallengeModal({
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sky-blue/70 mb-4">
-                Selecciona una carrera amistosa disponible para invitar a {challengedDriverName}:
+              <p className="text-orange-200/80 mb-4 text-lg font-bold">
+                🏁 Selecciona el campo de batalla para enfrentar a {challengedDriverName}:
               </p>
 
               {/* Race List */}
@@ -214,10 +220,10 @@ export default function ChallengeModal({
                     <button
                       key={race._id}
                       onClick={() => setSelectedRaceId(race._id)}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                      className={`w-full text-left p-4 rounded-lg border-2 transition-all transform hover:scale-102 ${
                         isSelected
-                          ? 'bg-electric-blue/20 border-electric-blue'
-                          : 'bg-racing-black/40 border-sky-blue/20 hover:border-electric-blue/50'
+                          ? 'bg-red-600/30 border-red-500 shadow-lg shadow-red-500/30'
+                          : 'bg-racing-black/40 border-orange-800/30 hover:border-red-500/50 hover:bg-red-950/20'
                       }`}
                     >
                       <div className="flex items-start justify-between">
@@ -262,16 +268,16 @@ export default function ChallengeModal({
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={onClose}
-                  className="flex-1 px-6 py-3 bg-racing-black border border-sky-blue/30 text-sky-blue rounded-lg hover:bg-sky-blue/10 transition-all font-racing"
+                  className="flex-1 px-6 py-3 bg-racing-black border-2 border-gray-600/50 text-gray-400 rounded-lg hover:bg-gray-900/50 hover:border-gray-500 transition-all font-racing"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSendChallenge}
                   disabled={!selectedRaceId || sending}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-electric-blue to-cyan-500 text-white font-racing rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-8 py-4 bg-gradient-to-r from-red-600 via-orange-500 to-red-600 text-white font-racing text-xl rounded-lg hover:scale-105 hover:shadow-2xl hover:shadow-red-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed border-2 border-red-400/50"
                 >
-                  {sending ? 'Enviando...' : '🏁 Enviar Reto'}
+                  {sending ? '⚔️ Enviando...' : '⚔️ LANZAR RETO'}
                 </button>
               </div>
             </div>
