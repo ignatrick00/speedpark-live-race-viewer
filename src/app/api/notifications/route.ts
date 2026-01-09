@@ -43,6 +43,8 @@ export async function GET(request: NextRequest) {
     const query: any = { userId: user._id };
     if (unreadOnly) {
       query.read = false;
+      // Excluir friend_request del inbox - se manejan en /amigos
+      query.type = { $ne: 'friend_request' };
     }
 
     // Get notifications
@@ -59,10 +61,11 @@ export async function GET(request: NextRequest) {
       console.log(`⚔️ [NOTIFICATIONS] First challenge:`, challengeNotifications[0]);
     }
 
-    // Get unread count
+    // Get unread count (excluding friend_request - those are handled in /amigos)
     const unreadCount = await Notification.countDocuments({
       userId: user._id,
       read: false,
+      type: { $ne: 'friend_request' }
     });
 
     return NextResponse.json({
