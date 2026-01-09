@@ -84,6 +84,29 @@ export default function InboxPage() {
     }
   };
 
+  const autoMarkInformativeNotificationsAsRead = async (notifications: any[]) => {
+    // Tipos informativos que se marcan automáticamente al verlos
+    const informativeTypes = ['friend_request_accepted', 'race_sanction'];
+
+    const unreadInformative = notifications.filter(
+      n => informativeTypes.includes(n.type) && !n.read
+    );
+
+    if (unreadInformative.length === 0) return;
+
+    // Marcar todas como leídas en paralelo
+    await Promise.all(
+      unreadInformative.map(n =>
+        fetch(`/api/notifications/${n._id}/read`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        })
+      )
+    );
+  };
+
   const fetchNotifications = async () => {
     try {
       const response = await fetch('/api/notifications', {
@@ -95,6 +118,9 @@ export default function InboxPage() {
       if (response.ok) {
         const data = await response.json();
         setNotifications(data.notifications || []);
+
+        // Auto-marcar notificaciones informativas como leídas
+        await autoMarkInformativeNotificationsAsRead(data.notifications || []);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -103,13 +129,12 @@ export default function InboxPage() {
 
   const markNotificationAsRead = async (notificationId: string) => {
     try {
-      const response = await fetch(`/api/notifications/${notificationId}`, {
+      const response = await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ read: true })
+        }
       });
 
       if (response.ok) {
@@ -778,6 +803,48 @@ export default function InboxPage() {
                                 </button>
                               )}
                             </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (notification.type === 'friend_request_accepted') {
+                      return (
+                        <div
+                          key={notification._id}
+                          className={`bg-gradient-to-br from-green-900/20 via-slate-800/80 to-slate-900/90 border-2 ${
+                            notification.read ? 'border-green-800/20' : 'border-green-600/50'
+                          } rounded-xl p-6 hover:border-green-500/50 transition-all`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-3">
+                                <span className="text-3xl">✅</span>
+                                <div>
+                                  <h3 className="text-xl font-racing text-white">
+                                    {notification.title}
+                                  </h3>
+                                  <p className="text-green-400 font-bold text-sm">Nueva amistad</p>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2 text-sm">
+                                <p className="text-white">{notification.message}</p>
+
+                                <p className="text-xs text-gray-500 mt-2">
+                                  {new Date(notification.createdAt).toLocaleString('es-CL')}
+                                </p>
+                              </div>
+                            </div>
+
+                            {!notification.read && (
+                              <button
+                                onClick={() => markNotificationAsRead(notification._id)}
+                                className="ml-4 px-4 py-2 bg-green-600/20 text-green-400 border border-green-600/50 rounded-lg hover:bg-green-600/30 transition-all text-sm font-bold"
+                              >
+                                ✓ Marcar como leída
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
