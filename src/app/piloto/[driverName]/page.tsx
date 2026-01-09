@@ -2,15 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import PersonalStatsCard from '@/components/PersonalStatsCard';
 import RaceHistoryTable from '@/components/RaceHistoryTable';
 import ProgressChart from '@/components/ProgressChart';
 import AchievementsBadge from '@/components/AchievementsBadge';
+import LoginModal from '@/components/auth/LoginModal';
+import RegisterModal from '@/components/auth/RegisterModal';
+import ChallengeModal from '@/components/ChallengeModal';
 
 export default function PublicDriverPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const driverName = decodeURIComponent(params.driverName as string);
 
   const [profile, setProfile] = useState<any>(null);
@@ -18,9 +23,23 @@ export default function PublicDriverPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Modal states
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [pendingChallenge, setPendingChallenge] = useState(false);
+
   useEffect(() => {
     loadPublicProfile();
   }, [driverName]);
+
+  // Auto-open challenge modal after successful login
+  useEffect(() => {
+    if (user && pendingChallenge) {
+      setPendingChallenge(false);
+      setShowChallengeModal(true);
+    }
+  }, [user, pendingChallenge]);
 
   const loadPublicProfile = async () => {
     try {
@@ -95,6 +114,32 @@ export default function PublicDriverPage() {
     const minutes = Math.floor(timeMs / 60000);
     const seconds = ((timeMs % 60000) / 1000).toFixed(3);
     return `${minutes}:${parseFloat(seconds).toFixed(3).padStart(6, '0')}`;
+  };
+
+  const handleChallengeClick = () => {
+    if (!user) {
+      // User not logged in - open login modal
+      setPendingChallenge(true);
+      setShowLoginModal(true);
+    } else {
+      // User is logged in - open challenge modal
+      setShowChallengeModal(true);
+    }
+  };
+
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    // Challenge modal will open automatically via useEffect
+  };
+
+  const handleSwitchToRegister = () => {
+    setShowLoginModal(false);
+    setShowRegisterModal(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setShowRegisterModal(false);
+    setShowLoginModal(true);
   };
 
   if (loading) {
@@ -173,13 +218,20 @@ export default function PublicDriverPage() {
     <>
       <Navbar />
       <div className="min-h-screen bg-gradient-to-br from-midnight via-racing-black to-midnight p-6">
-        {/* Back Button */}
-        <div className="max-w-7xl mx-auto mb-4">
+        {/* Back Button and Challenge Button */}
+        <div className="max-w-7xl mx-auto mb-4 flex items-center justify-between">
           <button
             onClick={() => router.push('/ranking')}
             className="text-sky-blue hover:text-electric-blue transition-colors flex items-center gap-2"
           >
             ← Volver a Rankings
+          </button>
+
+          <button
+            onClick={handleChallengeClick}
+            className="px-6 py-3 bg-gradient-to-r from-electric-blue to-cyan-500 text-white font-racing rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all flex items-center gap-2"
+          >
+            ⚔️ Retar a Duelo
           </button>
         </div>
 
@@ -355,6 +407,34 @@ export default function PublicDriverPage() {
             </div>
           </div>
         </div>
+
+        {/* Modals */}
+        <LoginModal
+          isOpen={showLoginModal}
+          onClose={() => {
+            setShowLoginModal(false);
+            setPendingChallenge(false);
+          }}
+          onSuccess={handleLoginSuccess}
+          onSwitchToRegister={handleSwitchToRegister}
+        />
+
+        <RegisterModal
+          isOpen={showRegisterModal}
+          onClose={() => {
+            setShowRegisterModal(false);
+            setPendingChallenge(false);
+          }}
+          onSuccess={handleLoginSuccess}
+          onSwitchToLogin={handleSwitchToLogin}
+        />
+
+        <ChallengeModal
+          isOpen={showChallengeModal}
+          onClose={() => setShowChallengeModal(false)}
+          challengedDriverName={profile.driverName}
+          challengedUserId={profile.userId}
+        />
       </div>
     </>
   );
