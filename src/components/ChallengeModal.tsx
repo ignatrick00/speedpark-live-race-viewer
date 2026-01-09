@@ -9,7 +9,8 @@ interface Race {
   name: string;
   date: string;
   time: string;
-  participants: any[];
+  participants: number; // Number of participants
+  participantsList: any[]; // Array of participant objects
   maxParticipants: number;
   status: string;
 }
@@ -55,26 +56,42 @@ export default function ChallengeModal({
       const data = await response.json();
 
       if (data.success) {
+        console.log('🏁 [CHALLENGE] Total races from API:', data.races?.length || 0);
+
         // Filter races where:
-        // 1. Status is 'open'
+        // 1. Status is 'open', 'full', or 'confirmed' (not started/finished/cancelled)
         // 2. Has available spots
-        // 3. Date is in the future
+        // 3. Date is today or in the future (not past)
         // 4. Challenged user is NOT already in the race
         const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
+
         const availableRaces = (data.races || []).filter((race: Race) => {
           const raceDate = new Date(race.date);
-          const hasSpace = race.participants.length < race.maxParticipants;
-          const isFuture = raceDate >= now;
-          const isOpen = race.status === 'open';
+          const raceDateOnly = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate());
+          const isFuture = raceDateOnly >= today; // Compare only dates, not times
+          const isValidStatus = ['open', 'full', 'confirmed'].includes(race.status);
 
           // Check if challenged user is already in this race
-          const challengedUserAlreadyInRace = race.participants?.some(
+          const challengedUserAlreadyInRace = Array.isArray(race.participantsList) && race.participantsList.some(
             (p: any) => p.userId === challengedUserId
           );
 
-          return isOpen && hasSpace && isFuture && !challengedUserAlreadyInRace;
+          console.log(`🏁 [CHALLENGE] Race "${race.name}":`, {
+            status: race.status,
+            isValidStatus,
+            isFuture,
+            participants: race.participants.length,
+            maxParticipants: race.maxParticipants,
+            challengedUserInRace: challengedUserAlreadyInRace,
+            passes: isValidStatus && isFuture && !challengedUserAlreadyInRace
+          });
+
+          // Allow challenge even if race is full - challenged user can join when they accept
+          return isValidStatus && isFuture && !challengedUserAlreadyInRace;
         });
 
+        console.log('🏁 [CHALLENGE] Available races after filtering:', availableRaces.length);
         setRaces(availableRaces);
       } else {
         setError('Error al cargar carreras');
@@ -97,21 +114,21 @@ export default function ChallengeModal({
       setSending(true);
       setError(null);
 
-      const response = await fetch(`/api/races/friendly/${selectedRaceId}/invite`, {
+      const response = await fetch(`/api/races/friendly/${selectedRaceId}/challenge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          friendIds: [challengedUserId],
+          challengedUserId,
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        alert(`¡Reto enviado a ${challengedDriverName}!`);
+        alert(`⚔️ ¡Reto enviado a ${challengedDriverName}! El desafío llegará a su inbox.`);
         onClose();
       } else {
         setError(data.error || 'Error al enviar reto');
@@ -189,7 +206,8 @@ export default function ChallengeModal({
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {races.map((race) => {
                   const raceDate = new Date(race.date);
-                  const availableSpots = race.maxParticipants - race.participants.length;
+                  const participantCount = typeof race.participants === 'number' ? race.participants : 0;
+                  const availableSpots = race.maxParticipants - participantCount;
                   const isSelected = selectedRaceId === race._id;
 
                   return (
@@ -215,7 +233,7 @@ export default function ChallengeModal({
                               🕐 {race.time}
                             </span>
                             <span className="text-cyan-400">
-                              👥 {race.participants.length}/{race.maxParticipants}
+                              👥 {participantCount}/{race.maxParticipants}
                             </span>
                             <span className="text-green-400">
                               ✓ {availableSpots} espacios disponibles

@@ -14,9 +14,10 @@ export default function Navbar() {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [invitationCount, setInvitationCount] = useState(0);
   const [friendRequestCount, setFriendRequestCount] = useState(0);
+  const [notificationCount, setNotificationCount] = useState(0);
   const [hasSeenDropdown, setHasSeenDropdown] = useState(false);
 
-  // Fetch invitation and friend request counts
+  // Fetch invitation, friend request, and notification counts
   useEffect(() => {
     if (token) {
       fetchCounts();
@@ -26,6 +27,7 @@ export default function Navbar() {
     } else {
       setInvitationCount(0);
       setFriendRequestCount(0);
+      setNotificationCount(0);
     }
   }, [token]);
 
@@ -45,8 +47,16 @@ export default function Navbar() {
         },
       });
 
+      // Fetch unread notifications count
+      const notificationsResponse = await fetch('/api/notifications?unreadOnly=true', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
       let newInvitationCount = 0;
       let newFriendRequestCount = 0;
+      let newNotificationCount = 0;
 
       if (invitationsResponse.ok) {
         const data = await invitationsResponse.json();
@@ -58,8 +68,13 @@ export default function Navbar() {
         newFriendRequestCount = data.count?.requestsReceived || 0;
       }
 
-      const previousTotal = invitationCount + friendRequestCount;
-      const newTotal = newInvitationCount + newFriendRequestCount;
+      if (notificationsResponse.ok) {
+        const data = await notificationsResponse.json();
+        newNotificationCount = data.unreadCount || 0;
+      }
+
+      const previousTotal = invitationCount + friendRequestCount + notificationCount;
+      const newTotal = newInvitationCount + newFriendRequestCount + newNotificationCount;
 
       // If total count increases, reset the seen state to show badge on button again
       if (newTotal > previousTotal) {
@@ -68,6 +83,7 @@ export default function Navbar() {
 
       setInvitationCount(newInvitationCount);
       setFriendRequestCount(newFriendRequestCount);
+      setNotificationCount(newNotificationCount);
     } catch (error) {
       console.error('Error fetching counts:', error);
     }
@@ -169,9 +185,9 @@ export default function Navbar() {
                     >
                       <span className="sm:hidden">🏆</span>
                       <span className="hidden sm:inline">🏆 {user.profile.alias || user.profile.firstName}</span>
-                      {(invitationCount + friendRequestCount) > 0 && !hasSeenDropdown && (
+                      {(invitationCount + friendRequestCount + notificationCount) > 0 && !hasSeenDropdown && (
                         <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                          {invitationCount + friendRequestCount}
+                          {invitationCount + friendRequestCount + notificationCount}
                         </span>
                       )}
                       <svg className={`w-4 h-4 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -210,9 +226,9 @@ export default function Navbar() {
                           className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30 relative"
                         >
                           Inbox
-                          {invitationCount > 0 && hasSeenDropdown && (
+                          {(invitationCount + notificationCount) > 0 && hasSeenDropdown && (
                             <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                              {invitationCount}
+                              {invitationCount + notificationCount}
                             </span>
                           )}
                         </a>

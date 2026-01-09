@@ -1108,8 +1108,10 @@ function FriendlyUpcomingView({
   // NOTE: We DO show races where user is registered (they appear in both "Próximas" and "Mis Carreras")
   const upcomingRaces = races.filter(race => {
     const raceDate = new Date(race.date);
+    const raceDateOnly = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate());
     const now = new Date();
-    const isFuture = raceDate >= now;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const isFuture = raceDateOnly >= today; // Compare only dates, not times
     const isNotLinked = !race.linkedRaceSessionId && race.raceStatus !== 'linked' && race.raceStatus !== 'finalized';
     return isFuture && isNotLinked;
   });
@@ -2852,11 +2854,17 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
         // Filter races where user is participant
         const myRaces = (data.races || []).filter((race: Race) => {
           const isParticipant = race.participantsList?.some(
-            (participant: any) => participant.userId === userId
+            (participant: any) => {
+              const participantUserId = String(participant.userId || participant.user || '');
+              const currentUserId = String(userId || '');
+              return participantUserId === currentUserId;
+            }
           );
           const raceDate = new Date(race.date);
+          const raceDateOnly = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate());
           const now = new Date();
-          const isFuture = raceDate >= now;
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const isFuture = raceDateOnly >= today; // Compare only dates, not times
           const isNotFinalized = !race.linkedRaceSessionId && race.raceStatus !== 'linked' && race.raceStatus !== 'finalized';
           return isParticipant && isFuture && isNotFinalized;
         });

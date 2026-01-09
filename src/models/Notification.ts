@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
-  type: 'class_cancelled_by_coach' | 'booking_cancelled_by_student' | 'friend_request' | 'friend_request_accepted' | 'race_sanction' | 'friendly_race_invitation';
+  type: 'class_cancelled_by_coach' | 'booking_cancelled_by_student' | 'friend_request' | 'friend_request_accepted' | 'race_sanction' | 'friendly_race_invitation' | 'duel_challenge';
   title: string;
   message: string;
   metadata: {
@@ -36,6 +36,11 @@ export interface INotification extends Document {
     inviterName?: string;
     availableSpots?: number;
     invitationStatus?: 'pending' | 'accepted' | 'rejected' | 'expired';
+    // Duel challenge metadata
+    challengerId?: string;
+    challengerName?: string;
+    challengerDriverName?: string;
+    challengeStatus?: 'pending' | 'accepted' | 'rejected' | 'expired';
   };
   read: boolean;
   createdAt: Date;
@@ -51,7 +56,7 @@ const NotificationSchema: Schema = new Schema({
   },
   type: {
     type: String,
-    enum: ['class_cancelled_by_coach', 'booking_cancelled_by_student', 'friend_request', 'friend_request_accepted', 'race_sanction', 'friendly_race_invitation'],
+    enum: ['class_cancelled_by_coach', 'booking_cancelled_by_student', 'friend_request', 'friend_request_accepted', 'race_sanction', 'friendly_race_invitation', 'duel_challenge'],
     required: true,
   },
   title: {
@@ -99,6 +104,15 @@ const NotificationSchema: Schema = new Schema({
     inviterName: String,
     availableSpots: Number,
     invitationStatus: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected', 'expired'],
+      default: 'pending'
+    },
+    // Duel challenge metadata
+    challengerId: String,
+    challengerName: String,
+    challengerDriverName: String,
+    challengeStatus: {
       type: String,
       enum: ['pending', 'accepted', 'rejected', 'expired'],
       default: 'pending'

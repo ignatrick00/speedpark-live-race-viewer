@@ -48,15 +48,19 @@ export async function GET(req: NextRequest) {
     let query: any = {};
 
     if (filterType === 'upcoming') {
-      // Only future races
-      query.date = { $gte: new Date() };
+      // Only future races (today and onwards, ignoring time)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Start of today
+      query.date = { $gte: today };
       query.$or = [
         { status: { $in: ['open', 'full', 'confirmed'] } },
         { status: { $exists: false } },
       ];
     } else if (filterType === 'past') {
-      // Only past races
-      query.date = { $lt: new Date() };
+      // Only past races (before today)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Start of today
+      query.date = { $lt: today };
     } else if (filterType === 'my-races') {
       // For organizer page: show ALL races (not filtered by user)
       // The organizer can link any friendly race to a race session

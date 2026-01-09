@@ -51,6 +51,14 @@ export async function GET(request: NextRequest) {
       .limit(50)
       .lean();
 
+    console.log(`📬 [NOTIFICATIONS] User ${user._id} has ${notifications.length} notifications`);
+    console.log(`📬 [NOTIFICATIONS] Types:`, notifications.map(n => n.type));
+    const challengeNotifications = notifications.filter(n => n.type === 'duel_challenge');
+    console.log(`⚔️ [NOTIFICATIONS] Duel challenges found: ${challengeNotifications.length}`);
+    if (challengeNotifications.length > 0) {
+      console.log(`⚔️ [NOTIFICATIONS] First challenge:`, challengeNotifications[0]);
+    }
+
     // Get unread count
     const unreadCount = await Notification.countDocuments({
       userId: user._id,

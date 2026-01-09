@@ -277,6 +277,53 @@ export default function InboxPage() {
     }
   };
 
+  const handleRespondChallenge = async (raceId: string, notificationId: string, accept: boolean) => {
+    setResponding(notificationId);
+    try {
+      const response = await fetch(`/api/races/friendly/${raceId}/challenge/respond`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          accept,
+          notificationId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (accept) {
+          setToast({
+            message: data.alreadyInRace ? 'Ya estás en esta carrera' : `¡Desafío aceptado! Te has unido a la carrera (Kart #${data.kartNumber})`,
+            type: 'success'
+          });
+        } else {
+          setToast({
+            message: 'Desafío rechazado',
+            type: 'info'
+          });
+        }
+        fetchNotifications();
+      } else {
+        setToast({
+          message: data.error || 'Error al responder al desafío',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error responding to challenge:', error);
+      setToast({
+        message: 'Error al responder al desafío',
+        type: 'error'
+      });
+    } finally {
+      setResponding(null);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-black text-white">
@@ -312,23 +359,24 @@ export default function InboxPage() {
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <div className="w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-purple-400">Cargando invitaciones...</p>
+              <p className="text-purple-400">Cargando...</p>
             </div>
           </div>
-        ) : invitations.length === 0 ? (
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-12 text-center">
-            <div className="text-6xl mb-4">📭</div>
-            <h3 className="text-2xl font-racing text-white mb-2">No tienes invitaciones</h3>
-            <p className="text-gray-400 mb-6">Cuando recibas invitaciones a escuderías o eventos, aparecerán aquí</p>
+        ) : invitations.length === 0 && notifications.length === 0 ? (
+          <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-8 text-center">
+            <div className="text-5xl mb-3">📭</div>
+            <h3 className="text-xl font-racing text-white mb-2">Sin invitaciones ni notificaciones</h3>
+            <p className="text-gray-400 text-sm mb-4">Cuando recibas invitaciones o notificaciones, aparecerán aquí</p>
             <button
               onClick={() => router.push('/races')}
-              className="px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all"
+              className="px-5 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all text-sm"
             >
               Ver carreras
             </button>
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Invitaciones */}
             {invitations.map((invitation) => {
               if (invitation.type === 'squadron') {
                 return (
@@ -631,12 +679,110 @@ export default function InboxPage() {
               }
             })}
 
-            {/* Notificaciones Section */}
-            {notifications.length > 0 && (
-              <div className="mt-8">
-                <h2 className="text-2xl font-racing text-white mb-4">📢 Notificaciones</h2>
-                <div className="space-y-3">
-                  {notifications.map((notification) => {
+            {/* Notificaciones */}
+            {notifications.map((notification) => {
+                if (notification.type === 'duel_challenge') {
+                      const challengeStatus = notification.metadata?.challengeStatus || 'pending';
+                      const isAccepted = challengeStatus === 'accepted';
+                      const isRejected = challengeStatus === 'rejected';
+                      const isPending = challengeStatus === 'pending';
+
+                      return (
+                        <div
+                          key={notification._id}
+                          className={`bg-gradient-to-br from-electric-blue/10 via-midnight/90 to-racing-black border-2 ${
+                            notification.read ? 'border-electric-blue/20' : 'border-electric-blue/50'
+                          } rounded-xl p-6 hover:border-electric-blue/70 transition-all ${
+                            !isPending ? 'opacity-60' : ''
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-3">
+                                <span className="text-4xl">⚔️</span>
+                                <div>
+                                  <h3 className="text-xl font-racing text-electric-blue">
+                                    {notification.title}
+                                  </h3>
+                                  <p className="text-karting-gold font-bold">{notification.metadata?.challengerDriverName}</p>
+                                </div>
+                              </div>
+
+                              <div className="space-y-3 text-sm">
+                                <p className="text-white text-base">{notification.message}</p>
+
+                                <div className="bg-racing-black/50 rounded-lg p-4 space-y-2">
+                                  <div className="flex justify-between">
+                                    <span className="text-sky-blue">🏁 Carrera:</span>
+                                    <span className="text-white font-bold">{notification.metadata?.raceName}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sky-blue">📅 Fecha:</span>
+                                    <span className="text-white">
+                                      {notification.metadata?.raceDate ? new Date(notification.metadata.raceDate).toLocaleDateString('es-CL') : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sky-blue">🕐 Hora:</span>
+                                    <span className="text-white">{notification.metadata?.raceTime}</span>
+                                  </div>
+                                </div>
+
+                                {isAccepted && (
+                                  <div className="mt-3 px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-lg">
+                                    <p className="text-green-400 font-bold text-sm flex items-center gap-2">
+                                      ✅ Desafío aceptado - Ya participas en esta carrera
+                                    </p>
+                                  </div>
+                                )}
+
+                                {isRejected && (
+                                  <div className="mt-3 px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg">
+                                    <p className="text-red-400 font-bold text-sm flex items-center gap-2">
+                                      ✖️ Desafío rechazado
+                                    </p>
+                                  </div>
+                                )}
+
+                                <p className="text-xs text-gray-500">
+                                  {new Date(notification.createdAt).toLocaleString('es-CL')}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="ml-4 flex flex-col gap-2">
+                              {isPending && (
+                                <>
+                                  <button
+                                    onClick={() => handleRespondChallenge(notification.metadata?.raceId, notification._id, true)}
+                                    disabled={responding === notification._id}
+                                    className="px-6 py-3 bg-gradient-to-r from-electric-blue to-cyan-500 text-white font-racing rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all whitespace-nowrap disabled:opacity-50"
+                                  >
+                                    {responding === notification._id ? '⏳ Procesando...' : '⚔️ Aceptar Duelo'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRespondChallenge(notification.metadata?.raceId, notification._id, false)}
+                                    disabled={responding === notification._id}
+                                    className="px-6 py-3 bg-slate-600/20 border border-slate-500/50 text-slate-300 rounded-lg hover:bg-slate-600/30 transition-all font-racing whitespace-nowrap disabled:opacity-50"
+                                  >
+                                    {responding === notification._id ? '⏳ Procesando...' : 'Rechazar'}
+                                  </button>
+                                </>
+                              )}
+                              {!notification.read && (
+                                <button
+                                  onClick={() => markNotificationAsRead(notification._id)}
+                                  className="px-4 py-2 bg-electric-blue/20 text-electric-blue border border-electric-blue/50 rounded-lg hover:bg-electric-blue/30 transition-all text-sm font-bold"
+                                >
+                                  ✓ Marcar leída
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     if (notification.type === 'race_sanction') {
                       return (
                         <div
@@ -699,12 +845,10 @@ export default function InboxPage() {
                         </div>
                       );
                     }
+
                     // Otros tipos de notificaciones (friend_request, etc.)
                     return null;
-                  })}
-                </div>
-              </div>
-            )}
+              })}
           </div>
         )}
       </div>
