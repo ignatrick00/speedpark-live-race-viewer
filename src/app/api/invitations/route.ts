@@ -47,8 +47,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Get squadron invitations from WebUser model (where they're actually stored)
-    console.log(`📧 [INVITATIONS] Buscando invitaciones de escuadrón para userId: ${userId}`);
-
     const userWithInvitations = await WebUser.findById(userId)
       .populate({
         path: 'invitations.squadronId',
@@ -60,8 +58,6 @@ export async function GET(request: NextRequest) {
       })
       .lean();
 
-    console.log(`🏁 [INVITATIONS] Usuario encontrado con ${userWithInvitations?.invitations?.length || 0} invitaciones totales`);
-
     // Calcular puntos desde SquadronPointsHistory para cada invitación
     const squadronInvites = await Promise.all(
       (userWithInvitations?.invitations || [])
@@ -72,8 +68,6 @@ export async function GET(request: NextRequest) {
           inv.squadronId.members.length < 4
         )
         .map(async (invitation: any) => {
-          console.log(`✅ [INVITATIONS] Invitación pendiente: ${invitation.squadronId.name}`);
-
           // Calcular puntos totales desde el historial (igual que en /ranking)
           const pointsHistory = await SquadronPointsHistory.aggregate([
             { $match: { squadronId: invitation.squadronId._id } },
@@ -196,15 +190,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Get friendly race invitations from Notification collection
-    console.log(`🏁 [INVITATIONS] Buscando invitaciones de carreras amistosas para userId: ${userId}`);
     const raceNotifications = await Notification.find({
       userId: userId,
       type: 'friendly_race_invitation',
       'metadata.invitationStatus': 'pending',
       read: false
     }).lean();
-
-    console.log(`🏎️ [INVITATIONS] Encontradas ${raceNotifications.length} invitaciones de carreras amistosas`);
 
     // Populate race details for each invitation
     const raceInvites = await Promise.all(
