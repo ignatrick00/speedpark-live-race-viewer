@@ -188,18 +188,18 @@ export default function ChallengeModal({
             </div>
           ) : races.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-6xl mb-4">🏎️</div>
-              <h3 className="text-xl font-racing text-white mb-3">
+              <div className="text-6xl mb-4">🔥</div>
+              <h3 className="text-2xl font-racing text-red-400 mb-3">
                 No hay carreras disponibles
               </h3>
-              <p className="text-sky-blue/70 mb-6 max-w-md mx-auto">
-                No hay carreras amistosas abiertas en este momento. Crea una nueva carrera para retar a {challengedDriverName}.
+              <p className="text-orange-200/80 mb-6 max-w-md mx-auto">
+                🔥 Crea una nueva carrera amistosa para lanzar tu reto a {challengedDriverName}.
               </p>
               <button
                 onClick={handleCreateRace}
-                className="px-6 py-3 bg-gradient-to-r from-electric-blue to-cyan-500 text-white font-racing rounded-lg hover:shadow-lg hover:shadow-electric-blue/50 transition-all"
+                className="px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white font-racing rounded-lg hover:scale-105 hover:shadow-lg hover:shadow-red-500/50 transition-all"
               >
-                Crear Carrera Amistosa
+                ➕ Crear Carrera Amistosa
               </button>
             </div>
           ) : (
@@ -207,6 +207,19 @@ export default function ChallengeModal({
               <p className="text-orange-200/80 mb-4 text-lg font-bold">
                 🏁 Selecciona el campo de batalla para enfrentar a {challengedDriverName}:
               </p>
+
+              {/* Info Card - Create New Race */}
+              <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4 mb-4">
+                <p className="text-orange-200/80 text-sm mb-3">
+                  💡 ¿No encuentras la fecha que buscas? Crea una nueva carrera amistosa y luego vuelve para retar.
+                </p>
+                <button
+                  onClick={handleCreateRace}
+                  className="w-full px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white font-racing rounded-lg hover:scale-102 transition-all"
+                >
+                  ➕ Crear Nueva Carrera
+                </button>
+              </div>
 
               {/* Race List */}
               <div className="space-y-3 max-h-96 overflow-y-auto">

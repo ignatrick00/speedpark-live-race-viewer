@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { EventCategoryConfig } from '@/types/squadron-events';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import JoinEventModal from '@/components/JoinEventModal';
 import Toast from '@/components/Toast';
 import LoginModal from '@/components/auth/LoginModal';
@@ -46,6 +46,7 @@ interface Race {
 
 export default function RacesPage() {
   const { user, token } = useAuth();
+  const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<ViewMode>('selection');
   const [championshipRaces, setChampionshipRaces] = useState<Race[]>([]);
   const [friendlyRaces, setFriendlyRaces] = useState<Race[]>([]);
@@ -75,6 +76,14 @@ export default function RacesPage() {
   useEffect(() => {
     console.log('🔄 ViewMode changed to:', viewMode);
   }, [viewMode]);
+
+  // Check URL params on mount to set initial view mode
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    if (mode === 'friendly-create') {
+      setViewMode('friendly-create');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     // Always fetch races (public or authenticated)
