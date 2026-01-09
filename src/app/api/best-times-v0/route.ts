@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import RaceSessionV0 from '@/models/RaceSessionV0';
+import WebUser from '@/models/WebUser';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,10 +111,24 @@ export async function GET(request: Request) {
         console.log(`📊 [SAMPLE] First result: ${bestTimes[0]._id} - ${bestTimes[0].sessionName} - Date: ${new Date(bestTimes[0].sessionDate).toLocaleString('es-CL', { timeZone: 'America/Santiago' })}`);
       }
 
+      // Lookup web users for driver names
+      const driverNames = bestTimes.map(t => t._id);
+      const webUsers = await WebUser.find({
+        'kartingLink.driverName': { $in: driverNames },
+        'kartingLink.status': 'linked',
+        'accountStatus': { $ne: 'deleted' }
+      }).select('_id kartingLink.driverName').lean();
+
+      // Create map for quick lookup
+      const driverToUserIdMap = new Map(
+        webUsers.map(u => [u.kartingLink.driverName, u._id.toString()])
+      );
+
       // Formatear para frontend - retornar todos los resultados (20 para drivers)
       const formattedTimes = bestTimes.map((item, idx) => ({
         position: idx + 1,
         driverName: item._id,
+        webUserId: driverToUserIdMap.get(item._id) || null,
         bestTime: item.bestTime,
         kartNumber: item.kartNumber,
         sessionName: item.sessionName,

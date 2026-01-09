@@ -12,31 +12,46 @@ export async function GET(
   { params }: { params: { userId: string } }
 ) {
   try {
-    // Verify JWT token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-
     const { userId } = params;
-
     await dbConnect();
 
-    // Check if users are friends or if viewing own profile
-    if (decoded.userId !== userId) {
-      const friendship = await Friendship.findOne({
-        $or: [
-          { userId: decoded.userId, friendId: userId, status: 'accepted' },
-          { userId: userId, friendId: decoded.userId, status: 'accepted' }
-        ]
-      });
+    // Check for authorization - optional for public profiles
+    const authHeader = request.headers.get('authorization');
+    let isPublicAccess = false;
+    let requestingUserId: string | null = null;
 
-      if (!friendship) {
-        return NextResponse.json({ error: 'Solo puedes ver estadísticas de tus amigos' }, { status: 403 });
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+
+      // Allow public access with 'public' token
+      if (token === 'public') {
+        isPublicAccess = true;
+      } else {
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+          requestingUserId = decoded.userId;
+
+          // Check if users are friends or if viewing own profile
+          if (decoded.userId !== userId) {
+            const friendship = await Friendship.findOne({
+              $or: [
+                { userId: decoded.userId, friendId: userId, status: 'accepted' },
+                { userId: userId, friendId: decoded.userId, status: 'accepted' }
+              ]
+            });
+
+            if (!friendship) {
+              return NextResponse.json({ error: 'Solo puedes ver estadísticas de tus amigos' }, { status: 403 });
+            }
+          }
+        } catch (error) {
+          // Invalid token, treat as public access
+          isPublicAccess = true;
+        }
       }
+    } else {
+      // No auth header, treat as public access
+      isPublicAccess = true;
     }
 
     // Get user info

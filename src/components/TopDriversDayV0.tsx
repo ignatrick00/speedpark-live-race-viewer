@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import DatePickerCalendar from './DatePickerCalendar';
 
 interface BestTime {
   position: number;
   driverName: string;
+  webUserId?: string | null;
   bestTime: number;
   kartNumber: number;
   sessionName: string;
@@ -146,16 +148,16 @@ export default function TopDriversV0Day() {
               key={entry.position}
               className="bg-racing-black/40 border border-sky-blue/10 rounded-lg p-4 hover:border-electric-blue/30 transition-all"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 {/* Left: Position + Driver */}
-                <div className="flex items-center gap-3 flex-1">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className={`text-2xl font-bold ${
                     entry.position <= 3 ? '' : 'text-sky-blue/70'
                   }`}>
                     {getMedalEmoji(entry.position) || `#${entry.position}`}
                   </div>
 
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="font-bold text-white text-lg">
                       {entry.driverName}
                     </div>
@@ -167,6 +169,15 @@ export default function TopDriversV0Day() {
                     </div>
                   </div>
                 </div>
+
+                {/* Middle: Profile Button */}
+                {entry.webUserId && (
+                  <Link href={`/piloto/${encodeURIComponent(entry.driverName)}`}>
+                    <button className="px-3 py-1 text-xs bg-electric-blue/20 text-electric-blue border border-electric-blue/40 rounded-md hover:bg-electric-blue/30 hover:border-electric-blue transition-all font-bold whitespace-nowrap">
+                      Ver Perfil
+                    </button>
+                  </Link>
+                )}
 
                 {/* Right: Time */}
                 <div className="text-right">
@@ -241,16 +252,16 @@ export default function TopDriversV0Day() {
                       key={entry.position}
                       className="bg-racing-black/40 border border-sky-blue/10 rounded-lg p-4 hover:border-electric-blue/30 transition-all"
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-3">
                         {/* Left: Position + Driver */}
-                        <div className="flex items-center gap-3 flex-1">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className={`text-2xl font-bold ${
                             entry.position <= 3 ? '' : 'text-sky-blue/70'
                           }`}>
                             {getMedalEmoji(entry.position) || `#${entry.position}`}
                           </div>
 
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <div className="font-bold text-white text-lg">
                               {entry.driverName}
                             </div>
@@ -262,6 +273,15 @@ export default function TopDriversV0Day() {
                             </div>
                           </div>
                         </div>
+
+                        {/* Middle: Profile Button */}
+                        {entry.webUserId && (
+                          <Link href={`/piloto/${encodeURIComponent(entry.driverName)}`}>
+                            <button className="px-3 py-1 text-xs bg-electric-blue/20 text-electric-blue border border-electric-blue/40 rounded-md hover:bg-electric-blue/30 hover:border-electric-blue transition-all font-bold whitespace-nowrap">
+                              Ver Perfil
+                            </button>
+                          </Link>
+                        )}
 
                         {/* Right: Time */}
                         <div className="text-right">

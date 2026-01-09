@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import RaceSessionV0 from '@/models/RaceSessionV0';
+import WebUser from '@/models/WebUser';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,10 +71,26 @@ export async function GET(request: Request) {
       { $limit: 50 } // Top 50 records
     ]);
 
-    // Formatear para frontend (agregar posición)
+    // Get all unique driver names to lookup web users
+    const driverNames = [...new Set(kartRecords.map(r => r.driverName))];
+
+    // Lookup web users by driver name
+    const webUsers = await WebUser.find({
+      'kartingLink.driverName': { $in: driverNames },
+      'kartingLink.status': 'linked',
+      'accountStatus': { $ne: 'deleted' }
+    }).select('_id kartingLink.driverName').lean();
+
+    // Create map for quick lookup
+    const driverToUserIdMap = new Map(
+      webUsers.map(u => [u.kartingLink.driverName, u._id.toString()])
+    );
+
+    // Formatear para frontend (agregar posición y webUserId)
     const formattedRecords = kartRecords.map((record, idx) => ({
       position: idx + 1,
       driverName: record.driverName,
+      webUserId: driverToUserIdMap.get(record.driverName) || null,
       bestTime: record.bestTime,
       sessionName: record.sessionName,
       sessionDate: new Date(record.sessionDate).toISOString().split('T')[0],
