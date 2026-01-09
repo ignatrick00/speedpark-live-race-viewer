@@ -59,18 +59,6 @@ export async function POST(
       );
     }
 
-    // Check if user is participant in the race
-    const isParticipant = race.participants.some(
-      (p) => p.userId.toString() === userId
-    );
-
-    if (!isParticipant) {
-      return NextResponse.json(
-        { success: false, error: 'Debes estar inscrito en la carrera para invitar amigos' },
-        { status: 403 }
-      );
-    }
-
     // Check if race has available spots
     const availableSpots = race.maxParticipants - race.participants.length;
     if (availableSpots <= 0) {

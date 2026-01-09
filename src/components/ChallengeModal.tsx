@@ -59,6 +59,7 @@ export default function ChallengeModal({
         // 1. Status is 'open'
         // 2. Has available spots
         // 3. Date is in the future
+        // 4. Challenged user is NOT already in the race
         const now = new Date();
         const availableRaces = (data.races || []).filter((race: Race) => {
           const raceDate = new Date(race.date);
@@ -66,7 +67,12 @@ export default function ChallengeModal({
           const isFuture = raceDate >= now;
           const isOpen = race.status === 'open';
 
-          return isOpen && hasSpace && isFuture;
+          // Check if challenged user is already in this race
+          const challengedUserAlreadyInRace = race.participants?.some(
+            (p: any) => p.userId === challengedUserId
+          );
+
+          return isOpen && hasSpace && isFuture && !challengedUserAlreadyInRace;
         });
 
         setRaces(availableRaces);
@@ -136,7 +142,7 @@ export default function ChallengeModal({
                 🏁 Retar a Duelo
               </h2>
               <p className="text-sky-blue/70">
-                Invita a <span className="text-karting-gold font-bold">{challengedDriverName}</span> a una de tus carreras amistosas
+                Invita a <span className="text-karting-gold font-bold">{challengedDriverName}</span> a una carrera amistosa
               </p>
             </div>
             <button
@@ -161,10 +167,10 @@ export default function ChallengeModal({
             <div className="text-center py-8">
               <div className="text-6xl mb-4">🏎️</div>
               <h3 className="text-xl font-racing text-white mb-3">
-                No tienes carreras disponibles
+                No hay carreras disponibles
               </h3>
               <p className="text-sky-blue/70 mb-6 max-w-md mx-auto">
-                Para retar a {challengedDriverName}, primero debes crear una carrera amistosa y unirte a ella.
+                No hay carreras amistosas abiertas en este momento. Crea una nueva carrera para retar a {challengedDriverName}.
               </p>
               <button
                 onClick={handleCreateRace}
@@ -176,7 +182,7 @@ export default function ChallengeModal({
           ) : (
             <div className="space-y-4">
               <p className="text-sky-blue/70 mb-4">
-                Selecciona una de tus carreras amistosas para invitar a {challengedDriverName}:
+                Selecciona una carrera amistosa disponible para invitar a {challengedDriverName}:
               </p>
 
               {/* Race List */}
