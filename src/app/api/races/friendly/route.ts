@@ -32,18 +32,6 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const filterType = searchParams.get('filter'); // 'all', 'upcoming', 'past', 'my-races'
 
-    console.log(`🔍 [FRIENDLY-RACES] Filter type: ${filterType}`);
-    console.log(`🔍 [FRIENDLY-RACES] User ID: ${userId || 'guest'}`);
-
-    // DEBUG: Check what races exist
-    const allRaces = await FriendlyRace.find({}).limit(5).lean();
-    console.log(`🔍 [FRIENDLY-RACES] Total races in DB:`, await FriendlyRace.countDocuments({}));
-    if (allRaces.length > 0) {
-      console.log(`🔍 [FRIENDLY-RACES] Sample race createdBy:`, allRaces[0].createdBy);
-      console.log(`🔍 [FRIENDLY-RACES] Sample race createdBy type:`, typeof allRaces[0].createdBy);
-      console.log(`🔍 [FRIENDLY-RACES] Sample race createdBy toString:`, allRaces[0].createdBy?.toString());
-    }
-
     // Build query based on filter
     let query: any = {};
 
@@ -69,20 +57,9 @@ export async function GET(req: NextRequest) {
       // All races (no date filter)
     }
 
-    console.log(`🔍 [FRIENDLY-RACES] Query:`, JSON.stringify(query, null, 2));
-
     const races = await FriendlyRace.find(query)
       .sort({ date: -1, time: -1 }) // Most recent first
       .lean();
-
-    console.log(`📊 [FRIENDLY-RACES] Found ${races.length} races in database`);
-    if (races.length > 0) {
-      console.log(`📋 [FRIENDLY-RACES] First race:`, {
-        name: races[0].name,
-        createdBy: races[0].createdBy,
-        raceStatus: races[0].raceStatus
-      });
-    }
 
     // Manually populate users to avoid schema issues
     const formattedRaces = await Promise.all(races.map(async (race: any) => {
@@ -146,8 +123,6 @@ export async function GET(req: NextRequest) {
         participantsList,
       };
     }));
-
-    console.log(`✅ [FRIENDLY-RACES] Returning ${formattedRaces.length} races`);
 
     return NextResponse.json({
       success: true,
