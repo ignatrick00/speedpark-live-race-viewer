@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface RaceDetailModalProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ export default function RaceDetailModal({
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/race-sessions-v0/${sessionId}`);
+      const response = await fetch(`/api/race-sessions-v0/${encodeURIComponent(sessionId)}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -182,12 +183,14 @@ export default function RaceDetailModal({
               <div className="bg-black/40 border border-cyan-400/30 rounded-lg p-6">
                 <h3 className="text-2xl font-bold text-electric-blue mb-4">📊 Resultados</h3>
                 <div className="space-y-2">
-                  {raceDetails.drivers?.map((driver: any, index: number) => (
+                  {raceDetails.drivers?.map((driver: any, index: number) => {
+                    console.log(`🔍 [MODAL] Driver: ${driver.driverName}, webUserId: ${driver.webUserId}`);
+                    return (
                     <div
                       key={index}
                       className="bg-racing-black/60 border border-sky-blue/10 rounded-lg p-4 hover:border-electric-blue/30 transition-all"
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-4">
                         {/* Position + Driver */}
                         <div className="flex items-center gap-4 flex-1">
                           <div className={`text-3xl font-bold ${index < 3 ? '' : 'text-sky-blue/70'}`}>
@@ -213,9 +216,19 @@ export default function RaceDetailModal({
                             Posición #{index + 1}
                           </div>
                         </div>
+
+                        {/* Profile Button */}
+                        {driver.webUserId && (
+                          <Link href={`/piloto/${encodeURIComponent(driver.driverName)}`}>
+                            <button className="px-3 py-1.5 text-xs bg-electric-blue/20 text-electric-blue border border-electric-blue/40 rounded-md hover:bg-electric-blue/30 hover:border-electric-blue transition-all font-bold whitespace-nowrap">
+                              Ver Perfil
+                            </button>
+                          </Link>
+                        )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

@@ -110,7 +110,8 @@ export async function GET(request: Request) {
 
         return {
           ...driver,
-          squadronName
+          squadronName,
+          webUserId: userId
         };
       })
     );

@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import RaceSessionV0 from '@/models/RaceSessionV0';
+import WebUser from '@/models/WebUser';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/race-sessions-v0/[sessionId]
- * Get details of a specific race session
+ * Get details of a specific race session including webUserId for linked drivers
  */
 export async function GET(
   request: Request,
@@ -33,9 +34,30 @@ export async function GET(
     console.log(`✅ [RACE-SESSION-DETAIL] Session found: ${session.sessionName}`);
     console.log(`📈 [RACE-SESSION-DETAIL] Drivers: ${session.drivers?.length || 0}`);
 
+    // Add webUserId to each driver
+    const driverNames = session.drivers?.map((d: any) => d.driverName) || [];
+    const webUsers = await WebUser.find({
+      'kartingLink.driverName': { $in: driverNames },
+      'kartingLink.status': 'linked',
+      'accountStatus': { $ne: 'deleted' }
+    }).select('_id kartingLink.driverName').lean();
+
+    const driverToUserIdMap = new Map(
+      webUsers.map((u: any) => [u.kartingLink.driverName, u._id.toString()])
+    );
+
+    // Enrich drivers with webUserId
+    const enrichedDrivers = session.drivers?.map((driver: any) => ({
+      ...driver,
+      webUserId: driverToUserIdMap.get(driver.driverName) || null
+    })) || [];
+
     return NextResponse.json({
       success: true,
-      session
+      session: {
+        ...session,
+        drivers: enrichedDrivers
+      }
     });
 
   } catch (error: any) {

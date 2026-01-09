@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
 
 interface DriverResult {
@@ -13,6 +14,7 @@ interface DriverResult {
   totalLaps: number;
   kartNumber: number;
   laps: any[];
+  webUserId?: string | null;
 }
 
 interface RaceDetails {
@@ -285,6 +287,7 @@ export default function RaceResultsView({
               <th className="text-left py-3 px-4 text-sky-blue/70 font-racing text-sm">Mejor Vuelta</th>
               <th className="text-left py-3 px-4 text-sky-blue/70 font-racing text-sm">Última Vuelta</th>
               <th className="text-left py-3 px-4 text-sky-blue/70 font-racing text-sm">Promedio</th>
+              <th className="text-center py-3 px-4 text-sky-blue/70 font-racing text-sm">Perfil</th>
             </tr>
           </thead>
           <tbody>
@@ -312,6 +315,15 @@ export default function RaceResultsView({
                   <td className="py-3 px-4 text-electric-blue font-digital">{formatTime(driver.bestTime)}</td>
                   <td className="py-3 px-4 text-sky-blue/70 font-digital">{formatTime(driver.lastTime)}</td>
                   <td className="py-3 px-4 text-sky-blue/70 font-digital">{formatTime(driver.averageTime)}</td>
+                  <td className="py-3 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                    {driver.webUserId && (
+                      <Link href={`/piloto/${encodeURIComponent(driver.driverName)}`}>
+                        <button className="px-3 py-1.5 text-xs bg-electric-blue/20 text-electric-blue border border-electric-blue/40 rounded-md hover:bg-electric-blue/30 hover:border-electric-blue transition-all font-bold whitespace-nowrap">
+                          Ver Perfil
+                        </button>
+                      </Link>
+                    )}
+                  </td>
                 </tr>
               );
             })}
