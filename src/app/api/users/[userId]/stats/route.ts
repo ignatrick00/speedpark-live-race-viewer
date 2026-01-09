@@ -55,7 +55,8 @@ export async function GET(
           email: user.email,
           firstName: user.profile.firstName,
           lastName: user.profile.lastName,
-          alias: user.profile.alias
+          alias: user.profile.alias,
+          photoUrl: user.profile.photoUrl
         },
         stats: null,
         message: 'Este usuario aún no tiene estadísticas de karting'
@@ -68,7 +69,8 @@ export async function GET(
         email: user.email,
         firstName: user.profile.firstName,
         lastName: user.profile.lastName,
-        alias: user.profile.alias
+        alias: user.profile.alias,
+        photoUrl: user.profile.photoUrl
       },
       stats: {
         totalRaces: stats.totalRaces || 0,

@@ -725,6 +725,43 @@ function DashboardContent() {
                   🏁 PERFIL DE PILOTO
                 </h3>
 
+                {/* Profile Photo */}
+                <div className="flex justify-center mb-6">
+                  {(() => {
+                    const photoUrl = isViewingFriend && friendProfile?.photoUrl
+                      ? friendProfile.photoUrl
+                      : user?.profile?.photoUrl;
+
+                    const firstName = isViewingFriend && friendProfile
+                      ? friendProfile.firstName
+                      : user?.profile?.firstName || '';
+
+                    const lastName = isViewingFriend && friendProfile
+                      ? friendProfile.lastName
+                      : user?.profile?.lastName || '';
+
+                    if (photoUrl) {
+                      return (
+                        <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-electric-blue/50 shadow-lg shadow-electric-blue/30">
+                          <img
+                            src={photoUrl}
+                            alt="Profile photo"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-400/30 to-blue-500/30 border-4 border-electric-blue/50 flex items-center justify-center shadow-lg shadow-electric-blue/30">
+                        <span className="text-cyan-400 font-bold text-4xl">
+                          {firstName.charAt(0)}{lastName.charAt(0)}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
                 <div className="bg-black/30 backdrop-blur-sm border border-cyan-400/30 rounded-xl overflow-hidden">
                   <table className="w-full">
                     <tbody>
