@@ -86,6 +86,23 @@ export async function POST(req: NextRequest) {
     // Parse race date (allow past dates for organizers to link with historical races)
     const raceDate = new Date(date);
 
+    // Check if there's already a race at this date/time
+    const existingRace = await FriendlyRace.findOne({
+      date: raceDate,
+      time: time
+    });
+
+    if (existingRace) {
+      console.log(`❌ [CREATE-FRIENDLY] Race already exists at ${raceDate.toLocaleDateString()} ${time}`);
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Ya existe una carrera el ${raceDate.toLocaleDateString('es-CL')} a las ${time}. Por favor elige otro horario.`
+        },
+        { status: 400 }
+      );
+    }
+
     // Get system config to get maxParticipants limit
     const systemConfig = await SystemConfig.getConfig();
     const maxParticipants = systemConfig.friendlyRaceMaxParticipants || 12;

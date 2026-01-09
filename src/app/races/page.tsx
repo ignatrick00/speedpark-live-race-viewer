@@ -376,6 +376,7 @@ export default function RacesPage() {
               setViewMode('my-registered-events');
             }}
             onLoginClick={() => setShowLoginModal(true)}
+            friendlyRaces={friendlyRaces}
           />
         )}
 
@@ -1761,11 +1762,13 @@ function FriendlyCreateView({
   onBack,
   onSuccess,
   onLoginClick,
+  friendlyRaces,
 }: {
   token: string | null;
   onBack: () => void;
   onSuccess: () => void;
   onLoginClick: () => void;
+  friendlyRaces: Race[];
 }) {
   // Check if user is not authenticated
   if (!token) {
@@ -1822,10 +1825,28 @@ function FriendlyCreateView({
   };
 
   // Generar bloques horarios de 12:00 a 22:00 (10 PM)
-  const timeSlots = [
+  const allTimeSlots = [
     '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
     '18:00', '19:00', '20:00', '21:00', '22:00'
   ];
+
+  // Filtrar horarios ocupados para la fecha seleccionada
+  const getAvailableTimeSlots = () => {
+    if (!selectedDate) return allTimeSlots;
+
+    // Buscar carreras que coincidan con la fecha seleccionada
+    const occupiedTimes = friendlyRaces
+      .filter(race => {
+        const raceDate = new Date(race.date);
+        return raceDate.toDateString() === selectedDate.toDateString();
+      })
+      .map(race => race.time);
+
+    // Retornar solo horarios disponibles
+    return allTimeSlots.filter(time => !occupiedTimes.includes(time));
+  };
+
+  const timeSlots = getAvailableTimeSlots();
 
   const handleCreateRace = async () => {
     if (!raceName.trim() || !selectedDate || !selectedTime) {
@@ -2063,26 +2084,37 @@ function FriendlyCreateView({
             <label className="block text-electric-blue font-racing text-lg mb-3">
               🕐 SELECCIONA LA HORA
             </label>
-            <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
-              {timeSlots.map((time) => {
-                const isSelected = selectedTime === time;
-                return (
-                  <button
-                    key={time}
-                    onClick={() => setSelectedTime(time)}
-                    className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
-                      isSelected
-                        ? 'bg-gold/30 border-gold shadow-lg shadow-gold/50'
-                        : 'bg-midnight/50 border-gold/30 hover:border-gold/60'
-                    }`}
-                  >
-                    <p className={`text-xl font-digital ${isSelected ? 'text-gold' : 'text-sky-blue'}`}>
-                      {time}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
+            {timeSlots.length === 0 ? (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 text-center">
+                <p className="text-red-400 font-racing mb-2">
+                  ⚠️ No hay horarios disponibles
+                </p>
+                <p className="text-red-300/70 text-sm">
+                  Todos los bloques horarios están ocupados para esta fecha. Por favor selecciona otra fecha.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+                {timeSlots.map((time) => {
+                  const isSelected = selectedTime === time;
+                  return (
+                    <button
+                      key={time}
+                      onClick={() => setSelectedTime(time)}
+                      className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                        isSelected
+                          ? 'bg-gold/30 border-gold shadow-lg shadow-gold/50'
+                          : 'bg-midnight/50 border-gold/30 hover:border-gold/60'
+                      }`}
+                    >
+                      <p className={`text-xl font-digital ${isSelected ? 'text-gold' : 'text-sky-blue'}`}>
+                        {time}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
