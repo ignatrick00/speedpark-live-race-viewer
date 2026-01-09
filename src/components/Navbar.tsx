@@ -61,20 +61,59 @@ export default function Navbar() {
       if (invitationsResponse.ok) {
         const data = await invitationsResponse.json();
         newInvitationCount = data.count || 0;
+
+        // 🔍 DEBUG: Log invitations
+        if (newInvitationCount > 0) {
+          console.log('📧 [NAVBAR] Invitaciones pendientes:', data.invitations);
+          console.log('📊 [NAVBAR] Total invitaciones:', newInvitationCount);
+        }
       }
 
       if (friendsResponse.ok) {
         const data = await friendsResponse.json();
         newFriendRequestCount = data.count?.requestsReceived || 0;
+
+        // 🔍 DEBUG: Log friend requests
+        if (newFriendRequestCount > 0) {
+          console.log('👥 [NAVBAR] Solicitudes de amistad recibidas:', data.requestsReceived);
+          console.log('📊 [NAVBAR] Total solicitudes:', newFriendRequestCount);
+        }
       }
 
       if (notificationsResponse.ok) {
         const data = await notificationsResponse.json();
         newNotificationCount = data.unreadCount || 0;
+
+        // 🔍 DEBUG: Log unread notifications
+        if (newNotificationCount > 0) {
+          console.log('🔔 [NAVBAR] Notificaciones sin leer:', data.notifications);
+          console.log('📊 [NAVBAR] Total sin leer:', newNotificationCount);
+
+          // Log each notification details
+          data.notifications.forEach((notif: any, index: number) => {
+            console.log(`🔔 [NAVBAR] Notificación #${index + 1}:`, {
+              id: notif._id,
+              type: notif.type,
+              title: notif.title,
+              message: notif.message,
+              read: notif.read,
+              createdAt: notif.createdAt,
+              metadata: notif.metadata
+            });
+          });
+        }
       }
 
       const previousTotal = invitationCount + friendRequestCount + notificationCount;
       const newTotal = newInvitationCount + newFriendRequestCount + newNotificationCount;
+
+      // 🔍 DEBUG: Log all counts
+      console.log('📬 [NAVBAR] Contadores actualizados:', {
+        invitations: newInvitationCount,
+        friendRequests: newFriendRequestCount,
+        notifications: newNotificationCount,
+        total: newTotal
+      });
 
       // If total count increases, reset the seen state to show badge on button again
       if (newTotal > previousTotal) {

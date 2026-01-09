@@ -48,6 +48,18 @@ export async function POST(request: NextRequest) {
     friendship.respondedAt = new Date();
     await friendship.save();
 
+    // Mark friend request notifications as read
+    await Notification.updateMany(
+      {
+        userId: decoded.userId,
+        type: 'friend_request',
+        'metadata.friendshipId': friendshipId
+      },
+      {
+        $set: { read: true }
+      }
+    );
+
     // Create notification for the requester
     const currentUser = await WebUser.findById(decoded.userId);
     const requester = await WebUser.findById(friendship.requestedBy);
