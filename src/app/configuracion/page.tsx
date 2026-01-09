@@ -132,6 +132,13 @@ export default function ConfiguracionPage() {
       setUploading(true);
       setErrorMessage('');
 
+      // Validate token exists
+      if (!token) {
+        setErrorMessage('No se encontró token de autenticación');
+        setUploading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append('image', selectedFile);
 

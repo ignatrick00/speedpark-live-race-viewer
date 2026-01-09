@@ -32,20 +32,40 @@ function getR2Client() {
  */
 export async function POST(req: NextRequest) {
   try {
-    // Verify JWT token
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    // Verify JWT token (case-insensitive header check)
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+
+    if (!authHeader) {
+      console.error('❌ [PROFILE-PHOTO] No authorization header found');
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: 'No authorization header' },
         { status: 401 }
       );
     }
 
-    const token = authHeader.substring(7);
+    if (!authHeader.startsWith('Bearer ')) {
+      console.error('❌ [PROFILE-PHOTO] Invalid authorization format:', authHeader.substring(0, 20));
+      return NextResponse.json(
+        { success: false, error: 'Invalid authorization format' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7).trim();
+
+    if (!token || token === '') {
+      console.error('❌ [PROFILE-PHOTO] Empty token');
+      return NextResponse.json(
+        { success: false, error: 'Empty token' },
+        { status: 401 }
+      );
+    }
+
     let decoded: any;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ [PROFILE-PHOTO] Token verification failed:', error.message);
       return NextResponse.json(
         { success: false, error: 'Invalid token' },
         { status: 401 }
