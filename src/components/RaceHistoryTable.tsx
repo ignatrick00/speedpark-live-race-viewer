@@ -73,9 +73,12 @@ export default function RaceHistoryTable({ races }: RaceHistoryTableProps) {
   return (
     <>
       <div className="bg-midnight/60 border border-electric-blue/20 rounded-lg p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">🏁</span>
-          <h3 className="font-bold text-2xl text-electric-blue">HISTORIAL DE CARRERAS</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🏁</span>
+            <h3 className="font-bold text-2xl text-electric-blue">HISTORIAL DE CARRERAS</h3>
+          </div>
+          <span className="text-sky-blue/60 text-sm">Últimas {races.length} sesiones</span>
         </div>
 
         {races.length === 0 ? (

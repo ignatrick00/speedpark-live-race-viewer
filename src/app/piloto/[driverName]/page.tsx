@@ -7,7 +7,6 @@ import PersonalStatsCard from '@/components/PersonalStatsCard';
 import RaceHistoryTable from '@/components/RaceHistoryTable';
 import ProgressChart from '@/components/ProgressChart';
 import AchievementsBadge from '@/components/AchievementsBadge';
-import LapProgressionChart from '@/components/LapProgressionChart';
 
 export default function PublicDriverPage() {
   const params = useParams();
@@ -38,50 +37,58 @@ export default function PublicDriverPage() {
         return;
       }
 
-      // Then, fetch stats
-      const statsResponse = await fetch(`/api/users/${userData.userId}/stats`, {
-        headers: {
-          'Authorization': 'Bearer public'
-        }
-      });
+      console.log('✅ [PUBLIC PROFILE] User found:', userData.userId, userData.driverName);
+
+      // Then, fetch stats using the same API as private dashboard
+      const statsResponse = await fetch(`/api/user-stats?webUserId=${userData.userId}`);
       const statsData = await statsResponse.json();
 
-      if (!statsData.user) {
+      console.log('📊 [PUBLIC PROFILE] Stats API response:', statsData);
+
+      if (!statsData.success) {
         setError('No se pudieron cargar las estadísticas del piloto');
         setLoading(false);
         return;
       }
 
-      // Transform to dashboard format
-      const transformedStats = statsData.stats ? {
-        totalRaces: statsData.stats.totalRaces || 0,
-        totalSpent: statsData.stats.totalRevenue || 0,
-        bestTime: statsData.stats.bestTime || 0,
-        averageTime: statsData.stats.averageTime || 0,
-        bestPosition: 1,
-        podiumFinishes: statsData.stats.podiumFinishes || 0,
-        favoriteKart: 1,
-        totalLaps: statsData.stats.totalLaps || 0,
-        firstRace: statsData.stats.firstRaceAt ? new Date(statsData.stats.firstRaceAt) : new Date(),
-        lastRace: statsData.stats.lastRaceAt ? new Date(statsData.stats.lastRaceAt) : new Date(),
-        monthlyProgression: statsData.stats.monthlyStats || [],
-        recentRaces: (statsData.stats.recentSessions || []).map((session: any) => ({
-          date: new Date(session.sessionDate),
-          sessionName: session.sessionName,
-          sessionId: session.sessionId,
-          position: session.position || 0,
-          kartNumber: session.kartNumber || 0,
-          bestTime: session.bestTime || 0,
-          totalLaps: session.totalLaps || 0
-        }))
-      } : null;
-
+      // Set profile info
       setProfile({
         userId: userData.userId,
         driverName: userData.driverName,
-        firstName: statsData.user.firstName,
-        lastName: statsData.user.lastName,
-        photoUrl: statsData.user.photoUrl
+        firstName: userData.profile.firstName,
+        lastName: userData.profile.lastName,
+        photoUrl: null // Will be loaded from user stats if available
+      });
+
+      // Transform to dashboard format (same as private dashboard)
+      const transformedStats = statsData.stats ? {
+        totalRaces: statsData.stats.totalRaces || 0,
+        totalSpent: statsData.stats.totalSpent || 0,
+        bestTime: statsData.stats.bestTime || 0,
+        averageTime: statsData.stats.avgTime || 0,
+        bestPosition: statsData.stats.bestPosition || 1,
+        podiumFinishes: statsData.stats.podiumFinishes || 0,
+        favoriteKart: statsData.stats.favoriteKart || 1,
+        totalLaps: statsData.stats.totalLaps || 0,
+        firstRace: statsData.stats.firstRace ? new Date(statsData.stats.firstRace) : new Date(),
+        lastRace: statsData.stats.lastRace ? new Date(statsData.stats.lastRace) : new Date(),
+        monthlyProgression: statsData.stats.monthlyProgression || [],
+        recentRaces: (statsData.stats.recentRaces || []).map((race: any) => ({
+          date: new Date(race.date),
+          sessionName: race.sessionName,
+          sessionId: race.sessionName,
+          position: race.position || 0,
+          kartNumber: race.kartNumber || 0,
+          bestTime: race.bestTime || 0,
+          totalLaps: race.totalLaps || 0
+        }))
+      } : null;
+
+      console.log('✅ [PUBLIC PROFILE] Transformed stats:', {
+        totalRaces: transformedStats?.totalRaces,
+        totalLaps: transformedStats?.totalLaps,
+        podiumFinishes: transformedStats?.podiumFinishes,
+        bestTime: transformedStats?.bestTime
       });
 
       setStats(transformedStats);
@@ -115,7 +122,7 @@ export default function PublicDriverPage() {
     );
   }
 
-  if (error || !profile || !stats) {
+  if (error || !profile) {
     return (
       <>
         <Navbar />
@@ -130,6 +137,41 @@ export default function PublicDriverPage() {
             >
               Ver Rankings
             </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Handle case where profile exists but no stats
+  if (!stats) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-gradient-to-br from-midnight via-racing-black to-midnight p-6">
+          <div className="max-w-7xl mx-auto mb-4">
+            <button
+              onClick={() => router.push('/ranking')}
+              className="text-sky-blue hover:text-electric-blue transition-colors flex items-center gap-2"
+            >
+              ← Volver a Rankings
+            </button>
+          </div>
+
+          <header className="text-center mb-8">
+            <h1 className="font-bold text-4xl md:text-6xl mb-3 tracking-wider bg-gradient-to-r from-electric-blue via-sky-blue to-karting-gold bg-clip-text text-transparent">
+              DASHBOARD DE {profile.driverName.toUpperCase()}
+            </h1>
+          </header>
+
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-racing-black/50 border border-electric-blue/20 rounded-xl p-12 text-center">
+              <div className="text-6xl mb-4">📊</div>
+              <h2 className="text-2xl font-racing text-gold mb-2">Sin estadísticas disponibles</h2>
+              <p className="text-sky-blue/70 mb-4">
+                {profile.firstName} {profile.lastName} aún no tiene carreras registradas en el sistema.
+              </p>
+            </div>
           </div>
         </div>
       </>
@@ -312,10 +354,15 @@ export default function PublicDriverPage() {
               <RaceHistoryTable races={stats.recentRaces} />
             </div>
 
-            {/* Right Column - Achievements & Lap Progression */}
+            {/* Right Column - Achievements */}
             <div className="space-y-6">
-              <AchievementsBadge stats={stats} />
-              <LapProgressionChart races={stats.recentRaces} />
+              <AchievementsBadge
+                totalRaces={stats.totalRaces}
+                bestTime={stats.bestTime}
+                bestPosition={stats.bestPosition}
+                podiumFinishes={stats.podiumFinishes}
+                totalSpent={stats.totalSpent}
+              />
             </div>
           </div>
         </div>

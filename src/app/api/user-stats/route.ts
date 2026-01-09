@@ -91,7 +91,16 @@ export async function GET(request: NextRequest) {
 
     // 3️⃣ Calculate aggregate statistics
     // Total races: only count sessions with sessionType = 'carrera'
-    const totalRaces = sessions.filter(s => s.sessionType === 'carrera').length;
+    const raceSessions = sessions.filter(s => s.sessionType === 'carrera');
+    const totalRaces = raceSessions.length;
+
+    console.log(`📊 [USER-STATS] Total sessions: ${sessions.length}, Race sessions: ${totalRaces}`);
+    console.log(`📊 [USER-STATS] Race sessions breakdown:`, raceSessions.map(r => ({
+      id: r.sessionId,
+      type: r.sessionType,
+      pos: r.position
+    })));
+
     const totalLaps = sessions.reduce((sum, s) => sum + (s.totalLaps || 0), 0);
 
     // Best time (minimum valid time)
@@ -108,7 +117,13 @@ export async function GET(request: NextRequest) {
     const bestPosition = validPositions.length > 0 ? Math.min(...validPositions) : 1;
 
     // Podium finishes (positions 1, 2, 3 in RACES only)
-    const podiumFinishes = sessions.filter(s => s.sessionType === 'carrera' && s.position && s.position <= 3).length;
+    const podiumSessions = raceSessions.filter(s => s.position && s.position <= 3);
+    const podiumFinishes = podiumSessions.length;
+
+    console.log(`🏆 [USER-STATS] Podium sessions: ${podiumFinishes}`, podiumSessions.map(p => ({
+      id: p.sessionId,
+      pos: p.position
+    })));
 
     // Favorite kart (most used)
     const kartCounts: { [key: number]: number } = {};
@@ -174,8 +189,8 @@ export async function GET(request: NextRequest) {
         : data.bestTime
     }));
 
-    // 5️⃣ Format recent races (last 10)
-    const recentRaces = sessions.slice(0, 10).map(session => ({
+    // 5️⃣ Format recent races (last 20)
+    const recentRaces = sessions.slice(0, 20).map(session => ({
       date: session.sessionDate,
       sessionName: session.sessionId,
       sessionType: session.sessionType,

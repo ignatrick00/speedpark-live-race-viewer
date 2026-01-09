@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const driverName = searchParams.get('name');
 
+    console.log('🔍 [PUBLIC API] Looking for driver:', driverName);
+
     if (!driverName) {
       return NextResponse.json(
         { success: false, error: 'Driver name is required' },
@@ -28,6 +30,18 @@ export async function GET(request: NextRequest) {
       'kartingLink.status': 'linked',
       'accountStatus': { $ne: 'deleted' }
     }).select('_id profile.firstName profile.lastName kartingLink.driverName').lean();
+
+    console.log('🔍 [PUBLIC API] User found:', user ? 'YES' : 'NO');
+    if (user) {
+      console.log('✅ [PUBLIC API] Driver name in DB:', user.kartingLink?.driverName);
+    } else {
+      // Try to find any similar names
+      const similarUsers = await WebUser.find({
+        'kartingLink.status': 'linked',
+        'accountStatus': { $ne: 'deleted' }
+      }).select('kartingLink.driverName').limit(5).lean();
+      console.log('📋 [PUBLIC API] Sample linked drivers:', similarUsers.map(u => u.kartingLink?.driverName));
+    }
 
     if (!user) {
       return NextResponse.json(
