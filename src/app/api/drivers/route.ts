@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
       console.log('📋 [LIST-WEB-USERS] Fetching all WebUsers');
 
       const allUsers = await WebUser.find({})
-        .select('_id email profile kartingLink createdAt roles')
+        .select('_id email profile kartingLink createdAt roles accountStatus')
         .sort({ createdAt: -1 })
         .lean();
 
@@ -198,6 +198,7 @@ export async function GET(request: NextRequest) {
         isLinked: user.kartingLink?.status === 'linked',
         linkedDriverName: user.kartingLink?.driverName || null,
         linkStatus: user.kartingLink?.status || 'not_linked',
+        accountStatus: user.accountStatus || 'active',
         createdAt: user.createdAt,
         roles: user.roles || []
       }));

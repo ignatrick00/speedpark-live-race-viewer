@@ -67,6 +67,7 @@ export default function DriversAdminPage() {
   const [successMessage, setSuccessMessage] = useState({ driverName: '', email: '', role: '' });
   const [editingPrivileges, setEditingPrivileges] = useState<{ driver: Driver | null, roles: { isCoach: boolean, isOrganizer: boolean } } | null>(null);
   const [isSavingRoles, setIsSavingRoles] = useState(false);
+  const [restoringUserId, setRestoringUserId] = useState<string | null>(null);
 
   // Verificar acceso de administrador
   useEffect(() => {
@@ -296,6 +297,40 @@ export default function DriversAdminPage() {
     const minutes = Math.floor(timeMs / 60000);
     const seconds = ((timeMs % 60000) / 1000).toFixed(3);
     return `${minutes}:${parseFloat(seconds).toFixed(3).padStart(6, '0')}`;
+  };
+
+  const handleRestoreAccount = async (userId: string, userEmail: string) => {
+    if (!confirm(`¿Estás seguro de restaurar la cuenta de ${userEmail}?`)) {
+      return;
+    }
+
+    try {
+      setRestoringUserId(userId);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/restore-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`✅ Cuenta restaurada exitosamente: ${userEmail}`);
+        fetchWebUsers(); // Reload list
+      } else {
+        alert(`❌ Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error restoring account:', error);
+      alert('❌ Error al restaurar cuenta');
+    } finally {
+      setRestoringUserId(null);
+    }
   };
 
   // Mostrar loading o verificar acceso
@@ -818,15 +853,17 @@ export default function DriversAdminPage() {
                         <th className="text-left p-3">Nombre</th>
                         <th className="text-left p-3">Apellido</th>
                         <th className="text-left p-3">Alias</th>
-                        <th className="text-center p-3">Estado</th>
+                        <th className="text-center p-3">Vinculación</th>
                         <th className="text-left p-3">Driver Vinculado</th>
+                        <th className="text-center p-3">Estado Cuenta</th>
                         <th className="text-center p-3">Registrado</th>
+                        <th className="text-center p-3">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {webUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="text-center py-8 text-gray-400">
+                          <td colSpan={9} className="text-center py-8 text-gray-400">
                             No se encontraron usuarios web
                           </td>
                         </tr>
@@ -855,8 +892,34 @@ export default function DriversAdminPage() {
                                 <span className="text-gray-500">-</span>
                               )}
                             </td>
+                            <td className="p-3 text-center">
+                              {user.accountStatus === 'deleted' ? (
+                                <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs font-bold">
+                                  🗑️ ELIMINADA
+                                </span>
+                              ) : user.accountStatus === 'suspended' ? (
+                                <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs font-bold">
+                                  ⏸️ SUSPENDIDA
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                                  ✅ Activa
+                                </span>
+                              )}
+                            </td>
                             <td className="p-3 text-center text-gray-400 text-xs">
                               {new Date(user.createdAt).toLocaleDateString('es-CL')}
+                            </td>
+                            <td className="p-3 text-center">
+                              {user.accountStatus === 'deleted' && (
+                                <button
+                                  onClick={() => handleRestoreAccount(user._id, user.email)}
+                                  disabled={restoringUserId === user._id}
+                                  className="px-3 py-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/50 rounded text-xs font-bold transition-all disabled:opacity-50"
+                                >
+                                  {restoringUserId === user._id ? '...' : '♻️ Restaurar'}
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))

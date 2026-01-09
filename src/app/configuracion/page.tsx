@@ -27,6 +27,8 @@ export default function ConfiguracionPage() {
   const [uploading, setUploading] = useState(false);
 
   // Form fields
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -71,6 +73,8 @@ export default function ConfiguracionPage() {
         });
 
         setProfileData(data.profile);
+        setFirstName(data.profile.firstName || '');
+        setLastName(data.profile.lastName || '');
         setBirthDate(data.profile.birthDate ? new Date(data.profile.birthDate).toISOString().split('T')[0] : '');
 
         // Add timestamp if forceReload is true to bypass browser cache
@@ -208,6 +212,8 @@ export default function ConfiguracionPage() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
           birthDate: birthDate || null,
         }),
       });
@@ -215,7 +221,8 @@ export default function ConfiguracionPage() {
       const data = await response.json();
       if (data.success) {
         setSuccessMessage('Perfil actualizado exitosamente');
-        loadProfile();
+        await loadProfile();
+        setTimeout(() => setSuccessMessage(''), 3000);
       } else {
         setErrorMessage(data.error || 'Error al actualizar perfil');
       }
@@ -228,7 +235,7 @@ export default function ConfiguracionPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmation !== 'DELETE_MY_ACCOUNT') {
+    if (deleteConfirmation !== 'ELIMINAR MI CUENTA') {
       setErrorMessage('Confirmación incorrecta');
       return;
     }
@@ -244,7 +251,7 @@ export default function ConfiguracionPage() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          confirmation: 'DELETE_MY_ACCOUNT',
+          confirmation: 'ELIMINAR MI CUENTA',
         }),
       });
 
@@ -410,7 +417,7 @@ export default function ConfiguracionPage() {
               />
             </div>
 
-            {/* Name (readonly) */}
+            {/* Name (editable) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sky-blue/70 text-sm uppercase tracking-wider font-medium mb-2">
@@ -418,9 +425,11 @@ export default function ConfiguracionPage() {
                 </label>
                 <input
                   type="text"
-                  value={profileData.firstName}
-                  readOnly
-                  className="w-full bg-black/30 border border-cyan-400/30 rounded-lg px-4 py-3 text-white font-medium cursor-not-allowed opacity-70"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Ej: Juan"
+                  required
+                  className="w-full bg-black/30 border border-cyan-400/30 rounded-lg px-4 py-3 text-white font-medium focus:border-electric-blue focus:outline-none"
                 />
               </div>
               <div>
@@ -429,9 +438,11 @@ export default function ConfiguracionPage() {
                 </label>
                 <input
                   type="text"
-                  value={profileData.lastName}
-                  readOnly
-                  className="w-full bg-black/30 border border-cyan-400/30 rounded-lg px-4 py-3 text-white font-medium cursor-not-allowed opacity-70"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Ej: Pérez"
+                  required
+                  className="w-full bg-black/30 border border-cyan-400/30 rounded-lg px-4 py-3 text-white font-medium focus:border-electric-blue focus:outline-none"
                 />
               </div>
             </div>
@@ -515,13 +526,13 @@ export default function ConfiguracionPage() {
             </h3>
             <p className="text-sky-blue/80 mb-6 text-center">
               Esta acción es <strong className="text-red-400">IRREVERSIBLE</strong>.
-              Para confirmar, escribe <code className="text-white bg-black/50 px-2 py-1 rounded">DELETE_MY_ACCOUNT</code>
+              Para confirmar, escribe <code className="text-white bg-black/50 px-2 py-1 rounded">ELIMINAR MI CUENTA</code>
             </p>
             <input
               type="text"
               value={deleteConfirmation}
               onChange={(e) => setDeleteConfirmation(e.target.value)}
-              placeholder="Escribe: DELETE_MY_ACCOUNT"
+              placeholder="Escribe: ELIMINAR MI CUENTA"
               className="w-full bg-black/50 border border-red-500/30 rounded-lg px-4 py-3 text-white font-mono mb-4 focus:border-red-500 focus:outline-none"
             />
             <div className="flex gap-3">
@@ -536,7 +547,7 @@ export default function ConfiguracionPage() {
               </button>
               <button
                 onClick={handleDeleteAccount}
-                disabled={deleting || deleteConfirmation !== 'DELETE_MY_ACCOUNT'}
+                disabled={deleting || deleteConfirmation !== 'ELIMINAR MI CUENTA'}
                 className="flex-1 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? 'ELIMINANDO...' : 'ELIMINAR'}

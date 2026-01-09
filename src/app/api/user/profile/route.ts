@@ -93,7 +93,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { birthDate } = body;
+    const { firstName, lastName, birthDate } = body;
 
     await connectDB();
 
@@ -106,7 +106,29 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Update allowed fields (alias removed - cannot be changed)
+    // Update allowed fields (email and linkedDriverName cannot be changed)
+    if (firstName !== undefined) {
+      const trimmedFirstName = firstName?.trim();
+      if (!trimmedFirstName) {
+        return NextResponse.json(
+          { success: false, error: 'El nombre no puede estar vacío' },
+          { status: 400 }
+        );
+      }
+      user.profile.firstName = trimmedFirstName;
+    }
+
+    if (lastName !== undefined) {
+      const trimmedLastName = lastName?.trim();
+      if (!trimmedLastName) {
+        return NextResponse.json(
+          { success: false, error: 'El apellido no puede estar vacío' },
+          { status: 400 }
+        );
+      }
+      user.profile.lastName = trimmedLastName;
+    }
+
     if (birthDate !== undefined) {
       user.profile.birthDate = birthDate ? new Date(birthDate) : null;
     }
@@ -164,9 +186,9 @@ export async function DELETE(req: NextRequest) {
 
     // Get confirmation from request body
     const body = await req.json();
-    if (body.confirmation !== 'DELETE_MY_ACCOUNT') {
+    if (body.confirmation !== 'ELIMINAR MI CUENTA') {
       return NextResponse.json(
-        { success: false, error: 'Invalid confirmation' },
+        { success: false, error: 'Confirmación inválida' },
         { status: 400 }
       );
     }
