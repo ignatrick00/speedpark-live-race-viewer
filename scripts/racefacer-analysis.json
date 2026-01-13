@@ -1,0 +1,501 @@
+{
+  "url": "https://live.racefacer.com/KM42Paine",
+  "analyzedAt": "2026-01-12T20:19:00.591Z",
+  "websockets": [
+    {
+      "requestId": "40840.51",
+      "url": "wss://live.racefacer.com:3123/socket.io/?EIO=4&transport=websocket&sid=u_Ye9Xz7FozNhe-oDF45",
+      "createdAt": "2026-01-12T20:19:07.456Z",
+      "frames": [
+        {
+          "timestamp": "1970-01-01T02:49:40.255Z",
+          "direction": "sent",
+          "data": "2probe",
+          "opcode": 1,
+          "mask": true
+        },
+        {
+          "timestamp": "1970-01-01T02:49:40.474Z",
+          "direction": "received",
+          "data": "3probe",
+          "opcode": 1,
+          "mask": false
+        },
+        {
+          "timestamp": "1970-01-01T02:49:40.579Z",
+          "direction": "sent",
+          "data": "5",
+          "opcode": 1,
+          "mask": true
+        },
+        {
+          "timestamp": "1970-01-01T02:50:04.528Z",
+          "direction": "received",
+          "data": "2",
+          "opcode": 1,
+          "mask": false
+        },
+        {
+          "timestamp": "1970-01-01T02:50:04.528Z",
+          "direction": "sent",
+          "data": "3",
+          "opcode": 1,
+          "mask": true
+        },
+        {
+          "timestamp": "1970-01-01T02:50:29.747Z",
+          "direction": "received",
+          "data": "2",
+          "opcode": 1,
+          "mask": false
+        },
+        {
+          "timestamp": "1970-01-01T02:50:29.747Z",
+          "direction": "sent",
+          "data": "3",
+          "opcode": 1,
+          "mask": true
+        },
+        {
+          "timestamp": "1970-01-01T02:50:54.966Z",
+          "direction": "received",
+          "data": "2",
+          "opcode": 1,
+          "mask": false
+        },
+        {
+          "timestamp": "1970-01-01T02:50:54.966Z",
+          "direction": "sent",
+          "data": "3",
+          "opcode": 1,
+          "mask": true
+        },
+        {
+          "timestamp": "1970-01-01T02:51:20.228Z",
+          "direction": "received",
+          "data": "2",
+          "opcode": 1,
+          "mask": false
+        },
+        {
+          "timestamp": "1970-01-01T02:51:20.229Z",
+          "direction": "sent",
+          "data": "3",
+          "opcode": 1,
+          "mask": true
+        }
+      ]
+    }
+  ],
+  "httpRequests": [
+    {
+      "timestamp": "2026-01-12T20:19:04.279Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com/KM42Paine",
+      "headers": {
+        "accept-language": "es-419,es;q=0.9",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\""
+      },
+      "resourceType": "document"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:05.203Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com/css/app.css?id=f8b63a436920ccf0133f4e6509dea3df",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/KM42Paine",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "resourceType": "stylesheet"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:05.204Z",
+      "method": "GET",
+      "url": "https://fonts.googleapis.com/css?family=Roboto:400,700&subset=cyrillic,cyrillic-ext,greek,greek-ext,latin-ext,vietnamese",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "resourceType": "stylesheet"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:05.205Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com/js/live.v4.js?id=1fa07f1829d8816dc4886b80bffac206",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/KM42Paine",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "resourceType": "script"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:06.330Z",
+      "method": "POST",
+      "url": "https://www.google-analytics.com/g/collect?v=2&tid=G-8JNRH9NXRB&gtm=45je6180h1v9110293846za20g&_p=1768249145759&gcd=13l3l3l3l1l1&npa=0&dma=0&cid=1707728485.1768249146&ul=es-419&sr=1440x900&ir=1&uaa=x86&uab=64&uafvl=Chromium%3B143.0.7499.192%7CNot%2520A(Brand%3B24.0.0.0&uamb=0&uam=&uap=macOS&uapv=14.6.1&uaw=0&are=1&frm=0&pscdl=&_eu=EAAI&_s=1&tag_exp=102015666~103116026~103200004~104527906~104528500~104684208~104684211~105391252~115938465~115938469~116514482~116682876&sid=1768249146&sct=1&seg=0&dl=https%3A%2F%2Flive.racefacer.com%2FKM42Paine&dt=Live%20Timing&en=page_view&_fv=1&_nsi=1&_ss=1&tfd=2064",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "resourceType": "fetch"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:06.462Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com:3123/socket.io/?EIO=4&transport=polling&t=PkptBme",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/",
+        "accept-language": "es-419,es;q=0.9",
+        "accept": "*/*",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "resourceType": "xhr"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:06.463Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com/ajax/settings?slug=km42paine",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "x-csrf-token": "uMUmbL0fqalMNWZ92f9BBalQbkTJCmMjN5ddIeYy",
+        "x-xsrf-token": "eyJpdiI6IkI1S2tja0M2R1h5TCsrbndZWnFnSUE9PSIsInZhbHVlIjoiSGtGREMwUlFjeGdKN0ZuNERjZ3hXZDBkT0w4NEhBUHJXNVdzYURjeUdGZlRaWHRnMTNmUStydnhCRGNqNllyQTRETDFsQ0QzR3ZQVHIwSjM4NHd1aHNWRDhYZTdYS3RpUkdyRk1wcyt1R2U1QW1UMStsdUE2VjdMNXJxQ1RIUVEiLCJtYWMiOiIzM2Q2MmM5OTBmYWFjNDQwNjhmMDQwZjljY2VhYWUxYTYwNjQyOTljOTgxNWVlNjg1ODVkYTU3NTA5MGE3Y2QyIiwidGFnIjoiIn0=",
+        "referer": "https://live.racefacer.com/KM42Paine",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?0",
+        "x-requested-with": "XMLHttpRequest",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "accept": "application/json, text/plain, */*",
+        ":authority": "live.racefacer.com",
+        ":method": "GET",
+        ":path": "/ajax/settings?slug=km42paine",
+        ":scheme": "https",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "cookie": "XSRF-TOKEN=eyJpdiI6IkI1S2tja0M2R1h5TCsrbndZWnFnSUE9PSIsInZhbHVlIjoiSGtGREMwUlFjeGdKN0ZuNERjZ3hXZDBkT0w4NEhBUHJXNVdzYURjeUdGZlRaWHRnMTNmUStydnhCRGNqNllyQTRETDFsQ0QzR3ZQVHIwSjM4NHd1aHNWRDhYZTdYS3RpUkdyRk1wcyt1R2U1QW1UMStsdUE2VjdMNXJxQ1RIUVEiLCJtYWMiOiIzM2Q2MmM5OTBmYWFjNDQwNjhmMDQwZjljY2VhYWUxYTYwNjQyOTljOTgxNWVlNjg1ODVkYTU3NTA5MGE3Y2QyIiwidGFnIjoiIn0%3D; live_session=eyJpdiI6InVXR2JTZFFUejArRVVnaVdxU09pUVE9PSIsInZhbHVlIjoiRUZyMWJlZVZFZEtKTlAva2k1Y3M0T0dPWVQ0V3BZNGVlVUdneDFnc3AyUHQ2YVJjbktQQkF5SWdBMFVYVzBUMUpvK0I1OVlyVjZ6c1g0OTBuUDdMOFNld2kxSHcyQVh6Sy9raFFPcGRQN20zM3VlMDROWTBKNmRNMWxhRTNtNWQiLCJtYWMiOiJiNzc4YWRmNTZjYTgwODE1OGQ4YWEyYmRiOTU5NWI2NTA5ZWIzNmVmNzM0MjQ1NTk2MTgyMjUyOWU2YmQxOTI2IiwidGFnIjoiIn0%3D; _ga_8JNRH9NXRB=GS2.1.s1768249146$o1$g0$t1768249146$j60$l0$h0; _ga=GA1.1.1707728485.1768249146",
+        "priority": "u=1, i",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin"
+      },
+      "resourceType": "xhr"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:06.463Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com/ajax/live-data?slug=km42paine",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "x-csrf-token": "uMUmbL0fqalMNWZ92f9BBalQbkTJCmMjN5ddIeYy",
+        "x-xsrf-token": "eyJpdiI6IkI1S2tja0M2R1h5TCsrbndZWnFnSUE9PSIsInZhbHVlIjoiSGtGREMwUlFjeGdKN0ZuNERjZ3hXZDBkT0w4NEhBUHJXNVdzYURjeUdGZlRaWHRnMTNmUStydnhCRGNqNllyQTRETDFsQ0QzR3ZQVHIwSjM4NHd1aHNWRDhYZTdYS3RpUkdyRk1wcyt1R2U1QW1UMStsdUE2VjdMNXJxQ1RIUVEiLCJtYWMiOiIzM2Q2MmM5OTBmYWFjNDQwNjhmMDQwZjljY2VhYWUxYTYwNjQyOTljOTgxNWVlNjg1ODVkYTU3NTA5MGE3Y2QyIiwidGFnIjoiIn0=",
+        "referer": "https://live.racefacer.com/KM42Paine",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?0",
+        "x-requested-with": "XMLHttpRequest",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "accept": "application/json, text/plain, */*"
+      },
+      "resourceType": "xhr"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:06.590Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com/favicon.ico",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/KM42Paine",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "resourceType": "other"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:06.800Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com/assets/frontend/img/rf-small-logo.svg",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/KM42Paine",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "resourceType": "image"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:06.994Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com/assets/images/flags/cl.png",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/KM42Paine",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua-mobile": "?0",
+        ":authority": "live.racefacer.com",
+        ":method": "GET",
+        ":path": "/assets/images/flags/cl.png",
+        ":scheme": "https",
+        "accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "cookie": "_ga_8JNRH9NXRB=GS2.1.s1768249146$o1$g0$t1768249146$j60$l0$h0; _ga=GA1.2.1707728485.1768249146; _gid=GA1.2.1685890424.1768249147; _gat_gtag_UA_80072224_5=1; XSRF-TOKEN=eyJpdiI6InJVREtRV3JsN3dHaHZUS1Nmem0wREE9PSIsInZhbHVlIjoidG9iQlgzZjZyRmpUd0V6YXFjMnoyS016MmhFdjlQR2FGTURlQnZDRndwNTJZVXVZcHp0Lzlmak5rUld4TTZvY2lKenNiTEhYQUNYUnJnb1FiSHZ5Wm1nc05vbTdYTHJWTmVZcjRodDFDR1R5YURDVmdabGVESDVaeFpaRGtLalQiLCJtYWMiOiI3ZWJkMTYwN2MxYTcxZGEzYWQwNGUwYTkwYTU4MGFjNzg3MWVlODk4ZmYzOThlMzk2YzNjNDQxODVmOGEzZmFhIiwidGFnIjoiIn0%3D; live_session=eyJpdiI6InByWE1wN250UUJ6UTV1bmxaNHN0Y0E9PSIsInZhbHVlIjoiVGl0MXBmQnB3TlhXQ1pWMlAzOTBoWGZaQys0LzRuY1hMaklHdlNCUTJXOFN1L3ZTMEFrMU9LWWNCZXU5K1N2QTlmVzRDVHRLdWxBNG53aStQVkdHeVpUcVZTYmE5OFFKcjc2M2d6K0FNNWRGM3ZrVW1Bb1hTNlpOUkhyRWFlMjMiLCJtYWMiOiI0NThjZGJkNDU5MzBiYmY4MTYzNjEzMGU2ZGVjNjEwYTU4YmE0ZDRlM2JiMzM2NGZmMGI5NWNjZWU0ZDMxNjRjIiwidGFnIjoiIn0%3D",
+        "priority": "i",
+        "sec-fetch-dest": "image",
+        "sec-fetch-mode": "no-cors",
+        "sec-fetch-site": "same-origin"
+      },
+      "resourceType": "image"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:07.457Z",
+      "method": "POST",
+      "url": "https://live.racefacer.com:3123/socket.io/?EIO=4&transport=polling&t=PkptC0o&sid=u_Ye9Xz7FozNhe-oDF45",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?0",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "accept": "*/*",
+        "content-type": "text/plain;charset=UTF-8",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "connection": "keep-alive",
+        "content-length": "2",
+        "host": "live.racefacer.com:3123",
+        "origin": "https://live.racefacer.com",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site"
+      },
+      "resourceType": "xhr"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:07.458Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com:3123/socket.io/?EIO=4&transport=polling&t=PkptC0y&sid=u_Ye9Xz7FozNhe-oDF45",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/",
+        "accept-language": "es-419,es;q=0.9",
+        "accept": "*/*",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "resourceType": "xhr"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:07.948Z",
+      "method": "POST",
+      "url": "https://live.racefacer.com:3123/socket.io/?EIO=4&transport=polling&t=PkptC8c&sid=u_Ye9Xz7FozNhe-oDF45",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/",
+        "accept-language": "es-419,es;q=0.9",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?0",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "accept": "*/*",
+        "content-type": "text/plain;charset=UTF-8",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "connection": "keep-alive",
+        "content-length": "22",
+        "host": "live.racefacer.com:3123",
+        "origin": "https://live.racefacer.com",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site"
+      },
+      "resourceType": "xhr"
+    },
+    {
+      "timestamp": "2026-01-12T20:19:07.949Z",
+      "method": "GET",
+      "url": "https://live.racefacer.com:3123/socket.io/?EIO=4&transport=polling&t=PkptC8d&sid=u_Ye9Xz7FozNhe-oDF45",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://live.racefacer.com/",
+        "accept-language": "es-419,es;q=0.9",
+        "accept": "*/*",
+        "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "resourceType": "xhr"
+    }
+  ],
+  "messages": [
+    {
+      "timestamp": "1970-01-01T02:49:40.255Z",
+      "direction": "sent",
+      "data": "2probe",
+      "opcode": 1,
+      "mask": true
+    },
+    {
+      "timestamp": "1970-01-01T02:49:40.474Z",
+      "direction": "received",
+      "data": "3probe",
+      "opcode": 1,
+      "mask": false
+    },
+    {
+      "timestamp": "1970-01-01T02:49:40.579Z",
+      "direction": "sent",
+      "data": "5",
+      "opcode": 1,
+      "mask": true
+    },
+    {
+      "timestamp": "1970-01-01T02:50:04.528Z",
+      "direction": "received",
+      "data": "2",
+      "opcode": 1,
+      "mask": false
+    },
+    {
+      "timestamp": "1970-01-01T02:50:04.528Z",
+      "direction": "sent",
+      "data": "3",
+      "opcode": 1,
+      "mask": true
+    },
+    {
+      "timestamp": "1970-01-01T02:50:29.747Z",
+      "direction": "received",
+      "data": "2",
+      "opcode": 1,
+      "mask": false
+    },
+    {
+      "timestamp": "1970-01-01T02:50:29.747Z",
+      "direction": "sent",
+      "data": "3",
+      "opcode": 1,
+      "mask": true
+    },
+    {
+      "timestamp": "1970-01-01T02:50:54.966Z",
+      "direction": "received",
+      "data": "2",
+      "opcode": 1,
+      "mask": false
+    },
+    {
+      "timestamp": "1970-01-01T02:50:54.966Z",
+      "direction": "sent",
+      "data": "3",
+      "opcode": 1,
+      "mask": true
+    },
+    {
+      "timestamp": "1970-01-01T02:51:20.228Z",
+      "direction": "received",
+      "data": "2",
+      "opcode": 1,
+      "mask": false
+    },
+    {
+      "timestamp": "1970-01-01T02:51:20.229Z",
+      "direction": "sent",
+      "data": "3",
+      "opcode": 1,
+      "mask": true
+    }
+  ],
+  "metadata": {
+    "title": "Live Timing",
+    "url": "https://live.racefacer.com/KM42Paine",
+    "scripts": [
+      "https://www.google-analytics.com/analytics.js",
+      "https://www.googletagmanager.com/gtag/js?id=G-8JNRH9NXRB&cx=c&gtm=4e6180h1",
+      "https://www.googletagmanager.com/gtag/js?id=UA-80072224-5",
+      "https://unpkg.com/alpinejs@3.7.0/dist/cdn.min.js",
+      "https://live.racefacer.com/js/live.v4.js?id=1fa07f1829d8816dc4886b80bffac206"
+    ],
+    "metas": [
+      {
+        "name": null,
+        "content": null,
+        "property": null
+      },
+      {
+        "name": "viewport",
+        "content": "width=device-width, initial-scale=1",
+        "property": null
+      },
+      {
+        "name": "csrf-token",
+        "content": "uMUmbL0fqalMNWZ92f9BBalQbkTJCmMjN5ddIeYy",
+        "property": null
+      },
+      {
+        "name": "theme-color",
+        "content": "#000000",
+        "property": null
+      },
+      {
+        "name": "twitter:card",
+        "content": "summary_large_image",
+        "property": null
+      },
+      {
+        "name": null,
+        "content": "website",
+        "property": "og:type"
+      },
+      {
+        "name": null,
+        "content": "Live Timing - Powered by Racefacer.com",
+        "property": "og:title"
+      },
+      {
+        "name": "description",
+        "content": "Live Timing of KM42 Paine. Powered by Racefacer.com",
+        "property": null
+      },
+      {
+        "name": null,
+        "content": "Live Timing of KM42 Paine. Powered by Racefacer.com",
+        "property": "og:description"
+      },
+      {
+        "name": null,
+        "content": "https://live.racefacer.com/KM42Paine",
+        "property": "og:url"
+      },
+      {
+        "name": null,
+        "content": "en",
+        "property": "og:locale"
+      }
+    ]
+  }
+}

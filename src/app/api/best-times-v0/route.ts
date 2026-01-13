@@ -126,11 +126,14 @@ export async function GET(request: Request) {
         'kartingLink.driverName': { $in: driverNames },
         'kartingLink.status': 'linked',
         'accountStatus': { $ne: 'deleted' }
-      }).select('_id kartingLink.driverName').lean();
+      }).select('_id kartingLink.driverName profile.photoUrl').lean();
 
-      // Create map for quick lookup
+      // Create map for quick lookup (userId and photoUrl)
       const driverToUserIdMap = new Map(
         webUsers.map(u => [u.kartingLink.driverName, u._id.toString()])
+      );
+      const driverToPhotoUrlMap = new Map(
+        webUsers.map(u => [u.kartingLink.driverName, u.profile?.photoUrl || null])
       );
 
       // Formatear para frontend - retornar todos los resultados (20 para drivers)
@@ -138,6 +141,7 @@ export async function GET(request: Request) {
         position: idx + 1,
         driverName: item._id,
         webUserId: driverToUserIdMap.get(item._id) || null,
+        photoUrl: driverToPhotoUrlMap.get(item._id) || null,
         bestTime: item.bestTime,
         kartNumber: item.kartNumber,
         sessionName: item.sessionName,
