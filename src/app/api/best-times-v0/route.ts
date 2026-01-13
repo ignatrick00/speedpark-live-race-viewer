@@ -25,13 +25,14 @@ export async function GET(request: Request) {
     if (period === 'day') {
       // Si hay un parámetro de fecha específico, usarlo
       if (dateParam) {
-        // Parsear fecha en UTC (sin timezone) para evitar desfase
-        // dateParam viene como "2026-01-05" (YYYY-MM-DD)
-        const [year, month, day] = dateParam.split('-').map(Number);
+        // Parsear fecha en HORA CHILE (no UTC)
+        // dateParam viene como "2026-01-13" (YYYY-MM-DD)
+        const [year, month, day] = dateParam.split('-');
 
-        // Crear rango de 00:00:00 a 23:59:59 en UTC
-        const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-        const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+        // Crear timestamps UTC que representan 00:00 y 23:59:59 de ese día EN CHILE
+        // Ejemplo: 2026-01-13 00:00 Chile = 2026-01-13 03:00 UTC
+        const startOfDay = new Date(`${year}-${month}-${day}T00:00:00-03:00`);
+        const endOfDay = new Date(`${year}-${month}-${day}T23:59:59-03:00`);
 
         dateFilter = {
           sessionDate: {
@@ -39,7 +40,9 @@ export async function GET(request: Request) {
             $lte: endOfDay
           }
         };
-        console.log(`📅 [CUSTOM DATE] Selected: ${dateParam}, Range: ${startOfDay.toISOString()} - ${endOfDay.toISOString()}`);
+        console.log(`📅 [CUSTOM DATE] Selected: ${dateParam} (Chile)`);
+        console.log(`📅 [CUSTOM DATE] Range UTC: ${startOfDay.toISOString()} - ${endOfDay.toISOString()}`);
+        console.log(`📅 [CUSTOM DATE] Range Chile: ${startOfDay.toLocaleString('es-CL', { timeZone: 'America/Santiago' })} - ${endOfDay.toLocaleString('es-CL', { timeZone: 'America/Santiago' })}`);
       } else {
         // Fecha actual (HOY) en Chile - usar Intl para precisión
         const formatter = new Intl.DateTimeFormat('en-US', {
