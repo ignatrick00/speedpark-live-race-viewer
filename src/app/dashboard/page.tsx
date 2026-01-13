@@ -15,6 +15,7 @@ import TopDriversDay from '@/components/TopDriversDay';
 import TopDriversWeek from '@/components/TopDriversWeek';
 import TopDriversMonth from '@/components/TopDriversMonth';
 import TopDriversAllTime from '@/components/TopDriversAllTime';
+import KartRankingCard from '@/components/KartRankingCard';
 import Navbar from '@/components/Navbar';
 
 export interface PersonalStats {
@@ -1008,6 +1009,11 @@ function DashboardContent() {
                   friendUserId={isViewingFriend ? targetUserId : undefined}
                 />
 
+                {/* Kart Ranking */}
+                <KartRankingCard
+                  userFavoriteKart={stats.favoriteKart}
+                />
+
                 {/* Achievements */}
                 <AchievementsBadge
                   totalRaces={stats.totalRaces}
@@ -1029,8 +1035,8 @@ function DashboardContent() {
                   </p>
                   <div className="mt-3 pt-3 border-t border-karting-gold/30">
                     <p className="text-sky-blue text-sm font-medium">
-                      {stats.totalRaces >= 20 ? '🏆 PILOTO VETERANO' : 
-                       stats.totalRaces >= 10 ? '🎯 PILOTO EXPERIMENTADO' : 
+                      {stats.totalRaces >= 20 ? '🏆 PILOTO VETERANO' :
+                       stats.totalRaces >= 10 ? '🎯 PILOTO EXPERIMENTADO' :
                        '🚀 PILOTO NOVATO'}
                     </p>
                   </div>
