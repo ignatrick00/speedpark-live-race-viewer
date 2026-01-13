@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/hooks/useAuth'
 import Navbar from '@/components/Navbar'
+import NextExpressRaceV0 from '@/components/NextExpressRaceV0'
 import TopDriversDayV0 from '@/components/TopDriversDayV0'
 import TopKartsDayV0 from '@/components/TopKartsDayV0'
 import TopDriversDay from '@/components/TopDriversDay'
@@ -354,112 +355,118 @@ export default function LiveRaceViewer() {
 
         {/* Main Race Section */}
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-8 items-start">
-          {/* Live Leaderboard Table */}
-          <section className="bg-gradient-to-br from-slate-900/50 to-blue-900/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-400/5 to-blue-600/5 rounded-2xl"></div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="font-racing text-3xl text-white tracking-wider">
-                  🏆 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white" style={{
-                    textShadow: '0 0 10px rgba(135, 206, 235, 0.8), 0 0 20px rgba(0, 87, 184, 0.4)'
-                  }}>Posiciones en Tiempo Real</span>
-                </h2>
+          {/* Left Column - Live Table and Next Race */}
+          <div className="space-y-8">
+            {/* Live Leaderboard Table */}
+            <section className="bg-gradient-to-br from-slate-900/50 to-blue-900/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-cyan-400/5 to-blue-600/5 rounded-2xl"></div>
 
-                {/* Botón fullscreen solo móviles */}
-                <button
-                  onClick={enterFullscreen}
-                  className="md:hidden px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-racing text-sm rounded-lg hover:shadow-lg hover:shadow-cyan-400/50 transition-all flex items-center gap-2"
-                >
-                  ⛶ Pantalla Completa
-                </button>
-              </div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="font-racing text-3xl text-white tracking-wider">
+                    🏆 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-sky-400 to-white" style={{
+                      textShadow: '0 0 10px rgba(135, 206, 235, 0.8), 0 0 20px rgba(0, 87, 184, 0.4)'
+                    }}>Posiciones en Tiempo Real</span>
+                  </h2>
 
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border-spacing-y-2">
-                  <thead>
-                    <tr className="border-b-2 border-blue-800/30">
-                      <th className="text-left py-4 px-2 font-racing text-sky-400 tracking-wider uppercase text-sm" style={{ width: '60px' }}>POS</th>
-                      <th className="text-left py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">PILOTO</th>
-                      <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">KART</th>
-                      <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">VUELTA</th>
-                      <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">MEJOR TIEMPO</th>
-                      <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">ÚLTIMA VUELTA</th>
-                      <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">PROMEDIO</th>
-                      <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">DIFERENCIA</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {drivers.length > 0 ? drivers.map((driver) => (
-                      <tr 
-                        key={driver.pos}
-                        className="bg-black/40 hover:bg-blue-900/20 transition-all duration-300 hover:transform hover:translate-x-2"
-                      >
-                        <td className="py-4 px-2">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${
-                            driver.pos === 1 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-black shadow-lg shadow-yellow-400/60' :
-                            driver.pos === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-black shadow-lg shadow-gray-400/60' :
-                            driver.pos === 3 ? 'bg-gradient-to-br from-orange-600 to-orange-800 text-white shadow-lg shadow-orange-600/60' :
-                            'bg-blue-900/30 text-white border border-cyan-400'
-                          }`}>
-                            {driver.pos}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="font-racing text-white text-lg font-semibold uppercase tracking-wide">{driver.name}</div>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <div className="font-digital text-sky-400 font-bold">#{driver.kart}</div>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <div className="font-digital text-white">{driver.lap}</div>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <div className="font-digital text-cyan-400 text-lg font-bold">{driver.bestTime}</div>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <div className="font-digital text-blue-300">{driver.lastTime}</div>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <div className="font-digital text-blue-300">{driver.avgTime}</div>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <div className={`font-digital font-bold ${driver.gap === '--' ? 'text-green-400' : 'text-orange-400'}`}>
-                            {driver.gap}
-                          </div>
-                        </td>
+                  {/* Botón fullscreen solo móviles */}
+                  <button
+                    onClick={enterFullscreen}
+                    className="md:hidden px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-racing text-sm rounded-lg hover:shadow-lg hover:shadow-cyan-400/50 transition-all flex items-center gap-2"
+                  >
+                    ⛶ Pantalla Completa
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border-spacing-y-2">
+                    <thead>
+                      <tr className="border-b-2 border-blue-800/30">
+                        <th className="text-left py-4 px-2 font-racing text-sky-400 tracking-wider uppercase text-sm" style={{ width: '60px' }}>POS</th>
+                        <th className="text-left py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">PILOTO</th>
+                        <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">KART</th>
+                        <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">VUELTA</th>
+                        <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">MEJOR TIEMPO</th>
+                        <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">ÚLTIMA VUELTA</th>
+                        <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">PROMEDIO</th>
+                        <th className="text-right py-4 px-4 font-racing text-sky-400 tracking-wider uppercase text-sm">DIFERENCIA</th>
                       </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={8} className="py-8 text-center">
-                          <div className="text-blue-300">
-                            {error ? (
-                              <div>
-                                <div className="text-red-400 mb-2">❌ Error: {error}</div>
-                                <button onClick={reconnect} className="text-cyan-400 hover:text-white transition-colors">
-                                  🔄 Reintentar conexión
-                                </button>
-                              </div>
-                            ) : !isConnected ? (
-                              <div className="animate-pulse">
-                                🔄 Conectando a SMS-Timing...
-                              </div>
-                            ) : (
-                              <div>
-                                ⏳ Esperando datos de carrera...
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {drivers.length > 0 ? drivers.map((driver) => (
+                        <tr
+                          key={driver.pos}
+                          className="bg-black/40 hover:bg-blue-900/20 transition-all duration-300 hover:transform hover:translate-x-2"
+                        >
+                          <td className="py-4 px-2">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${
+                              driver.pos === 1 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-black shadow-lg shadow-yellow-400/60' :
+                              driver.pos === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-black shadow-lg shadow-gray-400/60' :
+                              driver.pos === 3 ? 'bg-gradient-to-br from-orange-600 to-orange-800 text-white shadow-lg shadow-orange-600/60' :
+                              'bg-blue-900/30 text-white border border-cyan-400'
+                            }`}>
+                              {driver.pos}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="font-racing text-white text-lg font-semibold uppercase tracking-wide">{driver.name}</div>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <div className="font-digital text-sky-400 font-bold">#{driver.kart}</div>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <div className="font-digital text-white">{driver.lap}</div>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <div className="font-digital text-cyan-400 text-lg font-bold">{driver.bestTime}</div>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <div className="font-digital text-blue-300">{driver.lastTime}</div>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <div className="font-digital text-blue-300">{driver.avgTime}</div>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <div className={`font-digital font-bold ${driver.gap === '--' ? 'text-green-400' : 'text-orange-400'}`}>
+                              {driver.gap}
+                            </div>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan={8} className="py-8 text-center">
+                            <div className="text-blue-300">
+                              {error ? (
+                                <div>
+                                  <div className="text-red-400 mb-2">❌ Error: {error}</div>
+                                  <button onClick={reconnect} className="text-cyan-400 hover:text-white transition-colors">
+                                    🔄 Reintentar conexión
+                                  </button>
+                                </div>
+                              ) : !isConnected ? (
+                                <div className="animate-pulse">
+                                  🔄 Conectando a SMS-Timing...
+                                </div>
+                              ) : (
+                                <div>
+                                  ⏳ Esperando datos de carrera...
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          {/* Sidebar with both sections */}
+            {/* Next Express Race - Below Live Table */}
+            <NextExpressRaceV0 />
+          </div>
+
+          {/* Sidebar with rankings */}
           <div className="space-y-6">
             {/* Top 10 Drivers of the Day - V0 Version */}
             <TopDriversDayV0 />
