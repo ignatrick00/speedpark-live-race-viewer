@@ -2886,7 +2886,7 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
 
   const fetchMyFriendlyRaces = async () => {
     try {
-      const response = await fetch('/api/races/friendly?filter=all', {
+      const response = await fetch('/api/races/my-races', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -2894,24 +2894,7 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
 
       if (response.ok) {
         const data = await response.json();
-        // Filter races where user is participant
-        const myRaces = (data.races || []).filter((race: Race) => {
-          const isParticipant = race.participantsList?.some(
-            (participant: any) => {
-              const participantUserId = String(participant.userId || participant.user || '');
-              const currentUserId = String(userId || '');
-              return participantUserId === currentUserId;
-            }
-          );
-          const raceDate = new Date(race.date);
-          const raceDateOnly = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate());
-          const now = new Date();
-          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const isFuture = raceDateOnly >= today; // Compare only dates, not times
-          const isNotFinalized = !race.linkedRaceSessionId && race.raceStatus !== 'linked' && race.raceStatus !== 'finalized';
-          return isParticipant && isFuture && isNotFinalized;
-        });
-        setFriendlyRaces(myRaces);
+        setFriendlyRaces(data.races || []);
       }
     } catch (error) {
       console.error('Error fetching my friendly races:', error);
