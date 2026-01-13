@@ -124,20 +124,25 @@ export async function GET(request: Request) {
 
 // Helper: Formatear fecha (solo hora)
 function formatDate(date: Date): string {
+  // toLocaleTimeString convierte automáticamente UTC a timezone Chile
   return new Date(date).toLocaleTimeString('es-CL', {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: 'America/Santiago'
   });
 }
 
 // Helper: Formatear fecha completa
 function formatDateTime(date: Date): string {
+  // toLocaleDateString/Time convierten automáticamente UTC a timezone Chile
   const d = new Date(date);
   return d.toLocaleDateString('es-CL', {
     day: '2-digit',
-    month: 'short'
+    month: 'short',
+    timeZone: 'America/Santiago'
   }) + ' ' + d.toLocaleTimeString('es-CL', {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: 'America/Santiago'
   });
 }

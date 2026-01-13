@@ -234,12 +234,12 @@ export default function RaceResultsView({
           </h3>
           <p className="text-sm text-sky-blue/60">
             {(() => {
-              // Browser convierte UTC automáticamente a timezone local de Chile
+              // toLocaleDateString/Time convierten automáticamente UTC a timezone Chile
               const sessionDate = new Date(raceDetails.sessionDate);
               return (
                 <>
-                  {sessionDate.toLocaleDateString('es-CL')} • {' '}
-                  {sessionDate.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })} • {' '}
+                  {sessionDate.toLocaleDateString('es-CL', { timeZone: 'America/Santiago' })} • {' '}
+                  {sessionDate.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Santiago' })} • {' '}
                 </>
               );
             })()}

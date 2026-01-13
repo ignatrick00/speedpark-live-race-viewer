@@ -46,8 +46,8 @@ export class RaceSessionServiceV0 {
 
       // 1. Generar sessionId único (nombre + fecha) - usando timezone de Chile
       const now = new Date();
-      // Guardar fecha en UTC (MongoDB la guarda así)
-      // El display en frontend se encargará de mostrarla en timezone Chile
+      // Guardar fecha actual en UTC (MongoDB la guarda así)
+      // El display en frontend convertirá automáticamente a timezone Chile
       const sessionDate = now;
       const sessionId = this.generateSessionId(smsData.N, sessionDate);
 
@@ -211,15 +211,14 @@ export class RaceSessionServiceV0 {
     // Determinar si es personal best
     const isPersonalBest = (driverData.B === driverData.T) && driverData.T > 0;
 
-    // Crear nueva vuelta con timestamp en hora de Chile
+    // Crear nueva vuelta con timestamp actual en UTC
     const now = new Date();
-    const chileTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santiago' }));
 
     const newLap: ILapV0 = {
       lapNumber,
       time: driverData.T,
       position: driverData.P,
-      timestamp: chileTime,
+      timestamp: now,
       gapToLeader: driverData.G,
       isPersonalBest
     };

@@ -211,23 +211,25 @@ function formatTime(ms: number): string {
 
 // Helper: Formatear fecha (solo hora)
 function formatDate(date: Date): string {
-  // Sumar 3 horas para mostrar hora de Chile (datos guardados en UTC-3)
-  const chileDate = new Date(new Date(date).getTime() + (3 * 60 * 60 * 1000));
-  return chileDate.toLocaleTimeString('es-CL', {
+  // toLocaleTimeString convierte automáticamente UTC a timezone Chile
+  return new Date(date).toLocaleTimeString('es-CL', {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: 'America/Santiago'
   });
 }
 
 // Helper: Formatear fecha completa
 function formatDateTime(date: Date): string {
-  // Sumar 3 horas para mostrar hora de Chile (datos guardados en UTC-3)
-  const chileDate = new Date(new Date(date).getTime() + (3 * 60 * 60 * 1000));
-  return chileDate.toLocaleDateString('es-CL', {
+  // toLocaleDateString/Time convierten automáticamente UTC a timezone Chile
+  const d = new Date(date);
+  return d.toLocaleDateString('es-CL', {
     day: '2-digit',
-    month: 'short'
-  }) + ' ' + chileDate.toLocaleTimeString('es-CL', {
+    month: 'short',
+    timeZone: 'America/Santiago'
+  }) + ' ' + d.toLocaleTimeString('es-CL', {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: 'America/Santiago'
   });
 }

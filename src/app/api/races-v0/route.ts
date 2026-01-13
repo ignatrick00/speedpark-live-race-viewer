@@ -44,7 +44,7 @@ export async function GET(request: Request) {
 
     // Formatear para frontend
     const formattedRaces = races.map(race => {
-      // Browser convierte UTC automáticamente a timezone local de Chile
+      // DB guarda fecha UTC, toLocaleTimeString convierte automáticamente a timezone Chile
       const sessionDate = new Date(race.sessionDate);
 
       return {
@@ -57,12 +57,14 @@ export async function GET(request: Request) {
         displayDate: sessionDate.toLocaleDateString('es-CL', {
           day: '2-digit',
           month: '2-digit',
-          year: 'numeric'
+          year: 'numeric',
+          timeZone: 'America/Santiago'
         }),
         displayTime: sessionDate.toLocaleTimeString('es-CL', {
           hour: '2-digit',
           minute: '2-digit',
-          hour12: false
+          hour12: false,
+          timeZone: 'America/Santiago'
         })
       };
     });
