@@ -41,20 +41,26 @@ export async function GET(request: Request) {
         };
         console.log(`📅 [CUSTOM DATE] Selected: ${dateParam}, Range: ${startOfDay.toISOString()} - ${endOfDay.toISOString()}`);
       } else {
-        // Fecha actual (HOY) en Chile
-        const chileOffset = -3 * 60; // -3 horas en minutos
-        const utcNow = now.getTime() + (now.getTimezoneOffset() * 60000);
-        const chileNow = new Date(utcNow + (chileOffset * 60000));
+        // Fecha actual (HOY) en Chile - usar Intl para precisión
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/Santiago',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
 
-        // Medianoche de hoy en Chile
-        const startOfDayChile = new Date(chileNow);
-        startOfDayChile.setHours(0, 0, 0, 0);
+        const parts = formatter.formatToParts(now);
+        const year = parts.find(p => p.type === 'year')!.value;
+        const month = parts.find(p => p.type === 'month')!.value;
+        const day = parts.find(p => p.type === 'day')!.value;
 
-        // Convertir de vuelta a UTC para MongoDB
-        const startOfDayUTC = new Date(startOfDayChile.getTime() - (chileOffset * 60000));
+        // Crear timestamp UTC que representa 00:00 hora Chile (-03:00)
+        const startOfDayUTC = new Date(`${year}-${month}-${day}T00:00:00-03:00`);
 
         dateFilter = { sessionDate: { $gte: startOfDayUTC } };
-        console.log(`📅 [DAY FILTER] Chile now: ${chileNow.toISOString()}, Start of day UTC: ${startOfDayUTC.toISOString()}`);
+        console.log(`📅 [DAY FILTER] Chile date: ${day}/${month}/${year}`);
+        console.log(`📅 [DAY FILTER] Start of day UTC: ${startOfDayUTC.toISOString()}`);
+        console.log(`📅 [DAY FILTER] In Chile time: ${startOfDayUTC.toLocaleString('es-CL', { timeZone: 'America/Santiago' })}`);
       }
     } else if (period === 'week') {
       const startOfWeek = new Date(now);
