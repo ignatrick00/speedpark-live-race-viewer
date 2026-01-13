@@ -17,34 +17,28 @@ export class StatsService {
 
   /**
    * Convert UTC date to Chile time
-   * DB stores dates in UTC, this extracts all date components in Chile timezone
+   * Uses same method as "Clasificaciones Recientes" table (toLocaleString)
    */
   private static toChileTime(date: Date): { hour: number, weekday: number, date: Date } {
-    // Extract all date components in Chile timezone using Intl.DateTimeFormat
-    const options: Intl.DateTimeFormatOptions = {
+    // Use toLocaleString with Chile timezone (same as classification table)
+    const chileStr = date.toLocaleString('en-US', {
       timeZone: 'America/Santiago',
+      hour12: false,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    };
+      second: '2-digit'
+    });
 
-    const formatter = new Intl.DateTimeFormat('en-US', options);
-    const parts = formatter.formatToParts(date);
+    // Parse result: "MM/DD/YYYY, HH:mm:ss"
+    const [datePart, timePart] = chileStr.split(', ');
+    const [month, day, year] = datePart.split('/').map(Number);
+    const [hour, minute, second] = timePart.split(':').map(Number);
 
-    // Extract individual components
-    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
-    const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
-    const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
-    const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
-    const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
-    const second = parseInt(parts.find(p => p.type === 'second')?.value || '0');
-
-    // Reconstruct Date object with Chile time components
-    const chileDate = new Date(year, month, day, hour, minute, second);
+    // Create Date object with Chile time values
+    const chileDate = new Date(year, month - 1, day, hour, minute, second);
 
     return {
       hour: chileDate.getHours(),
