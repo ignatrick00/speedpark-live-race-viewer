@@ -2861,9 +2861,11 @@ function MyRegisteredEventsView({ token, userId, onRefresh }: { token: string; u
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
-    fetchMyEvents();
-    fetchMyFriendlyRaces();
-  }, []);
+    if (token && userId) {
+      fetchMyEvents();
+      fetchMyFriendlyRaces();
+    }
+  }, [token, userId]);
 
   const fetchMyEvents = async () => {
     try {
