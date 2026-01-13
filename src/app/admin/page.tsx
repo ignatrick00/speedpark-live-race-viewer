@@ -11,6 +11,15 @@ export default function AdminPage() {
 
   const adminPages = [
     {
+      id: 'analytics',
+      name: 'Analytics & Monitoreo',
+      icon: '📈',
+      path: '/admin/analytics',
+      description: 'Monitoreo en tiempo real de usuarios, IPs y actividad del sitio',
+      color: 'from-indigo-500 to-purple-500',
+      badge: 'NEW'
+    },
+    {
       id: 'stats',
       name: 'Estadísticas del Sistema',
       icon: '📊',
@@ -24,8 +33,7 @@ export default function AdminPage() {
       icon: '⏱️',
       path: '/admin/lap-times',
       description: 'Configurar validación y gestionar tiempos de ranking',
-      color: 'from-red-500 to-pink-500',
-      badge: 'NEW'
+      color: 'from-red-500 to-pink-500'
     },
     {
       id: 'organizers',

@@ -20,6 +20,13 @@ export default function AdminNavbar({ currentPage }: AdminNavbarProps) {
 
   const adminPages = [
     {
+      id: 'analytics',
+      name: 'Analytics',
+      icon: '📈',
+      path: '/admin/analytics',
+      description: 'Monitoreo en tiempo real y actividad de usuarios'
+    },
+    {
       id: 'drivers',
       name: 'Corredores',
       icon: '🏁',
