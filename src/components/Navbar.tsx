@@ -275,7 +275,7 @@ export default function Navbar() {
                           href="/herramientas"
                           className="block px-4 py-3 text-blue-300 hover:text-cyan-400 hover:bg-cyan-400/10 transition-colors font-medium uppercase tracking-wider text-sm border-b border-blue-800/30"
                         >
-                          🔧 Herramientas
+                          Herramientas
                         </a>
                         <a
                           href="/configuracion"
