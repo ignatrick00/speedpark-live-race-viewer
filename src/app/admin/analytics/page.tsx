@@ -87,6 +87,19 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
+  // Filters for Online Users table
+  const [userFilter, setUserFilter] = useState('');
+  const [ipFilter, setIpFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [pageFilter, setPageFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'auth' | 'anon'>('all');
+
+  // Filters for Active IPs table
+  const [ipAddressFilter, setIpAddressFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [userNameFilter, setUserNameFilter] = useState('');
+  const [authStatusFilter, setAuthStatusFilter] = useState<'all' | 'auth' | 'anon'>('all');
+
   const fetchAnalytics = async () => {
     if (!token) return;
 
@@ -139,6 +152,43 @@ export default function AnalyticsPage() {
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     return `${Math.floor(diff / 3600)}h ago`;
   };
+
+  // Filter online users
+  const filteredOnlineUsers = data?.onlineUsers.users.filter(user => {
+    const userName = user.user
+      ? (user.user.profile.alias || `${user.user.profile.firstName} ${user.user.profile.lastName}`).toLowerCase()
+      : 'anónimo';
+    const userEmail = user.user?.email?.toLowerCase() || '';
+    const location = `${user.geolocation.city || ''} ${user.geolocation.country || ''}`.toLowerCase();
+
+    const matchesUser = userFilter === '' || userName.includes(userFilter.toLowerCase()) || userEmail.includes(userFilter.toLowerCase());
+    const matchesIP = ipFilter === '' || user.ipAddress.includes(ipFilter);
+    const matchesLocation = locationFilter === '' || location.includes(locationFilter.toLowerCase());
+    const matchesPage = pageFilter === '' || user.lastPage.toLowerCase().includes(pageFilter.toLowerCase());
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'auth' && user.isAuthenticated) ||
+      (statusFilter === 'anon' && !user.isAuthenticated);
+
+    return matchesUser && matchesIP && matchesLocation && matchesPage && matchesStatus;
+  }) || [];
+
+  // Filter active IPs
+  const filteredActiveIPs = data?.activeIPs.filter(ip => {
+    const userName = ip.user
+      ? `${ip.user.profile.firstName} ${ip.user.profile.lastName}`.toLowerCase()
+      : 'no autenticado';
+    const userEmail = ip.user?.email?.toLowerCase() || '';
+    const country = `${ip.geolocation.country || ''} ${ip.geolocation.city || ''}`.toLowerCase();
+
+    const matchesIPAddress = ipAddressFilter === '' || ip.ipAddress.includes(ipAddressFilter);
+    const matchesCountry = countryFilter === '' || country.includes(countryFilter.toLowerCase());
+    const matchesUserName = userNameFilter === '' || userName.includes(userNameFilter.toLowerCase()) || userEmail.includes(userNameFilter.toLowerCase());
+    const matchesAuthStatus = authStatusFilter === 'all' ||
+      (authStatusFilter === 'auth' && ip.isAuthenticated) ||
+      (authStatusFilter === 'anon' && !ip.isAuthenticated);
+
+    return matchesIPAddress && matchesCountry && matchesUserName && matchesAuthStatus;
+  }) || [];
 
   if (loading) {
     return (
@@ -271,9 +321,66 @@ export default function AnalyticsPage() {
 
           {/* Online Users Table */}
           <section className="bg-gradient-to-br from-slate-900/50 to-blue-900/30 backdrop-blur-sm border border-blue-800/30 rounded-2xl p-6 mb-8">
-            <h2 className="font-racing text-2xl text-white mb-4">
-              🟢 Usuarios Online ({data.onlineUsers.total})
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-racing text-2xl text-white">
+                🟢 Usuarios Online ({filteredOnlineUsers.length}/{data.onlineUsers.total})
+              </h2>
+              <button
+                onClick={() => {
+                  setUserFilter('');
+                  setIpFilter('');
+                  setLocationFilter('');
+                  setPageFilter('');
+                  setStatusFilter('all');
+                }}
+                className="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded hover:bg-red-500/30 transition-colors"
+              >
+                🗑️ Limpiar filtros
+              </button>
+            </div>
+
+            {/* Filters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
+              <input
+                type="text"
+                placeholder="Filtrar usuario..."
+                value={userFilter}
+                onChange={(e) => setUserFilter(e.target.value)}
+                className="px-3 py-2 bg-black/40 border border-cyan-400/30 rounded text-white text-sm focus:border-cyan-400 focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Filtrar IP..."
+                value={ipFilter}
+                onChange={(e) => setIpFilter(e.target.value)}
+                className="px-3 py-2 bg-black/40 border border-cyan-400/30 rounded text-white text-sm focus:border-cyan-400 focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Filtrar ubicación..."
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className="px-3 py-2 bg-black/40 border border-cyan-400/30 rounded text-white text-sm focus:border-cyan-400 focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Filtrar página..."
+                value={pageFilter}
+                onChange={(e) => setPageFilter(e.target.value)}
+                className="px-3 py-2 bg-black/40 border border-cyan-400/30 rounded text-white text-sm focus:border-cyan-400 focus:outline-none"
+              />
+              <div className="col-span-2">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as 'all' | 'auth' | 'anon')}
+                  className="w-full px-3 py-2 bg-black/40 border border-cyan-400/30 rounded text-white text-sm focus:border-cyan-400 focus:outline-none"
+                >
+                  <option value="all">Todos los estados</option>
+                  <option value="auth">✅ Solo autenticados</option>
+                  <option value="anon">❌ Solo anónimos</option>
+                </select>
+              </div>
+            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -288,7 +395,7 @@ export default function AnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.onlineUsers.users.map((user) => (
+                  {filteredOnlineUsers.map((user) => (
                     <tr key={user.sessionId} className="border-b border-blue-800/20 hover:bg-blue-900/20 transition-colors">
                       <td className="py-3 px-4">
                         {user.isAuthenticated && user.user ? (
@@ -332,9 +439,58 @@ export default function AnalyticsPage() {
 
           {/* Active IPs Table */}
           <section className="bg-gradient-to-br from-slate-900/50 to-purple-900/30 backdrop-blur-sm border border-purple-800/30 rounded-2xl p-6 mb-8">
-            <h2 className="font-racing text-2xl text-white mb-4">
-              🌍 IPs Activas ({data.activeIPs.length})
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-racing text-2xl text-white">
+                🌍 IPs Activas ({filteredActiveIPs.length}/{data.activeIPs.length})
+              </h2>
+              <button
+                onClick={() => {
+                  setIpAddressFilter('');
+                  setCountryFilter('');
+                  setUserNameFilter('');
+                  setAuthStatusFilter('all');
+                }}
+                className="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded hover:bg-red-500/30 transition-colors"
+              >
+                🗑️ Limpiar filtros
+              </button>
+            </div>
+
+            {/* Filters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
+              <input
+                type="text"
+                placeholder="Filtrar IP..."
+                value={ipAddressFilter}
+                onChange={(e) => setIpAddressFilter(e.target.value)}
+                className="px-3 py-2 bg-black/40 border border-purple-400/30 rounded text-white text-sm focus:border-purple-400 focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Filtrar país/ciudad..."
+                value={countryFilter}
+                onChange={(e) => setCountryFilter(e.target.value)}
+                className="px-3 py-2 bg-black/40 border border-purple-400/30 rounded text-white text-sm focus:border-purple-400 focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Filtrar usuario..."
+                value={userNameFilter}
+                onChange={(e) => setUserNameFilter(e.target.value)}
+                className="px-3 py-2 bg-black/40 border border-purple-400/30 rounded text-white text-sm focus:border-purple-400 focus:outline-none"
+              />
+              <div className="col-span-2">
+                <select
+                  value={authStatusFilter}
+                  onChange={(e) => setAuthStatusFilter(e.target.value as 'all' | 'auth' | 'anon')}
+                  className="w-full px-3 py-2 bg-black/40 border border-purple-400/30 rounded text-white text-sm focus:border-purple-400 focus:outline-none"
+                >
+                  <option value="all">Todos los estados</option>
+                  <option value="auth">✅ Solo autenticados</option>
+                  <option value="anon">❌ Solo anónimos</option>
+                </select>
+              </div>
+            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -348,7 +504,7 @@ export default function AnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.activeIPs.map((ip, idx) => (
+                  {filteredActiveIPs.map((ip, idx) => (
                     <tr key={idx} className="border-b border-purple-800/20 hover:bg-purple-900/20 transition-colors">
                       <td className="py-3 px-4">
                         <span className="font-mono text-cyan-400">{ip.ipAddress}</span>
