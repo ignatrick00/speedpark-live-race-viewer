@@ -72,7 +72,7 @@ export default function PublicDriverPage() {
         driverName: userData.driverName,
         firstName: userData.profile.firstName,
         lastName: userData.profile.lastName,
-        photoUrl: null // Will be loaded from user stats if available
+        photoUrl: userData.profile.photoUrl || null
       });
 
       // Transform to dashboard format (same as private dashboard)

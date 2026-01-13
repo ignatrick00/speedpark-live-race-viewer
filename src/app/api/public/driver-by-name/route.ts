@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       'kartingLink.driverName': driverName,
       'kartingLink.status': 'linked',
       'accountStatus': { $ne: 'deleted' }
-    }).select('_id profile.firstName profile.lastName kartingLink.driverName').lean();
+    }).select('_id profile.firstName profile.lastName profile.photoUrl kartingLink.driverName').lean();
 
     console.log('🔍 [PUBLIC API] User found:', user ? 'YES' : 'NO');
     if (user) {
@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
       driverName: user.kartingLink.driverName,
       profile: {
         firstName: user.profile.firstName,
-        lastName: user.profile.lastName
+        lastName: user.profile.lastName,
+        photoUrl: user.profile.photoUrl || null
       }
     });
 
