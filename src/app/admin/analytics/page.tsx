@@ -156,15 +156,14 @@ export default function AnalyticsPage() {
   // Filter online users
   const filteredOnlineUsers = data?.onlineUsers.users.filter(user => {
     const userName = user.user
-      ? (user.user.profile.alias || `${user.user.profile.firstName} ${user.user.profile.lastName}`).toLowerCase()
+      ? (user.user.profile.alias || `${user.user.profile.firstName} ${user.user.profile.lastName}`)
       : 'anónimo';
-    const userEmail = user.user?.email?.toLowerCase() || '';
-    const location = `${user.geolocation.city || ''} ${user.geolocation.country || ''}`.toLowerCase();
+    const location = `${user.geolocation.city || 'Unknown'}, ${user.geolocation.country || 'Unknown'}`;
 
-    const matchesUser = userFilter === '' || userName.includes(userFilter.toLowerCase()) || userEmail.includes(userFilter.toLowerCase());
-    const matchesIP = ipFilter === '' || user.ipAddress.includes(ipFilter);
-    const matchesLocation = locationFilter === '' || location.includes(locationFilter.toLowerCase());
-    const matchesPage = pageFilter === '' || user.lastPage.toLowerCase().includes(pageFilter.toLowerCase());
+    const matchesUser = userFilter === '' || userName === userFilter;
+    const matchesIP = ipFilter === '' || user.ipAddress === ipFilter;
+    const matchesLocation = locationFilter === '' || location === locationFilter;
+    const matchesPage = pageFilter === '' || user.lastPage === pageFilter;
     const matchesStatus = statusFilter === 'all' ||
       (statusFilter === 'auth' && user.isAuthenticated) ||
       (statusFilter === 'anon' && !user.isAuthenticated);
@@ -175,20 +174,42 @@ export default function AnalyticsPage() {
   // Filter active IPs
   const filteredActiveIPs = data?.activeIPs.filter(ip => {
     const userName = ip.user
-      ? `${ip.user.profile.firstName} ${ip.user.profile.lastName}`.toLowerCase()
+      ? `${ip.user.profile.firstName} ${ip.user.profile.lastName}`
       : 'no autenticado';
-    const userEmail = ip.user?.email?.toLowerCase() || '';
-    const country = `${ip.geolocation.country || ''} ${ip.geolocation.city || ''}`.toLowerCase();
+    const country = `${ip.geolocation.country || 'Unknown'}, ${ip.geolocation.city || 'Unknown'}`;
 
-    const matchesIPAddress = ipAddressFilter === '' || ip.ipAddress.includes(ipAddressFilter);
-    const matchesCountry = countryFilter === '' || country.includes(countryFilter.toLowerCase());
-    const matchesUserName = userNameFilter === '' || userName.includes(userNameFilter.toLowerCase()) || userEmail.includes(userNameFilter.toLowerCase());
+    const matchesIPAddress = ipAddressFilter === '' || ip.ipAddress === ipAddressFilter;
+    const matchesCountry = countryFilter === '' || country === countryFilter;
+    const matchesUserName = userNameFilter === '' || userName === userNameFilter;
     const matchesAuthStatus = authStatusFilter === 'all' ||
       (authStatusFilter === 'auth' && ip.isAuthenticated) ||
       (authStatusFilter === 'anon' && !ip.isAuthenticated);
 
     return matchesIPAddress && matchesCountry && matchesUserName && matchesAuthStatus;
   }) || [];
+
+  // Extract unique values for dropdowns (Online Users)
+  const uniqueIPs = Array.from(new Set(data?.onlineUsers.users.map(u => u.ipAddress) || [])).sort();
+  const uniqueLocations = Array.from(new Set(
+    data?.onlineUsers.users.map(u => `${u.geolocation.city || 'Unknown'}, ${u.geolocation.country || 'Unknown'}`) || []
+  )).sort();
+  const uniquePages = Array.from(new Set(data?.onlineUsers.users.map(u => u.lastPage) || [])).sort();
+  const uniqueUsers = Array.from(new Set(
+    data?.onlineUsers.users
+      .filter(u => u.isAuthenticated && u.user)
+      .map(u => u.user!.profile.alias || `${u.user!.profile.firstName} ${u.user!.profile.lastName}`) || []
+  )).sort();
+
+  // Extract unique values for dropdowns (Active IPs)
+  const uniqueActiveIPs = Array.from(new Set(data?.activeIPs.map(ip => ip.ipAddress) || [])).sort();
+  const uniqueCountries = Array.from(new Set(
+    data?.activeIPs.map(ip => `${ip.geolocation.country || 'Unknown'}, ${ip.geolocation.city || 'Unknown'}`) || []
+  )).sort();
+  const uniqueActiveUsers = Array.from(new Set(
+    data?.activeIPs
+      .filter(ip => ip.user)
+      .map(ip => `${ip.user!.profile.firstName} ${ip.user!.profile.lastName}`) || []
+  )).sort();
 
   if (loading) {
     return (
@@ -341,34 +362,46 @@ export default function AnalyticsPage() {
 
             {/* Filters Row */}
             <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
-              <input
-                type="text"
-                placeholder="Filtrar usuario..."
+              <select
                 value={userFilter}
                 onChange={(e) => setUserFilter(e.target.value)}
                 className="px-3 py-2 bg-black/40 border border-cyan-400/30 rounded text-white text-sm focus:border-cyan-400 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Filtrar IP..."
+              >
+                <option value="">Todos los usuarios</option>
+                {uniqueUsers.map(user => (
+                  <option key={user} value={user}>{user}</option>
+                ))}
+              </select>
+              <select
                 value={ipFilter}
                 onChange={(e) => setIpFilter(e.target.value)}
                 className="px-3 py-2 bg-black/40 border border-cyan-400/30 rounded text-white text-sm focus:border-cyan-400 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Filtrar ubicación..."
+              >
+                <option value="">Todas las IPs</option>
+                {uniqueIPs.map(ip => (
+                  <option key={ip} value={ip}>{ip}</option>
+                ))}
+              </select>
+              <select
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
                 className="px-3 py-2 bg-black/40 border border-cyan-400/30 rounded text-white text-sm focus:border-cyan-400 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Filtrar página..."
+              >
+                <option value="">Todas las ubicaciones</option>
+                {uniqueLocations.map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
+              <select
                 value={pageFilter}
                 onChange={(e) => setPageFilter(e.target.value)}
                 className="px-3 py-2 bg-black/40 border border-cyan-400/30 rounded text-white text-sm focus:border-cyan-400 focus:outline-none"
-              />
+              >
+                <option value="">Todas las páginas</option>
+                {uniquePages.map(page => (
+                  <option key={page} value={page}>{page}</option>
+                ))}
+              </select>
               <div className="col-span-2">
                 <select
                   value={statusFilter}
@@ -458,27 +491,36 @@ export default function AnalyticsPage() {
 
             {/* Filters Row */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
-              <input
-                type="text"
-                placeholder="Filtrar IP..."
+              <select
                 value={ipAddressFilter}
                 onChange={(e) => setIpAddressFilter(e.target.value)}
                 className="px-3 py-2 bg-black/40 border border-purple-400/30 rounded text-white text-sm focus:border-purple-400 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Filtrar país/ciudad..."
+              >
+                <option value="">Todas las IPs</option>
+                {uniqueActiveIPs.map(ip => (
+                  <option key={ip} value={ip}>{ip}</option>
+                ))}
+              </select>
+              <select
                 value={countryFilter}
                 onChange={(e) => setCountryFilter(e.target.value)}
                 className="px-3 py-2 bg-black/40 border border-purple-400/30 rounded text-white text-sm focus:border-purple-400 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Filtrar usuario..."
+              >
+                <option value="">Todos los países</option>
+                {uniqueCountries.map(country => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
+              </select>
+              <select
                 value={userNameFilter}
                 onChange={(e) => setUserNameFilter(e.target.value)}
                 className="px-3 py-2 bg-black/40 border border-purple-400/30 rounded text-white text-sm focus:border-purple-400 focus:outline-none"
-              />
+              >
+                <option value="">Todos los usuarios</option>
+                {uniqueActiveUsers.map(user => (
+                  <option key={user} value={user}>{user}</option>
+                ))}
+              </select>
               <div className="col-span-2">
                 <select
                   value={authStatusFilter}
