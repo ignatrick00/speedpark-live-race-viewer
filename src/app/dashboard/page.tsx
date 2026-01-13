@@ -15,7 +15,6 @@ import TopDriversDay from '@/components/TopDriversDay';
 import TopDriversWeek from '@/components/TopDriversWeek';
 import TopDriversMonth from '@/components/TopDriversMonth';
 import TopDriversAllTime from '@/components/TopDriversAllTime';
-import KartRankingCard from '@/components/KartRankingCard';
 import Navbar from '@/components/Navbar';
 
 export interface PersonalStats {
@@ -1007,11 +1006,6 @@ function DashboardContent() {
                 <LeaderboardCard
                   currentUserId={user?.id}
                   friendUserId={isViewingFriend ? targetUserId : undefined}
-                />
-
-                {/* Kart Ranking */}
-                <KartRankingCard
-                  userFavoriteKart={stats.favoriteKart}
                 />
 
                 {/* Achievements */}
