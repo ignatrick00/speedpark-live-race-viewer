@@ -19,26 +19,25 @@ export async function GET(request: NextRequest) {
     if (filter === 'day') {
       console.log('📅 Fetching best times of TODAY from lap_records...');
 
-      // Get current date/time in Chile timezone
-      const nowInChile = new Date().toLocaleString('en-US', {
+      // Get today's date components in Chile timezone
+      const formatter = new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/Santiago',
         year: 'numeric',
         month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
+        day: '2-digit'
       });
 
-      // Parse Chile date to get today's date components
-      const [datePart] = nowInChile.split(', ');
-      const [month, day, year] = datePart.split('/').map(Number);
+      const parts = formatter.formatToParts(new Date());
+      const year = parts.find(p => p.type === 'year')!.value;
+      const month = parts.find(p => p.type === 'month')!.value;
+      const day = parts.find(p => p.type === 'day')!.value;
 
-      // Create UTC date representing 00:00 Chile time (which is 03:00 UTC in summer, 04:00 in winter)
-      const startOfTodayChile = new Date(`${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T00:00:00-03:00`);
+      // Create ISO string for 00:00 Chile time (-03:00 offset)
+      const startOfTodayChile = new Date(`${year}-${month}-${day}T00:00:00-03:00`);
 
-      console.log(`🇨🇱 Chile today starts at: ${startOfTodayChile.toISOString()} (${startOfTodayChile.toLocaleString('es-CL', { timeZone: 'America/Santiago' })})`);
+      console.log(`🇨🇱 Chile date: ${day}/${month}/${year}`);
+      console.log(`🇨🇱 Start of today Chile: ${startOfTodayChile.toISOString()}`);
+      console.log(`🇨🇱 In Chile time: ${startOfTodayChile.toLocaleString('es-CL', { timeZone: 'America/Santiago' })}`);
 
       // Get all lap records from today - SOLO VÁLIDOS
       const todayRecords = await LapRecord.find({
@@ -48,6 +47,10 @@ export async function GET(request: NextRequest) {
       }).lean();
 
       console.log(`📊 Found ${todayRecords.length} lap records from today`);
+      if (todayRecords.length > 0) {
+        console.log(`📅 First record timestamp: ${todayRecords[0].timestamp} (${new Date(todayRecords[0].timestamp).toLocaleString('es-CL', { timeZone: 'America/Santiago' })})`);
+        console.log(`📅 Last record timestamp: ${todayRecords[todayRecords.length-1].timestamp} (${new Date(todayRecords[todayRecords.length-1].timestamp).toLocaleString('es-CL', { timeZone: 'America/Santiago' })})`);
+      }
 
       // Group by driver and find their best time
       const driverBestTimes = new Map();
