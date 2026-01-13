@@ -19,8 +19,12 @@ export async function GET(request: NextRequest) {
     if (filter === 'day') {
       console.log('📅 Fetching best times of TODAY from lap_records...');
 
-      const startOfToday = new Date();
+      // Get Chile time start of today
+      const nowChile = new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' });
+      const startOfToday = new Date(nowChile);
       startOfToday.setHours(0, 0, 0, 0);
+
+      console.log(`🇨🇱 Chile today starts at: ${startOfToday.toISOString()}`);
 
       // Get all lap records from today - SOLO VÁLIDOS
       const todayRecords = await LapRecord.find({
@@ -44,7 +48,8 @@ export async function GET(request: NextRequest) {
             sessionName: record.sessionName,
             sessionTime: new Date(record.timestamp).toLocaleTimeString('es-CL', {
               hour: '2-digit',
-              minute: '2-digit'
+              minute: '2-digit',
+              timeZone: 'America/Santiago'
             })
           });
         }
