@@ -58,17 +58,29 @@ export async function GET(request: Request) {
         'drivers.kartNumber': kartNumber,
         'drivers.bestTime': { $gt: 0 }
       }},
+      // Ordenar por mejor tiempo ANTES de agrupar
+      { $sort: { 'drivers.bestTime': 1 } },
+      // Agrupar por piloto y tomar su mejor tiempo
+      {
+        $group: {
+          _id: '$drivers.driverName',
+          bestTime: { $first: '$drivers.bestTime' },
+          sessionName: { $first: '$sessionName' },
+          sessionDate: { $first: '$sessionDate' }
+        }
+      },
+      // Proyectar con nombres correctos
       {
         $project: {
-          driverName: '$drivers.driverName',
-          bestTime: '$drivers.bestTime',
-          sessionName: '$sessionName',
-          sessionDate: '$sessionDate',
+          driverName: '$_id',
+          bestTime: 1,
+          sessionName: 1,
+          sessionDate: 1,
           _id: 0
         }
       },
       { $sort: { bestTime: 1 } }, // Ordenar por mejor tiempo
-      { $limit: 50 } // Top 50 records
+      { $limit: 50 } // Top 50 pilotos únicos
     ]);
 
     // Get all unique driver names to lookup web users
