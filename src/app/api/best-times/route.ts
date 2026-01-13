@@ -19,16 +19,30 @@ export async function GET(request: NextRequest) {
     if (filter === 'day') {
       console.log('📅 Fetching best times of TODAY from lap_records...');
 
-      // Get Chile time start of today
-      const nowChile = new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' });
-      const startOfToday = new Date(nowChile);
-      startOfToday.setHours(0, 0, 0, 0);
+      // Get current date/time in Chile timezone
+      const nowInChile = new Date().toLocaleString('en-US', {
+        timeZone: 'America/Santiago',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
 
-      console.log(`🇨🇱 Chile today starts at: ${startOfToday.toISOString()}`);
+      // Parse Chile date to get today's date components
+      const [datePart] = nowInChile.split(', ');
+      const [month, day, year] = datePart.split('/').map(Number);
+
+      // Create UTC date representing 00:00 Chile time (which is 03:00 UTC in summer, 04:00 in winter)
+      const startOfTodayChile = new Date(`${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T00:00:00-03:00`);
+
+      console.log(`🇨🇱 Chile today starts at: ${startOfTodayChile.toISOString()} (${startOfTodayChile.toLocaleString('es-CL', { timeZone: 'America/Santiago' })})`);
 
       // Get all lap records from today - SOLO VÁLIDOS
       const todayRecords = await LapRecord.find({
-        timestamp: { $gte: startOfToday },
+        timestamp: { $gte: startOfTodayChile },
         bestTime: { $gt: 0 },
         isValid: true // Solo tiempos válidos para rankings
       }).lean();
