@@ -78,7 +78,7 @@ export default function RankingPage() {
       <div className="min-h-screen bg-gradient-to-br from-midnight via-racing-black to-midnight">
         {/* Header with Toggle Control */}
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="mb-6">
+          <div className="mb-6 text-center">
             <h1 className="text-4xl md:text-5xl font-racing text-gold mb-2">
               🏁 RANKING & CARRERAS
             </h1>
@@ -89,7 +89,7 @@ export default function RankingPage() {
 
           {/* Tabs Navigation */}
           <div className="mb-8">
-            <div className="flex gap-2 border-b border-gold/20">
+            <div className="flex gap-2 border-b border-gold/20 justify-center">
               <button
                 onClick={() => setActiveTab('pilotos')}
                 className={`px-6 py-3 font-racing text-lg transition-all duration-200 ${
