@@ -45,13 +45,24 @@ export class RaceSessionServiceV0 {
       await connectDB();
 
       // 1. Generar sessionId único (nombre + fecha) - usando timezone de Chile
-      const now = new Date();
-      // Guardar fecha actual en UTC (MongoDB la guarda así)
-      // El display en frontend convertirá automáticamente a timezone Chile
-      const sessionDate = now;
+      // Obtener hora ACTUAL en timezone Chile (sin importar timezone del servidor)
+      const nowChileStr = new Date().toLocaleString('en-US', {
+        timeZone: 'America/Santiago',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+
+      // Parsear a Date - esto crea el timestamp correcto para hora Chile
+      const sessionDate = new Date(nowChileStr);
       const sessionId = this.generateSessionId(smsData.N, sessionDate);
 
-      console.log(`📝 [V0-SERVICE] SessionId: ${sessionId}, Chile time: ${sessionDate.toString()}`);
+      console.log(`📝 [V0-SERVICE] Chile time: ${nowChileStr}`);
+      console.log(`📝 [V0-SERVICE] SessionDate UTC: ${sessionDate.toISOString()}`);
 
       // 2. Determinar tipo de sesión
       const sessionType = this.determineSessionType(smsData.N);
