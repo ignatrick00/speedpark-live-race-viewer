@@ -16,28 +16,40 @@ interface DriverData {
 export class StatsService {
 
   /**
-   * Adjust hour to Chile time
-   * Issue: Race at 19:58 Chile is stored as 16:58 in DB (3 hours less)
-   * Solution: Add 3 hours to get the real Chile time
+   * Convert UTC date to Chile time
+   * DB stores dates in UTC, this extracts all date components in Chile timezone
    */
   private static toChileTime(date: Date): { hour: number, weekday: number, date: Date } {
-    const dbHour = date.getHours();
-    const dbDay = date.getDay();
+    // Extract all date components in Chile timezone using Intl.DateTimeFormat
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'America/Santiago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    };
 
-    // Add 3 hours to compensate for the offset
-    let chileHour = dbHour + 3;
-    let chileDay = dbDay;
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    const parts = formatter.formatToParts(date);
 
-    // Handle day boundary crossing (if hour goes past 23:59)
-    if (chileHour >= 24) {
-      chileHour -= 24;
-      chileDay = (dbDay + 1) % 7; // Next day
-    }
+    // Extract individual components
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '1') - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '1');
+    const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+    const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+    const second = parseInt(parts.find(p => p.type === 'second')?.value || '0');
+
+    // Reconstruct Date object with Chile time components
+    const chileDate = new Date(year, month, day, hour, minute, second);
 
     return {
-      hour: chileHour,
-      weekday: chileDay,
-      date: date
+      hour: chileDate.getHours(),
+      weekday: chileDate.getDay(),
+      date: chileDate
     };
   }
 

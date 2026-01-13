@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         name: s.name,
         drivers: s.driversCount,
         revenue: s.revenue,
-        timestamp: new Date(s.timestamp).toLocaleString('es-CL')
+        timestamp: new Date(s.timestamp).toLocaleString('es-CL', { timeZone: 'America/Santiago' })
       })),
       dateRange: startDate && endDate ? {
         start: startDate.toISOString(),
