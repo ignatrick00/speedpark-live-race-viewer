@@ -181,12 +181,30 @@ export async function GET(request: Request) {
         { $limit: 20 }
       ]);
 
+      // Lookup web users for kart drivers
+      const kartDriverNames = bestKartTimes.map(k => k.driverName);
+      const kartWebUsers = await WebUser.find({
+        'kartingLink.driverName': { $in: kartDriverNames },
+        'kartingLink.status': 'linked',
+        'accountStatus': { $ne: 'deleted' }
+      }).select('_id kartingLink.driverName profile.photoUrl').lean();
+
+      // Create maps for quick lookup
+      const kartDriverToUserIdMap = new Map(
+        kartWebUsers.map(u => [u.kartingLink.driverName, u._id.toString()])
+      );
+      const kartDriverToPhotoUrlMap = new Map(
+        kartWebUsers.map(u => [u.kartingLink.driverName, u.profile?.photoUrl || null])
+      );
+
       // Formatear para frontend - retornar todos los resultados (20 para karts)
       const formattedKarts = bestKartTimes.map((item, idx) => ({
         position: idx + 1,
         kart: item._id,
         time: formatTime(item.bestTime),
         driver: item.driverName,
+        webUserId: kartDriverToUserIdMap.get(item.driverName) || null,
+        photoUrl: kartDriverToPhotoUrlMap.get(item.driverName) || null,
         session: item.sessionName,
         date: formatDateTime(item.sessionDate)
       }));

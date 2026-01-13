@@ -7,6 +7,7 @@ interface KartRecord {
   position: number;
   driverName: string;
   webUserId?: string | null;
+  photoUrl?: string | null;
   bestTime: number;
   sessionName: string;
   sessionDate: string;
@@ -139,13 +140,22 @@ export default function KartRecordsSelectorV0() {
                   </div>
                 </div>
 
-                {/* Middle: Profile Button */}
+                {/* Middle: Profile Photo + Button */}
                 {entry.webUserId && (
-                  <Link href={`/piloto/${encodeURIComponent(entry.driverName)}`}>
-                    <button className="px-3 py-1 text-xs bg-electric-blue/20 text-electric-blue border border-electric-blue/40 rounded-md hover:bg-electric-blue/30 hover:border-electric-blue transition-all font-bold whitespace-nowrap">
-                      Ver Perfil
-                    </button>
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    {entry.photoUrl && (
+                      <img
+                        src={entry.photoUrl}
+                        alt={entry.driverName}
+                        className="w-8 h-8 rounded-full object-cover border-2 border-electric-blue/40"
+                      />
+                    )}
+                    <Link href={`/piloto/${encodeURIComponent(entry.driverName)}`}>
+                      <button className="px-3 py-1 text-xs bg-electric-blue/20 text-electric-blue border border-electric-blue/40 rounded-md hover:bg-electric-blue/30 hover:border-electric-blue transition-all font-bold whitespace-nowrap">
+                        Ver Perfil
+                      </button>
+                    </Link>
+                  </div>
                 )}
 
                 {/* Right: Time */}

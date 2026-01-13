@@ -79,18 +79,22 @@ export async function GET(request: Request) {
       'kartingLink.driverName': { $in: driverNames },
       'kartingLink.status': 'linked',
       'accountStatus': { $ne: 'deleted' }
-    }).select('_id kartingLink.driverName').lean();
+    }).select('_id kartingLink.driverName profile.photoUrl').lean();
 
-    // Create map for quick lookup
+    // Create maps for quick lookup
     const driverToUserIdMap = new Map(
       webUsers.map(u => [u.kartingLink.driverName, u._id.toString()])
     );
+    const driverToPhotoUrlMap = new Map(
+      webUsers.map(u => [u.kartingLink.driverName, u.profile?.photoUrl || null])
+    );
 
-    // Formatear para frontend (agregar posición y webUserId)
+    // Formatear para frontend (agregar posición, webUserId y photoUrl)
     const formattedRecords = kartRecords.map((record, idx) => ({
       position: idx + 1,
       driverName: record.driverName,
       webUserId: driverToUserIdMap.get(record.driverName) || null,
+      photoUrl: driverToPhotoUrlMap.get(record.driverName) || null,
       bestTime: record.bestTime,
       sessionName: record.sessionName,
       sessionDate: new Date(record.sessionDate).toISOString().split('T')[0],
