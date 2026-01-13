@@ -10,8 +10,8 @@ export async function GET() {
 
     // Obtener todas las escuaderías activas
     const squadrons = await Squadron.find({ isActive: true })
-      .populate('captain', 'name email')
-      .populate('members', 'name email')
+      .populate('captain', 'name email profile.alias profile.photoUrl')
+      .populate('members', 'name email profile.alias profile.photoUrl kartingLink')
       .lean();
 
     console.log(`🏆 [SQUADRON-RANKING] Found ${squadrons.length} active squadrons`);
@@ -37,8 +37,18 @@ export async function GET() {
           captain: squadron.captain ? {
             _id: squadron.captain._id,
             name: squadron.captain.name,
-            email: squadron.captain.email
-          } : null
+            email: squadron.captain.email,
+            alias: squadron.captain.profile?.alias || null,
+            photoUrl: squadron.captain.profile?.photoUrl || null
+          } : null,
+          members: squadron.members ? squadron.members.map((member: any) => ({
+            _id: member._id,
+            name: member.name,
+            email: member.email,
+            alias: member.profile?.alias || null,
+            photoUrl: member.profile?.photoUrl || null,
+            kartingLink: member.kartingLink || null
+          })) : []
         };
       })
     );

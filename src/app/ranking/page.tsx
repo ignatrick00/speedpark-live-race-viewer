@@ -17,6 +17,8 @@ export default function RankingPage() {
   const [loading, setLoading] = useState(true);
   const [squadrons, setSquadrons] = useState<any[]>([]);
   const [loadingSquadrons, setLoadingSquadrons] = useState(true);
+  const [selectedSquadron, setSelectedSquadron] = useState<any | null>(null);
+  const [showMembersModal, setShowMembersModal] = useState(false);
 
   useEffect(() => {
     fetchToggleStatus();
@@ -213,9 +215,15 @@ export default function RankingPage() {
                                 </div>
                               </td>
                               <td className="px-6 py-4 text-center">
-                                <span className="px-3 py-1 bg-electric-blue/20 text-electric-blue rounded-full text-sm font-bold">
+                                <button
+                                  onClick={() => {
+                                    setSelectedSquadron(squadron);
+                                    setShowMembersModal(true);
+                                  }}
+                                  className="px-3 py-1 bg-electric-blue/20 text-electric-blue rounded-full text-sm font-bold hover:bg-electric-blue/30 transition-colors cursor-pointer"
+                                >
                                   {squadron.memberCount} pilotos
-                                </span>
+                                </button>
                               </td>
                               <td className="px-6 py-4 text-right">
                                 <span className={`text-2xl font-bold ${
@@ -244,6 +252,134 @@ export default function RankingPage() {
           </div>
         </div>
       </div>
+
+      {/* Squadron Members Modal */}
+      {showMembersModal && selectedSquadron && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowMembersModal(false)}
+        >
+          <div
+            className="bg-gradient-to-br from-racing-black/95 to-racing-black/90 border border-gold/30 rounded-xl max-w-3xl w-full max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-racing-black/95 border-b border-gold/20 p-6 z-10">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-4 flex-1">
+                  {selectedSquadron.logo && (
+                    <img
+                      src={selectedSquadron.logo}
+                      alt={selectedSquadron.name}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gold"
+                    />
+                  )}
+                  <div>
+                    <h2 className="text-2xl font-racing text-gold mb-1">
+                      {selectedSquadron.name}
+                    </h2>
+                    {selectedSquadron.tag && (
+                      <p className="text-sm text-sky-blue/70 mb-2">[{selectedSquadron.tag}]</p>
+                    )}
+                    <div className="flex gap-4 text-sm">
+                      <span className="text-electric-blue">
+                        👥 {selectedSquadron.memberCount} miembros
+                      </span>
+                      <span className="text-gold">
+                        🏆 {selectedSquadron.totalPoints.toLocaleString()} pts
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMembersModal(false)}
+                  className="text-gray-400 hover:text-white transition-colors text-2xl flex-shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content - Members List */}
+            <div className="p-6">
+              <h3 className="text-xl font-racing text-gold mb-4">Miembros de la Escuadería</h3>
+
+              {selectedSquadron.members && selectedSquadron.members.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedSquadron.members.map((member: any) => {
+                    const isCaptain = member._id === selectedSquadron.captain?._id;
+                    const driverName = member.kartingLink?.driverName || member.alias || member.name;
+
+                    return (
+                      <div
+                        key={member._id}
+                        className={`bg-racing-black/40 border rounded-lg p-4 hover:border-electric-blue/30 transition-all ${
+                          isCaptain ? 'border-gold/40 bg-gold/5' : 'border-sky-blue/10'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          {/* Left: Photo + Info */}
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {member.photoUrl ? (
+                              <img
+                                src={member.photoUrl}
+                                alt={driverName}
+                                className={`w-12 h-12 rounded-full object-cover border-2 ${
+                                  isCaptain ? 'border-gold' : 'border-electric-blue/40'
+                                }`}
+                              />
+                            ) : (
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-2 ${
+                                isCaptain ? 'bg-gold/10 border-gold' : 'bg-electric-blue/10 border-electric-blue/40'
+                              }`}>
+                                👤
+                              </div>
+                            )}
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white text-lg">
+                                  {driverName}
+                                </span>
+                                {isCaptain && (
+                                  <span className="px-2 py-0.5 bg-gold/20 text-gold text-xs font-bold rounded-full border border-gold/40">
+                                    CAPITÁN
+                                  </span>
+                                )}
+                              </div>
+                              {member.alias && member.alias !== driverName && (
+                                <div className="text-xs text-sky-blue/60 mt-0.5">
+                                  {member.alias}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Right: Profile Button */}
+                          {member.kartingLink?.driverName && (
+                            <a
+                              href={`/piloto/${encodeURIComponent(member.kartingLink.driverName)}`}
+                              onClick={() => setShowMembersModal(false)}
+                            >
+                              <button className="px-3 py-1 text-xs bg-electric-blue/20 text-electric-blue border border-electric-blue/40 rounded-md hover:bg-electric-blue/30 hover:border-electric-blue transition-all font-bold whitespace-nowrap">
+                                Ver Perfil
+                              </button>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center text-sky-blue/70 py-8">
+                  No hay miembros registrados
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
