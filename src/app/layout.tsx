@@ -3,6 +3,7 @@ import { Inter, Bebas_Neue, Orbitron } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import RoleSidebar from '@/components/RoleSidebar'
+import ActivityTracker from '@/components/ActivityTracker'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const bebasNeue = Bebas_Neue({ 
@@ -33,6 +34,7 @@ export default function RootLayout({
     <html lang="es" className={`${inter.variable} ${bebasNeue.variable} ${orbitron.variable}`}>
       <body className={inter.className}>
         <AuthProvider>
+          <ActivityTracker />
           {children}
           <RoleSidebar />
         </AuthProvider>
