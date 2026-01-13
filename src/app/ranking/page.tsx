@@ -89,7 +89,7 @@ export default function RankingPage() {
 
           {/* Tabs Navigation */}
           <div className="mb-8">
-            <div className="flex gap-2 border-b border-gold/20 justify-center">
+            <div className="flex gap-2 border-b border-gold/20 justify-center items-center">
               <button
                 onClick={() => setActiveTab('pilotos')}
                 className={`px-6 py-3 font-racing text-lg transition-all duration-200 ${
@@ -100,6 +100,10 @@ export default function RankingPage() {
               >
                 👤 PILOTOS
               </button>
+
+              {/* Divisor vertical */}
+              <div className="h-8 w-px bg-gold/30"></div>
+
               <button
                 onClick={() => setActiveTab('karts')}
                 className={`px-6 py-3 font-racing text-lg transition-all duration-200 ${
@@ -110,6 +114,10 @@ export default function RankingPage() {
               >
                 🏎️ KARTS
               </button>
+
+              {/* Divisor vertical */}
+              <div className="h-8 w-px bg-gold/30"></div>
+
               <button
                 onClick={() => setActiveTab('escuderias')}
                 className={`px-6 py-3 font-racing text-lg transition-all duration-200 ${
