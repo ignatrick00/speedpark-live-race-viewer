@@ -22,11 +22,19 @@ export default function TopDriversV0Day() {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    // Default: hoy en hora local en formato YYYY-MM-DD (sin conversión UTC)
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
+    // Default: hoy en HORA CHILE en formato YYYY-MM-DD
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Santiago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+
+    const parts = formatter.formatToParts(new Date());
+    const year = parts.find(p => p.type === 'year')!.value;
+    const month = parts.find(p => p.type === 'month')!.value;
+    const day = parts.find(p => p.type === 'day')!.value;
+
     return `${year}-${month}-${day}`;
   });
 
@@ -121,8 +129,18 @@ export default function TopDriversV0Day() {
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
               maxDate={(() => {
-                const now = new Date();
-                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                // Usar fecha de hoy en Chile
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                  timeZone: 'America/Santiago',
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit'
+                });
+                const parts = formatter.formatToParts(new Date());
+                const year = parts.find(p => p.type === 'year')!.value;
+                const month = parts.find(p => p.type === 'month')!.value;
+                const day = parts.find(p => p.type === 'day')!.value;
+                return `${year}-${month}-${day}`;
               })()}
             />
           </div>
@@ -231,8 +249,18 @@ export default function TopDriversV0Day() {
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
                 maxDate={(() => {
-                  const now = new Date();
-                  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                  // Usar fecha de hoy en Chile
+                  const formatter = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'America/Santiago',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  });
+                  const parts = formatter.formatToParts(new Date());
+                  const year = parts.find(p => p.type === 'year')!.value;
+                  const month = parts.find(p => p.type === 'month')!.value;
+                  const day = parts.find(p => p.type === 'day')!.value;
+                  return `${year}-${month}-${day}`;
                 })()}
               />
             </div>
